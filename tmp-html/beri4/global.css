@@ -1,0 +1,45 @@
+:root {
+  --bg-color: #fff9f2;
+  --card-bg: #ffffff;
+  --card-border: #efe7dc;
+  --text-dark: #1a1410;
+  --text-gray: #a79c8f;
+  --text-medium: #514840;
+  --placeholder-bg: #f6f1e9;
+  --placeholder-border: rgba(26, 20, 16, 0.15);
+  --avatar-border: rgba(26, 20, 16, 0.22);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+
+section {
+  width: 100%;
+  max-width: 412px;
+  background-color: var(--bg-color);
+}
+
+/* Add shadow to simulate the app screen container */
+section:first-of-type {
+  box-shadow: 0px -10px 30px rgba(26, 20, 16, 0.05);
+}
+section:last-of-type {
+  box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
+  flex-grow: 1;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+p, h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+}

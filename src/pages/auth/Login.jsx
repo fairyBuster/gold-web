@@ -1,0 +1,442 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import img_1 from '../../assets/images/151642bbb8cff080998656ba33ae0e9d91b5e580.png';
+import img_2 from '../../assets/images/9_178.svg';
+import img_3 from '../../assets/images/9_185.svg';
+import img_4 from '../../assets/images/9_191.svg';
+import img_5 from '../../assets/images/a.png';
+import img_6 from '../../assets/images/b.png';
+import img_7 from '../../assets/images/all_bg.png';
+
+/* API layer — the login form calls POST /api/auth/jwt/identifier-login/. */
+import { loginUser } from '../../lib/authApi.js';
+import * as authSession from '../../lib/authSession.js';
+import NotifCard from '../../components/NotifCard.jsx';
+
+/* Page styles are kept inline in this file so the page is a single-file import. */
+const styles = `
+/* Scoped styles for Login — converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-login to isolate this page. */
+
+.page-login {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: #e5e5e5;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-login .app-layout {
+  width: 100%;
+  max-width: 100%;
+  min-height: 1020px;
+  /* all_bg.png is the full-page artwork (warm glows anchored to the top and
+     bottom edges) — stretch it so it backs the entire page, not just a crop. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
+  position: relative;
+  overflow: hidden;
+  background-color: #fcf9f4;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-login, .page-login * {
+  box-sizing: border-box;
+}
+
+.page-login button,.page-login  input {
+  font-family: 'Inter', sans-serif;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Hero */
+.page-login .hero-section {
+    position: relative;
+    height: 460px;
+    background: radial-gradient(circle at 50% 0%, #241c16 0%, #1a1410 55%, #120d09 100%);
+    padding: 96px 28px 0;
+  }
+
+  /* Idle float for the decorative hero circles. */
+  @keyframes login-circle-float {
+    0% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(-4px, -9px, 0); }
+    100% { transform: translate3d(0, 0, 0); }
+  }
+  .page-login .bg-circle {
+    position: absolute;
+    border-radius: 50%;
+    animation: login-circle-float 3.6s ease-in-out infinite;
+  }
+  .page-login .circle-1 { width: 22px; height: 22px; background-color: #ffc93c; top: 100px; right: 32px; }
+  .page-login .circle-2 { width: 22px; height: 22px; background-color: #ffc93c; top: 37px; right: 137px; animation-duration: 4.4s; animation-delay: -1.2s; }
+  .page-login .circle-3 { width: 30px; height: 30px; background-color: #ff9f1c; top: 330px; right: 16px; animation-duration: 5.2s; animation-delay: -2.4s; }
+  .page-login .circle-4 { width: 22px; height: 22px; background-color: #ffc93c; top: 222px; right: 92px; animation-duration: 4s; animation-delay: -0.6s; }
+  
+  .page-login .bg-gradient-glow {
+    position: absolute;
+    width: 190px;
+    height: 190px;
+    background: radial-gradient(50% 50% at 50% 50%, #ff9f1c 0%, rgba(255, 159, 28, 0) 72%);
+    opacity: 0.3;
+    top: 110px;
+    left: -100px;
+    border-radius: 50%;
+  }
+
+  .page-login .hero-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-login .version-text {
+    color: rgba(255, 249, 242, 0.42);
+    font-size: 12px;
+    margin: 0 0 40px 0;
+  }
+
+  .page-login .greeting-text {
+    color: #fff9f2;
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 2px 0;
+  }
+
+  .page-login .hero-logo {
+    width: 210px;
+    height: 80px;
+    object-fit: contain;
+    margin-bottom: 16px;
+  }
+
+  .page-login .hero-description {
+    color: rgba(255, 249, 242, 0.68);
+    font-size: 14px;
+    line-height: 1.5;
+    max-width: 270px;
+    margin: 0;
+  }
+
+/* CSS for section section:Login */
+.page-login .login-section {
+    padding: 0 24px;
+    margin-top: -54px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .page-login .login-card {
+    background-color: #ffffff;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0px 16px 34px 0px rgba(26, 20, 16, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .page-login .input-group {
+    background-color: #f6f1e9;
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .page-login .input-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .page-login .toggle-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin-left: auto;
+  }
+
+  .page-login .input-field {
+    border: none;
+    background: transparent;
+    outline: none;
+    flex: 1;
+    color: #1a1410;
+    font-size: 14px;
+    width: 100%;
+  }
+  
+  .page-login .input-field::placeholder {
+    color: #a79c8f;
+  }
+
+  .page-login .forgot-password-container {
+    display: flex;
+    justify-content: flex-end;
+    padding: 4px 0;
+  }
+
+  .page-login .forgot-password-link {
+    color: #e8790c;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .page-login .btn-login {
+    background-color: #f1b04a;
+    color: #1a1410;
+    border: none;
+    border-radius: 5px;
+    padding: 16px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  .page-login .btn-login:disabled {
+    opacity: 0.7;
+    cursor: default;
+  }
+
+  .page-login .login-error {
+    color: #e24c4c;
+    font-size: 12px;
+    line-height: 1.4;
+    margin: 0 0 10px 0;
+  }
+
+  .page-login .login-disclaimer {
+    color: #a79c8f;
+    font-size: 10px;
+    text-align: center;
+    margin: 8px 0 0 0;
+    line-height: 1.4;
+  }
+
+/* CSS for section section:Footer */
+.page-login .footer-section {
+  padding: 24px 24px 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.page-login .divider-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.page-login .divider-line {
+  flex: 1;
+  height: 1px;
+  background-color: #efe7dc;
+}
+
+.page-login .divider-text {
+  color: #a79c8f;
+  font-size: 12px;
+}
+
+.page-login .btn-register {
+  background-color: #231b15;
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  padding: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.page-login .terms-text {
+  color: #a79c8f;
+  font-size: 11px;
+  text-align: center;
+  margin: 0 0 24px 0;
+}
+
+.page-login .terms-link {
+  color: #e8790c;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.page-login .partner-logos {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.page-login .logo-ojk {
+  height: 17px;
+  width: 40px;
+  object-fit: contain;
+}
+
+.page-login .logo-bappebti {
+  height: 17px;
+  width: 50px;
+  object-fit: contain;
+}
+
+.page-login .footer-links {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.page-login .footer-links a {
+  color: #514840;
+  font-size: 11px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.page-login .footer-links .dot {
+  color: #a79c8f;
+  font-size: 11px;
+}
+
+.page-login .company-details {
+  color: #a79c8f;
+  font-size: 10px;
+  text-align: center;
+  line-height: 1.6;
+  margin: 0;
+}
+`;
+
+export default function Login() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [apiError, setApiError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (loading) return;
+    setApiError('');
+    if (!identifier.trim()) {
+      setError('Masukkan email atau nomor ponsel kamu.');
+      return;
+    }
+    if (!password) {
+      setError('Masukkan password kamu.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      const { access, refresh } = await loginUser({ identifier: identifier.trim(), password });
+      authSession.save({ access, refresh });
+      const from = location.state?.from || '/home';
+      navigate(from, { replace: true });
+    } catch (err) {
+      const friendly =
+        err?.status === 401
+          ? 'Email/nomor ponsel atau password salah.'
+          : 'Login gagal. Silakan coba lagi.';
+      setApiError(err?.message && !String(err.message).startsWith('Permintaan gagal') ? err.message : friendly);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="page-login">
+      <style>{styles}</style>
+      <div className="app-layout" style={{ backgroundImage: `url(${img_7})` }}>
+              <section id="section-hero" className="hero-section">
+                <div className="bg-circle circle-1" />
+                <div className="bg-circle circle-2" />
+                <div className="bg-circle circle-3" />
+                <div className="bg-circle circle-4" />
+                <div className="bg-gradient-glow" />
+                <div className="hero-content">
+                  <p className="version-text">Jelajah Emas v1.0.0</p>
+                  <h1 className="greeting-text">Halo dari</h1>
+                  <img className="hero-logo" src={img_1} alt="Jelajah Emas Logo" />
+                  <p className="hero-description">Semua tentang emas dimulai dari rasa ingin tahu. Temukan informasi, pengetahuan, dan berbagai hal menarik untuk kamu lihat di sini.</p>
+                </div>
+              </section>
+              <section id="section-login" className="login-section">
+                <div className="login-card">
+                  <div className="input-group">
+                    <img src={img_2} alt="User Icon" className="input-icon" />
+                    <input type="text" placeholder="Email atau nomor ponsel" className="input-field" value={identifier} onChange={(e) => { setIdentifier(e.target.value); setError(''); setApiError(''); }} onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(); }} />
+                  </div>
+                  <div className="input-group">
+                    <img src={img_3} alt="Lock Icon" className="input-icon" />
+                    <input type={showPassword ? 'text' : 'password'} placeholder="Password" className="input-field" value={password} onChange={(e) => { setPassword(e.target.value); setError(''); setApiError(''); }} onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(); }} />
+                    <button type="button" className="toggle-btn" aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'} onClick={() => setShowPassword((v) => !v)}>
+                      <img src={img_4} alt="Toggle Visibility" className="input-icon" />
+                    </button>
+                  </div>
+                  <div className="forgot-password-container">
+                    <Link to="/auth/lupa-password" className="forgot-password-link">Lupa Password?</Link>
+                  </div>
+                  {error && <p className="login-error">{error}</p>}
+                  {apiError && <NotifCard variant="error" title="Login Gagal" description={apiError} onClose={() => setApiError('')} />}
+                  <button className="btn-login" onClick={handleLogin} disabled={loading}>{loading ? 'Memproses...' : 'Masuk'}</button>
+                  <p className="login-disclaimer">Data yang kamu masukkan hanya digunakan untuk keperluan login.</p>
+                </div>
+              </section>
+              <section id="section-footer" className="footer-section">
+                <div className="divider-wrapper">
+                  <div className="divider-line" />
+                  <span className="divider-text">atau</span>
+                  <div className="divider-line" />
+                </div>
+                <button className="btn-register" onClick={(e) => { e.preventDefault(); navigate('/auth/register-01'); }}>Buat Akun</button>
+                <p className="terms-text">Dengan melanjutkan, kamu menyetujui <Link to="/support/syarat-dan-ketentuan" className="terms-link">Syarat &amp; Ketentuan</Link> kami.</p>
+                <div className="partner-logos">
+                  <img src={img_5} alt="OJK Logo" className="logo-ojk" />
+                  <img src={img_6} alt="BAPPEBTI Logo" className="logo-bappebti" />
+                </div>
+                <div className="footer-links">
+                  <Link to="/support/kebijakan-privasi">Legal</Link>
+                  <span className="dot">•</span>
+                  <Link to="/support/tentang-kami">Tentang Kami</Link>
+                  <span className="dot">•</span>
+                  <Link to="/landing">Website Resmi</Link>
+                </div>
+                <p className="company-details">
+                  JelajahEmas dikelola oleh PT JELAJAH EMAS DIGITAL INDONESIA<br />
+                  AHU: AHU-A11995.AH.01.30 tahun 2026 • NPWP: 1000000011096252
+                </p>
+              </section>
+            </div>
+
+    </div>
+  );
+}

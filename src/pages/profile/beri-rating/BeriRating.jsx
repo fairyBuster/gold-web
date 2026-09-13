@@ -1,0 +1,937 @@
+/* ============================================================================
+   BeriRating.jsx — single-file implementation of the rating submission.
+   All steps of this flow live in this one file; the <BeriRating step={n} />
+   element passed by App.jsx selects the active step. URL per step:
+     1 -> /profil/beri-rating
+     2 -> /profil/beri-rating-02
+   ============================================================================ */
+
+import img_21 from '../../../assets/images/166_413.svg';
+import img_16 from '../../../assets/images/166_442.svg';
+import img_9 from '../../../assets/images/166_413.svg';
+import img_10 from '../../../assets/images/166_413.svg';
+import img_11 from '../../../assets/images/166_413.svg';
+import img_12 from '../../../assets/images/166_413.svg';
+import img_13 from '../../../assets/images/166_413.svg';
+import img_14 from '../../../assets/images/166_413.svg';
+import img_15 from '../../../assets/images/166_413.svg';
+import img_17 from '../../../assets/images/166_413.svg';
+import img_18 from '../../../assets/images/166_413.svg';
+import img_19 from '../../../assets/images/166_413.svg';
+import img_20 from '../../../assets/images/166_413.svg';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import NotifCard from '../../../components/NotifCard.jsx';
+/* Ulasan pengguna: GET /api/reviews/ untuk daftar, POST /api/reviews/ (multipart
+   text + gambar) untuk kirim ulasan dari step 2. */
+import { createReview, fetchReviews } from '../../../lib/reviewsApi.js';
+
+/* Step 1 imports (renamed to avoid collisions with other steps) */
+import S1_img_1 from '../../../assets/images/166_376.svg';
+import S1_img_2 from '../../../assets/images/166_388.svg';
+import S1_img_3 from '../../../assets/images/166_388.svg';
+import S1_img_4 from '../../../assets/images/166_388.svg';
+import S1_img_5 from '../../../assets/images/166_388.svg';
+import S1_img_6 from '../../../assets/images/166_388.svg';
+import S1_img_7 from '../../../assets/images/166_413.svg';
+import S1_img_8 from '../../../assets/images/166_413.svg';
+
+/* Step 2 imports (renamed to avoid collisions with other steps) */
+import S2_img_1 from '../../../assets/images/165_209.svg';
+import S2_img_2 from '../../../assets/images/84da0382429e79a1abad7aa57406c47d158866a8.png';
+import S2_img_3 from '../../../assets/images/165_225.svg';
+import S2_img_4 from '../../../assets/images/165_225.svg';
+import S2_img_5 from '../../../assets/images/165_225.svg';
+import S2_img_6 from '../../../assets/images/165_225.svg';
+import S2_img_7 from '../../../assets/images/165_225.svg';
+import S2_img_8 from '../../../assets/images/165_254.svg';
+
+/* Tanggal relatif ala kartu ulasan ("2 hari lalu", "1 minggu lalu"). */
+function formatRelativeDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return 'Baru saja';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} menit lalu`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} jam lalu`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} hari lalu`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks} minggu lalu`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} bulan lalu`;
+  return `${Math.floor(days / 365)} tahun lalu`;
+}
+
+/* ================= Step 1 — /profil/beri-rating (was BeriRating.jsx) ================= */
+
+const BeriRating01Styles = `
+/* Scoped styles for BeriRating — converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-beri-rating to isolate this page. */
+
+.page-beri-rating {
+  --bg-color: #fff9f2;
+  --card-bg: #ffffff;
+  --card-border: #efe7dc;
+  --text-dark: #1a1410;
+  --text-gray: #a79c8f;
+  --text-medium: #514840;
+  --placeholder-bg: #f6f1e9;
+  --placeholder-border: rgba(26, 20, 16, 0.15);
+  --avatar-border: rgba(26, 20, 16, 0.22);
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-beri-rating {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #fff9f2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.page-beri-rating section {
+  width: 100%;
+  max-width: 100%;
+  background-color: var(--bg-color);
+}
+
+/* Add shadow to simulate the app screen container */
+.page-beri-rating section:first-of-type {
+  box-shadow: 0px -10px 30px rgba(26, 20, 16, 0.05);
+}
+.page-beri-rating section:last-of-type {
+  box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
+  flex-grow: 1;
+}
+
+.page-beri-rating, .page-beri-rating * {
+  box-sizing: border-box;
+}
+
+.page-beri-rating p,.page-beri-rating  h1,.page-beri-rating  h2,.page-beri-rating  h3,.page-beri-rating  h4,.page-beri-rating  h5,.page-beri-rating  h6 {
+  margin: 0;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Header */
+.page-beri-rating .header {
+    display: flex;
+    align-items: center;
+    padding: 20px 20px 4px 20px;
+    gap: 14px;
+  }
+  .page-beri-rating .back-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 36px;
+    height: 36px;
+    background-color: var(--placeholder-bg);
+    border-radius: 11px;
+    text-decoration: none;
+  }
+  .page-beri-rating .back-btn img {
+    width: 16px;
+    height: 16px;
+  }
+  .page-beri-rating .page-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-dark);
+  }
+
+/* CSS for section section:Reviews */
+.page-beri-rating .reviews-container {
+    padding: 14px 20px 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .page-beri-rating .overall-rating-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .page-beri-rating .rating-score {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-dark);
+  }
+
+  .page-beri-rating .rating-stars,.page-beri-rating  .review-stars {
+    display: flex;
+    gap: 1px;
+  }
+
+  .page-beri-rating .rating-stars img {
+    width: 12px;
+    height: 12px;
+  }
+
+  .page-beri-rating .rating-count {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-gray);
+  }
+
+  .page-beri-rating .review-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page-beri-rating .review-images {
+    display: flex;
+    width: 100%;
+  }
+
+  .page-beri-rating .review-images.double {
+    height: 184px;
+    gap: 2px;
+  }
+
+  .page-beri-rating .review-images.single {
+    height: 370px;
+  }
+
+  /* Foto asli dari API; bg placeholder tampil selama gambar termuat. */
+  .page-beri-rating .review-image {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background-color: var(--placeholder-bg);
+  }
+
+  .page-beri-rating .review-image-placeholder {
+    flex: 1;
+    background-color: var(--placeholder-bg);
+    border-bottom: 1px solid var(--placeholder-border);
+  }
+  
+  .page-beri-rating .review-images.double .review-image-placeholder:first-child {
+    border-right: 1px solid var(--placeholder-border);
+  }
+
+  .page-beri-rating .review-content {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .page-beri-rating .review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .page-beri-rating .user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .page-beri-rating .avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 15px;
+    background-color: var(--placeholder-bg);
+    border: 1px solid var(--avatar-border);
+  }
+
+  .page-beri-rating .user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dark);
+  }
+
+  .page-beri-rating .review-date {
+    font-size: 12px;
+    color: var(--text-gray);
+  }
+
+  .page-beri-rating .review-stars img {
+    width: 11px;
+    height: 11px;
+  }
+
+  .page-beri-rating .review-text {
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text-medium);
+    margin-top: 2px;
+  }
+
+  .page-beri-rating .empty-reviews {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-gray);
+    padding: 4px 0 12px;
+  }
+
+  .page-beri-rating .write-review-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 48px;
+    border: none;
+    border-radius: 14px;
+    background-color: #f1b04a;
+    color: #1a1410;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: opacity 0.2s;
+  }
+
+  .page-beri-rating .write-review-btn:active {
+    opacity: 0.85;
+  }
+`;
+
+function BeriRating01() {
+  const navigate = useNavigate();
+  /* null = API belum termuat/gagal (kartu bawaan desain tetap tampil). */
+  const [reviews, setReviews] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchReviews()
+      .then((list) => {
+        if (active) setReviews(list);
+      })
+      .catch(() => {
+        /* diamkan — kartu bawaan sudah tampil */
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return (
+    <div className="page-beri-rating">
+      <style>{BeriRating01Styles}</style>
+      <div>
+              <section id="section-header">
+                <header className="header">
+                  <a href="#" className="back-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <img src={S1_img_1} alt="" />
+                  </a>
+                  <h1 className="page-title">Ulasan Pengguna</h1>
+                </header>
+              </section>
+              <section id="section-reviews">
+                <div className="reviews-container">
+                  {/* Overall Rating — kartu ini masih statis; belum ada endpoint agregat. */}
+                  <div className="overall-rating-card">
+                    <div className="rating-score">4.8</div>
+                    <div className="rating-stars">
+                      <img src={S1_img_2} alt="Star" />
+                      <img src={S1_img_3} alt="Star" />
+                      <img src={S1_img_4} alt="Star" />
+                      <img src={S1_img_5} alt="Star" />
+                      <img src={S1_img_6} alt="Star" />
+                    </div>
+                    <div className="rating-count">2.847 ulasan</div>
+                  </div>
+                  <button className="write-review-btn" onClick={() => navigate('/profil/beri-rating-02')}>
+                    Tulis Ulasan Kamu
+                  </button>
+                  {/* Kartu bawaan desain tampil selama API belum termuat/gagal;
+                      begitu data datang, daftar dirender apa adanya dari API. */}
+                  {reviews === null && (
+                    <>
+                      {/* Review Card 1 */}
+                      <div className="review-card">
+                        <div className="review-images double">
+                          <div className="review-image-placeholder" />
+                          <div className="review-image-placeholder" />
+                        </div>
+                        <div className="review-content">
+                          <div className="review-header">
+                            <div className="user-info">
+                              <div className="avatar" />
+                              <div className="user-name">Dita Amelia</div>
+                            </div>
+                            <div className="review-date">2 hari lalu</div>
+                          </div>
+                          <div className="review-stars">
+                            <img src={S1_img_7} alt="Star" />
+                            <img src={S1_img_8} alt="Star" />
+                            <img src={img_9} alt="Star" />
+                            <img src={img_10} alt="Star" />
+                            <img src={img_11} alt="Star" />
+                          </div>
+                          <p className="review-text">Lorem ipsum dolor sit amet, aplikasinya gampang banget dipakai buat nabung emas tiap bulan. Proses cetak emasnya juga cepat sampai.</p>
+                        </div>
+                      </div>
+                      {/* Review Card 2 */}
+                      <div className="review-card">
+                        <div className="review-content">
+                          <div className="review-header">
+                            <div className="user-info">
+                              <div className="avatar" />
+                              <div className="user-name">Rizky Ramadhan</div>
+                            </div>
+                            <div className="review-date">5 hari lalu</div>
+                          </div>
+                          <div className="review-stars">
+                            <img src={img_12} alt="Star" />
+                            <img src={img_13} alt="Star" />
+                            <img src={img_14} alt="Star" />
+                            <img src={img_15} alt="Star" />
+                            <img src={img_16} alt="Star" />
+                          </div>
+                          <p className="review-text">Lorem ipsum dolor sit amet, fitur investasi rutinnya bantu banget buat konsisten nabung. Semoga makin banyak pilihan pecahan gramnya.</p>
+                        </div>
+                      </div>
+                      {/* Review Card 3 */}
+                      <div className="review-card">
+                        <div className="review-images single">
+                          <div className="review-image-placeholder" />
+                        </div>
+                        <div className="review-content">
+                          <div className="review-header">
+                            <div className="user-info">
+                              <div className="avatar" />
+                              <div className="user-name">Nabila Putri</div>
+                            </div>
+                            <div className="review-date">1 minggu lalu</div>
+                          </div>
+                          <div className="review-stars">
+                            <img src={img_17} alt="Star" />
+                            <img src={img_18} alt="Star" />
+                            <img src={img_19} alt="Star" />
+                            <img src={img_20} alt="Star" />
+                            <img src={img_21} alt="Star" />
+                          </div>
+                          <p className="review-text">Lorem ipsum dolor sit amet, CS-nya responsif banget waktu aku tanya soal verifikasi akun. Recommended buat pemula!</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {reviews !== null && reviews.length === 0 && (
+                    <p className="empty-reviews">Belum ada ulasan.</p>
+                  )}
+                  {reviews !== null && reviews.map((review) => (
+                    <div className="review-card" key={review.id}>
+                      {review.images?.length > 0 && (
+                        <div className={`review-images ${review.images.length > 1 ? 'double' : 'single'}`}>
+                          {review.images.slice(0, 2).map((image) => (
+                            <img key={image.id} className="review-image" src={image.image} alt="" />
+                          ))}
+                        </div>
+                      )}
+                      <div className="review-content">
+                        <div className="review-header">
+                          <div className="user-info">
+                            <div className="avatar" />
+                            <div className="user-name">{review.user_display_name}</div>
+                          </div>
+                          <div className="review-date">{formatRelativeDate(review.created_at)}</div>
+                        </div>
+                        <p className="review-text">{review.text}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+    </div>
+  );
+}
+
+/* ================= Step 2 — /profil/beri-rating-02 (was BeriRating02.jsx) ================= */
+
+const BeriRating02Styles = `
+/* Scoped styles for BeriRating02 — converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-beri-rating-02 to isolate this page. */
+
+.page-beri-rating-02, .page-beri-rating-02 * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.page-beri-rating-02 {
+  font-family: 'Inter', sans-serif;
+  background-color: #fffbf4;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-beri-rating-02 .app-container {
+  width: 100%;
+  max-width: 100%;
+  background-color: #fffbf4;
+  position: relative;
+  overflow-x: hidden;
+  box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Simulating the complex radial gradients from the design */
+.page-beri-rating-02 .app-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 500px;
+  background: 
+    radial-gradient(circle at 80% 0%, rgba(255, 201, 60, 0.28) 0%, transparent 50%),
+    radial-gradient(circle at 100% 20%, rgba(255, 159, 28, 0.15) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.page-beri-rating-02 .content-wrapper {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 0 20px 24px 20px;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Header */
+.page-beri-rating-02 #section-header .app-container {
+    min-height: auto;
+    box-shadow: none;
+  }
+  .page-beri-rating-02 #section-header .app-container::before {
+    display: none;
+  }
+  .page-beri-rating-02 .site-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px 20px 4px 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .page-beri-rating-02 .back-button {
+    width: 36px;
+    height: 36px;
+    background-color: #f6f1e9;
+    border-radius: 11px;
+    border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+  }
+  .page-beri-rating-02 .header-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1410;
+  }
+
+/* CSS for section section:Rating */
+.page-beri-rating-02 #section-rating .app-container::before { display: none; }
+  .page-beri-rating-02 .rating-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 16px;
+    padding-bottom: 24px;
+    width: 100%;
+  }
+  .page-beri-rating-02 .hero-image {
+    width: 115px;
+    height: 115px;
+    object-fit: cover;
+    margin-bottom: 8px;
+  }
+  .page-beri-rating-02 .rating-text-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 8px;
+    width: 100%;
+  }
+  .page-beri-rating-02 .rating-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1410;
+    margin-bottom: 8px;
+  }
+  .page-beri-rating-02 .rating-subtitle {
+    font-size: 14px;
+    color: #514840;
+    line-height: 1.4;
+  }
+  .page-beri-rating-02 .star-rating-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
+    padding-top: 14px;
+    width: 100%;
+  }
+  .page-beri-rating-02 .star-btn {
+    background: none;
+    border: none;
+    padding: 2px;
+    cursor: pointer;
+    display: flex;
+  }
+  .page-beri-rating-02 .star-btn img {
+    width: 34px;
+    height: 34px;
+  }
+
+/* CSS for section section:Form */
+.page-beri-rating-02 #section-form .app-container::before { display: none; }
+  .page-beri-rating-02 .form-section {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding-top: 22px;
+    padding-bottom: 16px;
+    gap: 8px;
+  }
+  .page-beri-rating-02 .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #514840;
+  }
+  .page-beri-rating-02 .textarea-wrapper {
+    width: 100%;
+    background-color: #f6f1e9;
+    border-radius: 12px;
+    padding: 13px 14px 56px 14px;
+  }
+  .page-beri-rating-02 .review-textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    resize: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #1a1410;
+    outline: none;
+  }
+  .page-beri-rating-02 .review-textarea::placeholder {
+    color: #a79c8f;
+  }
+  .page-beri-rating-02 .char-count {
+    text-align: right;
+    font-size: 12px;
+    color: #a79c8f;
+    width: 100%;
+    padding-top: 3px;
+  }
+
+/* CSS for section section:Upload */
+.page-beri-rating-02 #section-upload .app-container::before { display: none; }
+  .page-beri-rating-02 .upload-section {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+    padding-bottom: 24px;
+  }
+  .page-beri-rating-02 .hint-text {
+    font-weight: 400;
+    color: #a79c8f;
+  }
+  .page-beri-rating-02 .upload-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .page-beri-rating-02 .upload-button {
+    width: 72px;
+    height: 72px;
+    background-color: #f6f1e9;
+    border: 1px dashed rgba(26, 20, 16, 0.25);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
+  .page-beri-rating-02 .upload-text {
+    font-size: 10px;
+    color: #a79c8f;
+  }
+  .page-beri-rating-02 .photo-thumb {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(26, 20, 16, 0.15);
+  }
+  .page-beri-rating-02 .photo-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    background-color: #f6f1e9;
+  }
+  .page-beri-rating-02 .photo-remove {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 18px;
+    height: 18px;
+    border: none;
+    border-radius: 9px;
+    background-color: rgba(26, 20, 16, 0.6);
+    color: #ffffff;
+    font-size: 12px;
+    line-height: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    padding: 0;
+  }
+
+/* CSS for section section:Footer */
+.page-beri-rating-02 #section-footer .app-container::before { display: none; }
+  .page-beri-rating-02 .submit-button {
+    width: 100%;
+    height: 50px;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(90deg, #ffc93c 0%, #e8790c 100%);
+    color: #1a1410;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .page-beri-rating-02 .submit-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .page-beri-rating-02 .form-error {
+    color: #e24c4c;
+    font-size: 12px;
+    margin: 0 0 10px;
+  }
+`;
+
+/* Batas dari backend: maks 5 gambar per ulasan, 1MB per file. */
+const MAX_PHOTOS = 5;
+const MAX_PHOTO_BYTES = 1024 * 1024;
+
+function BeriRating02() {
+  const navigate = useNavigate();
+  const [text, setText] = useState('');
+  /* [{ file, url }] — url objek untuk pratinjau foto terpilih. */
+  const [photos, setPhotos] = useState([]);
+  const [error, setError] = useState('');
+  /* API submit failures render via the shared NotifCard; client validation stays inline. */
+  const [submitError, setSubmitError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef(null);
+  const photosRef = useRef(photos);
+
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
+
+  /* Cabut object URL saat halaman ditutup supaya tidak menumpuk. */
+  useEffect(() => () => {
+    photosRef.current.forEach((photo) => URL.revokeObjectURL(photo.url));
+  }, []);
+
+  const onPickFiles = (e) => {
+    const picked = Array.from(e.target.files || []);
+    e.target.value = ''; /* biar file yang sama bisa dipilih ulang */
+
+    const valid = [];
+    let message = '';
+    picked.forEach((file) => {
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      if (!['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+        message = 'Format gambar harus JPG, JPEG, PNG, atau WEBP.';
+      } else if (file.size > MAX_PHOTO_BYTES) {
+        message = 'Ukuran gambar maksimal 1MB per file.';
+      } else {
+        valid.push(file);
+      }
+    });
+
+    const room = MAX_PHOTOS - photos.length;
+    if (valid.length > room) message = `Maksimal ${MAX_PHOTOS} gambar per ulasan.`;
+
+    const accepted = valid
+      .slice(0, Math.max(room, 0))
+      .map((file) => ({ file, url: URL.createObjectURL(file) }));
+    if (accepted.length) setPhotos((prev) => [...prev, ...accepted]);
+    setError(message);
+  };
+
+  const removePhoto = (photo) => {
+    URL.revokeObjectURL(photo.url);
+    setPhotos((prev) => prev.filter((item) => item.url !== photo.url));
+    setError('');
+  };
+
+  const canSubmit = !submitting && text.trim().length >= 3 && photos.length > 0;
+
+  const submitReview = async () => {
+    if (!canSubmit) return;
+
+    setError('');
+    setSubmitError('');
+    setSubmitting(true);
+    try {
+      await createReview({ text: text.trim(), images: photos.map((photo) => photo.file) });
+      navigate('/home');
+    } catch (err) {
+      setSubmitError(err?.message || 'Ulasan gagal dikirim. Silakan coba lagi.');
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="page-beri-rating-02">
+      <style>{BeriRating02Styles}</style>
+      <div>
+              <section id="section-header">
+                <div className="app-container">
+                  <header className="site-header">
+                    <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                      <img src={S2_img_1} alt="Back Icon" />
+                    </button>
+                    <h1 className="header-title">Beri Rating</h1>
+                  </header>
+                </div></section>
+              <section id="section-rating">
+                <div className="app-container" style={{minHeight: 'auto', boxShadow: 'none', background: 'transparent'}}>
+                  <div className="content-wrapper" style={{paddingBottom: 0}}>
+                    <div className="rating-hero">
+                      <img className="hero-image" src={S2_img_2} alt="Illustration of hands holding a phone" />
+                      <div className="rating-text-group">
+                        <h2 className="rating-title">Bagaimana pengalaman kamu?</h2>
+                        <p className="rating-subtitle">Kasih tau kami pendapat kamu<br />tentang JelajahEmas.</p>
+                      </div>
+                      <div className="star-rating-container">
+                        <button className="star-btn"><img src={S2_img_3} alt="Star 1" /></button>
+                        <button className="star-btn"><img src={S2_img_4} alt="Star 2" /></button>
+                        <button className="star-btn"><img src={S2_img_5} alt="Star 3" /></button>
+                        <button className="star-btn"><img src={S2_img_6} alt="Star 4" /></button>
+                        <button className="star-btn"><img src={S2_img_7} alt="Star 5" /></button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section id="section-form">
+                <div className="app-container" style={{minHeight: 'auto', boxShadow: 'none', background: 'transparent'}}>
+                  <div className="content-wrapper" style={{paddingBottom: 0}}>
+                    <div className="form-section">
+                      <label className="section-label">Tulis Ulasan</label>
+                      <div className="textarea-wrapper">
+                        <textarea
+                          className="review-textarea"
+                          placeholder="Ceritakan pengalaman kamu pakai JelajahEmas..."
+                          maxLength={300}
+                          value={text}
+                          onChange={(e) => { setText(e.target.value); setError(''); }}
+                        />
+                      </div>
+                      <div className="char-count">{text.length}/300</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section id="section-upload">
+                <div className="app-container" style={{minHeight: 'auto', boxShadow: 'none', background: 'transparent'}}>
+                  <div className="content-wrapper" style={{paddingBottom: 0}}>
+                    <div className="upload-section">
+                      <label className="section-label">Tambah Foto <span className="hint-text">(wajib, maks {MAX_PHOTOS} foto)</span></label>
+                      <div className="upload-grid">
+                        {photos.map((photo) => (
+                          <div className="photo-thumb" key={photo.url}>
+                            <img src={photo.url} alt="Foto ulasan" />
+                            <button type="button" className="photo-remove" aria-label="Hapus foto" onClick={() => removePhoto(photo)}>×</button>
+                          </div>
+                        ))}
+                        {photos.length < MAX_PHOTOS && (
+                          <button type="button" className="upload-button" onClick={() => fileInputRef.current?.click()}>
+                            <img src={S2_img_8} alt="Add icon" />
+                            <span className="upload-text">Tambah</span>
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        hidden
+                        onChange={onPickFiles}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section id="section-footer">
+                <div className="app-container" style={{minHeight: 'auto', boxShadow: 'none', background: 'transparent'}}>
+                  <div className="content-wrapper" style={{paddingTop: 14, paddingBottom: 24, marginTop: 'auto'}}>
+                    {error && <p className="form-error">{error}</p>}
+                    {submitError && (
+                      <NotifCard variant="error" title="Ulasan Gagal Dikirim" description={submitError} onClose={() => setSubmitError('')} />
+                    )}
+                    <button className="submit-button" type="button" disabled={!canSubmit} onClick={submitReview}>
+                      {submitting ? 'Mengirim...' : 'Kirim Ulasan'}
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+    </div>
+  );
+}
+
+const STEP_COMPONENTS = { 1: BeriRating01, 2: BeriRating02 };
+
+export default function BeriRating({ step = 1 }) {
+  const Step = STEP_COMPONENTS[step] ?? STEP_COMPONENTS[1];
+  return <Step />;
+}

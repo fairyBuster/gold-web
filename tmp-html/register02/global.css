@@ -1,0 +1,41 @@
+:root {
+  --color-bg: #fffbf4;
+  --color-surface: #f6f1e9;
+  --color-text-primary: #1a1410;
+  --color-text-secondary: #514840;
+  --color-text-tertiary: #a79c8f;
+  --color-primary: #e8790c;
+  --color-success: #3fa66b;
+  --color-white: #ffffff;
+  --color-progress-bg: #efe7dc;
+  --font-family: 'Inter', sans-serif;
+}
+
+body {
+  font-family: var(--font-family);
+  margin: 0;
+  padding: 0;
+  background-color: #e5e5e5;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+input {
+  font-family: inherit;
+}

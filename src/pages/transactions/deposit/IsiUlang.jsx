@@ -1,0 +1,429 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import img_1 from '../../../assets/images/41_1038.svg';
+import img_2 from '../../../assets/images/33_71.svg';
+
+/* Page styles are kept inline in this file so the page is a single-file import. */
+const styles = `
+/* Scoped styles for IsiUlang — converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-isi-ulang to isolate this page. */
+
+.page-isi-ulang, .page-isi-ulang * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.page-isi-ulang {
+  font-family: 'Inter', sans-serif;
+  background-color: #fffbf4;
+  background-image: 
+    radial-gradient(circle at 90% 0%, rgba(255, 201, 60, 0.25) 0%, rgba(255, 201, 60, 0) 50%),
+    radial-gradient(circle at 10% 100%, rgba(255, 159, 28, 0.15) 0%, rgba(255, 159, 28, 0) 50%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-isi-ulang section {
+  width: 100%;
+  max-width: 100%;
+}
+
+.page-isi-ulang h1,.page-isi-ulang  h2,.page-isi-ulang  h3,.page-isi-ulang  h4,.page-isi-ulang  p {
+  margin: 0;
+}
+
+.page-isi-ulang button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.page-isi-ulang input {
+  font-family: inherit;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Header */
+.page-isi-ulang #section-header {
+    padding: 20px 20px 4px 20px;
+  }
+  .page-isi-ulang .header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .page-isi-ulang .back-btn {
+    width: 36px;
+    height: 36px;
+    background-color: #f6f1e9;
+    border-radius: 11px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .page-isi-ulang .header-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1410;
+  }
+
+/* CSS for section section:TopUpInput */
+.page-isi-ulang #section-topup-input {
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+  }
+  .page-isi-ulang .topup-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 372px;
+  }
+  .page-isi-ulang .input-label {
+    font-size: 14px;
+    color: #a79c8f;
+    margin-bottom: 20px;
+  }
+  .page-isi-ulang .input-wrapper {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .page-isi-ulang .currency-symbol {
+    font-size: 24px;
+    font-weight: 700;
+    color: #514840;
+  }
+  .page-isi-ulang .amount-input {
+    font-size: 20px;
+    color: #a79c8f;
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 220px;
+  }
+  .page-isi-ulang .amount-input::placeholder {
+    color: #a79c8f;
+    font-size: 15px;
+  }
+  .page-isi-ulang .helper-texts {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .page-isi-ulang .min-amount,.page-isi-ulang  .current-balance {
+    font-size: 12px;
+    color: #a79c8f;
+  }
+
+/* CSS for section section:PaymentMethods */
+.page-isi-ulang #section-payment-methods {
+    padding: 0 20px;
+  }
+  .page-isi-ulang .payment-header {
+    margin-bottom: 22px;
+  }
+  .page-isi-ulang .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1410;
+    margin-bottom: 4px;
+  }
+  .page-isi-ulang .section-subtitle {
+    font-size: 12px;
+    color: #a79c8f;
+    line-height: 1.4;
+  }
+  .page-isi-ulang .payment-category {
+    margin-bottom: 18px;
+  }
+  .page-isi-ulang .category-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: #a79c8f;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+  }
+  .page-isi-ulang .payment-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 14px;
+    border-radius: 14px;
+    border: 1px solid #efe7dc;
+    background-color: #ffffff;
+    margin-bottom: 8px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+  }
+  .page-isi-ulang .payment-card:last-child {
+    margin-bottom: 0;
+  }
+  .page-isi-ulang .payment-card.selected {
+    border-color: #e8790c;
+    background-color: rgba(255, 159, 28, 0.06);
+  }
+  .page-isi-ulang .card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    padding-right: 12px;
+  }
+  .page-isi-ulang .method-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1410;
+  }
+  .page-isi-ulang .method-desc {
+    font-size: 11px;
+    color: #a79c8f;
+    line-height: 1.3;
+  }
+  .page-isi-ulang .radio-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid #a79c8f;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .page-isi-ulang .radio-btn.selected {
+    border-color: #e8790c;
+  }
+  .page-isi-ulang .radio-inner {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #e8790c;
+  }
+  /* Keeps the native radio input rendered but invisible — display:none would
+     stop some browsers from activating it through label clicks. */
+  .page-isi-ulang .method-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+/* CSS for section section:Information */
+.page-isi-ulang #section-information {
+    padding: 20px;
+    margin-top: 10px;
+  }
+  .page-isi-ulang .warning-box {
+    background-color: #f6f1e9;
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .page-isi-ulang .icon-wrapper {
+    padding-top: 2px;
+    flex-shrink: 0;
+  }
+  .page-isi-ulang .warning-text {
+    font-size: 12px;
+    color: #1a1410;
+    line-height: 1.5;
+  }
+  .page-isi-ulang .warning-text strong {
+    font-weight: 700;
+  }
+  .page-isi-ulang .disclaimer-text {
+    font-size: 10px;
+    color: #a79c8f;
+    text-align: center;
+    line-height: 1.5;
+    padding: 0 8px;
+  }
+
+/* CSS for section section:Footer */
+.page-isi-ulang #section-footer {
+    margin-top: auto;
+    padding-bottom: 20px;
+  }
+  .page-isi-ulang .footer-divider {
+    height: 1px;
+    background-color: #efe7dc;
+    margin: 0 20px 18px 20px;
+  }
+  .page-isi-ulang .footer-content {
+    padding: 0 20px;
+  }
+  .page-isi-ulang .btn-primary {
+    width: 100%;
+    background-color: #f1b04a;
+    color: #1a1410;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 15px;
+    border-radius: 5px;
+    text-align: center;
+    transition: background-color 0.2s;
+  }
+  .page-isi-ulang .btn-primary:hover {
+    background-color: #e0a03a;
+  }
+`;
+
+/* Deposit channels, grouped per category; each channel opens its payment page. */
+const PAYMENT_CATEGORIES = ['VIRTUAL ACCOUNT', 'E-WALLET & QRIS'];
+const PAYMENT_METHODS = [
+  {
+    id: 'va_bri',
+    category: 'VIRTUAL ACCOUNT',
+    name: 'VA BRI',
+    desc: 'Bayar melalui ATM, m-Banking, atau Internet Banking BRI.',
+    route: '/transactions/virtual-account',
+  },
+  {
+    id: 'va_permata',
+    category: 'VIRTUAL ACCOUNT',
+    name: 'VA Permata',
+    desc: "Bayar melalui ATM, Livin', atau Internet Banking Permata.",
+    route: '/transactions/virtual-account',
+  },
+  {
+    id: 'qris_1',
+    category: 'E-WALLET & QRIS',
+    name: 'lpay',
+    desc: 'Pindai kode QR menggunakan aplikasi e-wallet atau m-Banking apa pun.',
+    route: '/transactions/qris',
+  },
+  {
+    id: 'qris_2',
+    category: 'E-WALLET & QRIS',
+    name: 'mgmpay',
+    desc: 'Pindai kode QR menggunakan aplikasi e-wallet atau m-Banking apa pun.',
+    route: '/transactions/qris',
+  },
+  {
+    id: 'qris_3',
+    category: 'E-WALLET & QRIS',
+    name: 'quenpay',
+    desc: 'Pindai kode QR menggunakan aplikasi e-wallet atau m-Banking apa pun.',
+    route: '/transactions/qris',
+  },
+  {
+    id: 'qris_4',
+    category: 'E-WALLET & QRIS',
+    name: 'ffpay',
+    desc: 'Pindai kode QR menggunakan aplikasi e-wallet atau m-Banking apa pun.',
+    route: '/transactions/qris',
+  },
+];
+
+export default function IsiUlang() {
+  const navigate = useNavigate();
+  const [methodId, setMethodId] = useState(PAYMENT_METHODS[0].id);
+  const method = PAYMENT_METHODS.find((item) => item.id === methodId) || PAYMENT_METHODS[0];
+
+  return (
+    <div className="page-isi-ulang">
+      <style>{styles}</style>
+      <div>
+              <section id="section-header">
+                <header className="header">
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <img src={img_1} alt="Back Icon" />
+                  </button>
+                  <h1 className="header-title">Isi Ulang Saldo</h1>
+                </header>
+              </section>
+              <section id="section-topup-input">
+                <div className="topup-container">
+                  <p className="input-label">Masukkan Nominal Isi Ulang</p>
+                  <div className="input-wrapper">
+                    <span className="currency-symbol">Rp</span>
+                    <input type="text" className="amount-input" placeholder="Masukkan nominal di sini" />
+                  </div>
+                  <div className="helper-texts">
+                    <p className="min-amount">Minimal pengisian Rp 10.000</p>
+                    <p className="current-balance">Saldo saat ini Rp 70.934</p>
+                  </div>
+                </div>
+              </section>
+              <section id="section-payment-methods">
+                <div className="payment-header">
+                  <h2 className="section-title">Pilih Metode Pembayaran</h2>
+                  <p className="section-subtitle">Pilih metode pembayaran yang kamu inginkan untuk melanjutkan proses isi ulang saldo.</p>
+                </div>
+                {PAYMENT_CATEGORIES.map((category) => (
+                  <div className="payment-category" key={category}>
+                    <h3 className="category-title">{category}</h3>
+                    {PAYMENT_METHODS.filter((item) => item.category === category).map((item) => {
+                      const isSelected = item.id === methodId;
+                      return (
+                        <label
+                          className={`payment-card${isSelected ? ' selected' : ''}`}
+                          key={item.id}
+                          onClick={() => setMethodId(item.id)}
+                        >
+                          <div className="card-content">
+                            <h4 className="method-name">{item.name}</h4>
+                            <p className="method-desc">{item.desc}</p>
+                          </div>
+                          <div className={`radio-btn${isSelected ? ' selected' : ''}`}>
+                            {isSelected && <div className="radio-inner" />}
+                          </div>
+                          <input
+                            type="radio"
+                            name="payment_method"
+                            value={item.id}
+                            checked={isSelected}
+                            onChange={() => setMethodId(item.id)}
+                            className="method-input"
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                ))}
+              </section>
+              <section id="section-information">
+                <div className="warning-box">
+                  <div className="icon-wrapper">
+                    <img src={img_2} alt="Info" />
+                  </div>
+                  <p className="warning-text">
+                    Pastikan nominal dan metode pembayaran sudah sesuai sebelum melanjutkan, karena <strong>estimasi waktu proses berbeda-beda</strong> untuk setiap metode.
+                  </p>
+                </div>
+                <p className="disclaimer-text">
+                  Layanan pengisian ulang saldo ini bekerja sama dengan pihak penyedia jasa pembayaran (payment gateway) pihak ketiga yang telah terverifikasi dan berizin resmi.
+                </p>
+              </section>
+              <section id="section-footer">
+                <div className="footer-divider" />
+                <div className="footer-content">
+                  <button className="btn-primary" onClick={(e) => { e.preventDefault(); navigate(method.route); }}>Lanjutkan Pembayaran</button>
+                </div>
+              </section>
+            </div>
+
+    </div>
+  );
+}

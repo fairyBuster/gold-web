@@ -1,0 +1,1200 @@
+/* ============================================================================
+   Register.jsx — single-file implementation of the new-user registration wizard.
+   All steps of this flow live in this one file; the <Register step={n} />
+   element passed by App.jsx selects the active step. URL per step:
+     1 -> /auth/register-01
+     2 -> /auth/register-02
+     3 -> /auth/register-03
+     4 -> /auth/register-04
+   ============================================================================ */
+
+import { Link, useNavigate } from 'react-router-dom';
+import img_3 from '../../../assets/images/15_353.svg';
+import img_4 from '../../../assets/images/11_384.svg';
+import img_5 from '../../../assets/images/11_384.svg';
+import { useEffect, useState } from 'react';
+
+/* API layer — used by the register flow (step 3 submits POST /api/auth/register/). */
+import { registerUser } from '../../../lib/authApi.js';
+import * as registerFlow from '../../../lib/registerFlow.js';
+import NotifCard from '../../../components/NotifCard.jsx';
+
+/* Step 1 imports (renamed to avoid collisions with other steps) */
+import S1_img_1 from '../../../assets/images/156_1523.svg';
+import S1_img_2 from '../../../assets/images/d5791be6396b4e511ffea7a63cf23e0ca46b3ccb.png';
+
+/* Step 2 imports (renamed to avoid collisions with other steps) */
+import S2_img_1 from '../../../assets/images/156_1523.svg';
+import S2_img_2 from '../../../assets/images/15_353.svg';
+
+/* Step 3 imports (renamed to avoid collisions with other steps) */
+import S3_img_1 from '../../../assets/images/15_398.svg';
+
+/* Step 4 imports (renamed to avoid collisions with other steps) */
+import S4_img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.png';
+
+
+/* ================= Step 1 — /auth/register-01 (was Register01.jsx) ================= */
+
+const Register01Styles = `
+/* Scoped styles for Register01 — converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-register-01 to isolate this page. */
+
+.page-register-01 {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-register-01, .page-register-01 * {
+  box-sizing: border-box;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Register */
+.page-register-01 #register-section {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 0;
+}
+
+.page-register-01 .app-container {
+  width: 100%;
+  max-width: 100%;
+  background-color: #fffbf4;
+  /* Approximating the complex radial gradients from the design */
+  background-image: 
+    radial-gradient(circle at 85% 5%, rgba(255, 201, 60, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 15% 95%, rgba(255, 159, 28, 0.12) 0%, transparent 45%);
+  box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.page-register-01 .header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 20px 16px;
+}
+
+.page-register-01 .back-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background-color: #f6f1e9;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.page-register-01 .back-btn img {
+  width: 18px;
+  height: 18px;
+}
+
+.page-register-01 .header-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1410;
+  margin: 0;
+}
+
+.page-register-01 .progress-container {
+  display: flex;
+  gap: 6px;
+  padding: 0 20px 20px;
+}
+
+.page-register-01 .progress-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background-color: #efe7dc;
+}
+
+.page-register-01 .progress-bar.active {
+  background: linear-gradient(90deg, #ffc93c 0%, #e8790c 100%);
+}
+
+.page-register-01 .content-container {
+  padding: 4px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.page-register-01 .step-text {
+  color: #e8790c;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.page-register-01 .main-title {
+  color: #1a1410;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.5px;
+}
+
+.page-register-01 .subtitle {
+  color: #514840;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 24px 0;
+}
+
+.page-register-01 .register-form {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.page-register-01 .form-group {
+  margin-bottom: 16px;
+}
+
+.page-register-01 .form-label {
+  display: block;
+  color: #514840;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.page-register-01 .input-wrapper {
+  background-color: #f6f1e9;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+}
+
+.page-register-01 .form-input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  color: #1a1410;
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+}
+
+.page-register-01 .form-input::placeholder {
+  color: #a79c8f;
+}
+
+.page-register-01 .phone-prefix {
+  color: #514840;
+  font-size: 14px;
+  margin-right: 12px;
+  font-weight: 500;
+}
+
+.page-register-01 .captcha-wrapper {
+  background-color: #f6f1e9;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  margin-bottom: 24px;
+}
+
+.page-register-01 .captcha-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.page-register-01 .custom-checkbox {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #a79c8f;
+  border-radius: 6px;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.page-register-01 .custom-checkbox.checked {
+  background-color: #e8790c;
+  border-color: #e8790c;
+  position: relative;
+}
+
+.page-register-01 .custom-checkbox.checked::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 3px;
+  width: 6px;
+  height: 11px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.page-register-01 .input-wrapper.input-wrapper-locked {
+  background-color: #efe7db;
+  border: 1px solid #e3d9cb;
+}
+
+.page-register-01 .captcha-text {
+  color: #514840;
+  font-size: 14px;
+}
+
+.page-register-01 .captcha-logo-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.page-register-01 .captcha-img {
+  width: 35px;
+  height: 35px;
+  object-fit: contain;
+}
+
+.page-register-01 .captcha-brand {
+  font-size: 9px;
+  color: #a79c8f;
+}
+
+.page-register-01 .terms-text {
+  color: #a79c8f;
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0 0 32px 0;
+}
+
+.page-register-01 .terms-link {
+  color: #e8790c;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.page-register-01 .submit-btn {
+  background-color: #1a1410;
+  color: #ffffff;
+  width: 100%;
+  padding: 16px;
+  border-radius: 5px;
+  border: none;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: auto;
+  font-family: inherit;
+}
+
+.page-register-01 .form-error {
+  color: #e24c4c;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0 0 12px 0;
+}
+`;
+
+/* Referral links (e.g. /auth/register-01?ref=KODE) pre-fill the promo code;
+   when that happens the field is locked so the user cannot remove it. */
+function readReferralFromLink() {
+  const params = new URLSearchParams(window.location.search);
+  for (const key of ['ref', 'referral', 'referral_code', 'kode']) {
+    const value = params.get(key);
+    if (value && value.trim()) return value.trim();
+  }
+  return '';
+}
+
+function Register01() {
+  const navigate = useNavigate();
+  const stored = registerFlow.get();
+  const [email, setEmail] = useState(stored.email || '');
+  const [phone, setPhone] = useState((stored.phone || '').replace(/^62/, ''));
+  const [referralCode, setReferralCode] = useState(() => readReferralFromLink() || stored.referralCode || '');
+  const [referralLocked] = useState(() => Boolean(readReferralFromLink()) || Boolean(stored.referralLocked));
+  const [captchaChecked, setCaptchaChecked] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const digits = phone.replace(/\D/g, '').replace(/^0+/, '');
+    if (!email.trim()) {
+      setError('Masukkan alamat email kamu.');
+      return;
+    }
+    if (digits.length < 9 || digits.length > 13) {
+      setError('Masukkan nomor ponsel yang valid.');
+      return;
+    }
+    if (!referralCode.trim()) {
+      setError('Masukkan kode referral kamu.');
+      return;
+    }
+    if (!captchaChecked) {
+      setError('Centang "Saya bukan robot" dulu ya.');
+      return;
+    }
+    registerFlow.save({
+      email: email.trim(),
+      phone: `62${digits}`,
+      referralCode: referralCode.trim(),
+      referralLocked,
+    });
+    navigate('/auth/register-02');
+  };
+
+  return (
+    <div className="page-register-01">
+      <style>{Register01Styles}</style>
+      <section id="register-section">
+              <div className="app-container">
+                {/* Header */}
+                <header className="header">
+                  <button className="back-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <img src={S1_img_1} alt="" />
+                  </button>
+                  <h1 className="header-title">Buat Akun</h1>
+                </header>
+                {/* Progress Bar */}
+                <div className="progress-container">
+                  <div className="progress-bar active" />
+                  <div className="progress-bar" />
+                  <div className="progress-bar" />
+                </div>
+                {/* Main Content */}
+                <div className="content-container">
+                  <div className="step-text">Langkah 1 dari 3</div>
+                  <h2 className="main-title">Ayo buat akun kamu</h2>
+                  <p className="subtitle">Masukkan alamat email dan nomor ponsel kamu yang aktif untuk melanjutkan pendaftaran.</p>
+                  <form onSubmit={handleSubmit} className="register-form">
+                    {/* Email Input */}
+                    <div className="form-group">
+                      <label className="form-label">Email</label>
+                      <div className="input-wrapper">
+                        <input type="email" className="form-input" placeholder="contoh@email.com" value={email} onChange={(e) => { setEmail(e.target.value); setError(''); }} />
+                      </div>
+                    </div>
+                    {/* Phone Input */}
+                    <div className="form-group">
+                      <label className="form-label">Nomor Ponsel</label>
+                      <div className="input-wrapper">
+                        <span className="phone-prefix">+62</span>
+                        <input type="tel" className="form-input" placeholder="Nomor ponsel" value={phone} onChange={(e) => { setPhone(e.target.value); setError(''); }} />
+                      </div>
+                    </div>
+                    {/* Promo Code Input */}
+                    <div className="form-group">
+                      <label className="form-label">Kode Promo/Referral</label>
+                      <div className={`input-wrapper${referralLocked ? ' input-wrapper-locked' : ''}`}>
+                        <input type="text" className="form-input" placeholder="Masukkan kode" value={referralCode} onChange={(e) => setReferralCode(e.target.value)} readOnly={referralLocked} />
+                      </div>
+                    </div>
+                    {/* Captcha — must be ticked before continuing */}
+                    <div className="captcha-wrapper">
+                      <div
+                        className="captcha-checkbox-group"
+                        role="checkbox"
+                        aria-checked={captchaChecked}
+                        tabIndex={0}
+                        onClick={() => { setCaptchaChecked((checked) => !checked); setError(''); }}
+                        onKeyDown={(e) => {
+                          if (e.key === ' ' || e.key === 'Enter') {
+                            e.preventDefault();
+                            setCaptchaChecked((checked) => !checked);
+                            setError('');
+                          }
+                        }}
+                      >
+                        <div className={`custom-checkbox${captchaChecked ? ' checked' : ''}`} />
+                        <span className="captcha-text">Saya bukan robot</span>
+                      </div>
+                      <div className="captcha-logo-group">
+                        <img src={S1_img_2} alt="reCAPTCHA logo" className="captcha-img" />
+                        <span className="captcha-brand">reCAPTCHA</span>
+                      </div>
+                    </div>
+                    {/* Terms and Conditions */}
+                    <p className="terms-text">
+                      Dengan melanjutkan, saya setuju bahwa aplikasi ini dapat menggunakan data pribadi saya sesuai dengan <Link to="/support/kebijakan-privasi" className="terms-link">Kebijakan Privasi</Link>.
+                    </p>
+                    {error && <p className="form-error">{error}</p>}
+                    {/* Submit Button */}
+                    <button type="submit" className="submit-btn">Lanjut</button>
+                  </form>
+                </div>
+              </div>
+            </section>
+
+    </div>
+  );
+}
+
+/* ================= Step 2 — /auth/register-02 (was Register02.jsx) ================= */
+
+const Register02Styles = `
+/* Scoped styles for Register02 — converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-register-02 to isolate this page. */
+
+.page-register-02 {
+  --color-bg: #fffbf4;
+  --color-surface: #f6f1e9;
+  --color-text-primary: #1a1410;
+  --color-text-secondary: #514840;
+  --color-text-tertiary: #a79c8f;
+  --color-primary: #e8790c;
+  --color-success: #3fa66b;
+  --color-white: #ffffff;
+  --color-progress-bg: #efe7dc;
+  --font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-register-02 {
+  font-family: var(--font-family);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.page-register-02, .page-register-02 * {
+  box-sizing: border-box;
+}
+
+.page-register-02 button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.page-register-02 input {
+  font-family: inherit;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Register */
+.page-register-02 .app-container {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
+    background-color: var(--color-bg);
+    /* Approximating the complex Figma radial gradients */
+    background-image: 
+      radial-gradient(circle at 85% 5%, rgba(255, 201, 60, 0.15) 0%, transparent 40%),
+      radial-gradient(circle at 15% 95%, rgba(255, 159, 28, 0.12) 0%, transparent 45%);
+    box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-register-02 .app-header {
+    display: flex;
+    align-items: center;
+    padding: 22px 20px 16px 20px;
+    gap: 14px;
+  }
+
+  .page-register-02 .btn-back {
+    width: 38px;
+    height: 38px;
+    background-color: var(--color-surface);
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.2s ease;
+  }
+
+  .page-register-02 .btn-back:hover {
+    background-color: #ebe4d8;
+  }
+
+  .page-register-02 .header-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0;
+  }
+
+  .page-register-02 .progress-container {
+    display: flex;
+    gap: 6px;
+    padding: 0 20px 20px 20px;
+  }
+
+  .page-register-02 .progress-bar {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+  }
+
+  .page-register-02 .progress-bar.active-gradient {
+    background: linear-gradient(90deg, #ffc93c 0%, #e8790c 100%);
+  }
+
+  .page-register-02 .progress-bar.inactive {
+    background-color: var(--color-progress-bg);
+  }
+
+  .page-register-02 .main-content {
+    padding: 4px 24px 40px 24px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page-register-02 .step-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-primary);
+    margin-bottom: 6px;
+  }
+
+  .page-register-02 .page-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0 0 10px 0;
+    line-height: 1.2;
+  }
+
+  .page-register-02 .page-description {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    margin: 0 0 24px 0;
+    line-height: 1.5;
+  }
+
+  .page-register-02 .register-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .page-register-02 .form-group {
+    margin-bottom: 16px;
+  }
+
+  .page-register-02 .input-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: 8px;
+  }
+
+  .page-register-02 .input-wrapper {
+    display: flex;
+    align-items: center;
+    background-color: var(--color-surface);
+    border-radius: 14px;
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .page-register-02 .input-field {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    color: var(--color-text-primary);
+    outline: none;
+    width: 100%;
+  }
+
+  .page-register-02 .input-field::placeholder {
+    color: var(--color-text-tertiary);
+  }
+
+  .page-register-02 .btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+  }
+
+  .page-register-02 .btn-icon:hover {
+    opacity: 1;
+  }
+
+  .page-register-02 .requirements-list {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .page-register-02 .requirement-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .page-register-02 .icon-check {
+    width: 16px;
+    height: 16px;
+    background-color: var(--color-success);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .page-register-02 .requirement-text {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+  }
+
+  .page-register-02 .form-actions {
+    margin-top: 32px;
+  }
+
+  .page-register-02 .btn-submit {
+    width: 100%;
+    background-color: var(--color-text-primary);
+    color: var(--color-white);
+    font-size: 16px;
+    font-weight: 600;
+    padding: 15px;
+    border-radius: 5px;
+    text-align: center;
+    transition: background-color 0.2s ease;
+  }
+
+  .page-register-02 .btn-submit:hover {
+    background-color: #2a221b;
+  }
+
+  .page-register-02 .form-error {
+    color: #e24c4c;
+    font-size: 12px;
+    line-height: 1.4;
+    margin: 12px 0 0 0;
+  }
+`;
+
+function Register02() {
+  const navigate = useNavigate();
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (password.length < 6) {
+      setError('Password minimal 6 karakter.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Konfirmasi password tidak sama.');
+      return;
+    }
+    registerFlow.save({ password, password2: confirmPassword });
+    navigate('/auth/register-03');
+  };
+
+  return (
+    <div className="page-register-02">
+      <style>{Register02Styles}</style>
+      <section id="section-register" className="app-container">
+              <header className="app-header">
+                <button className="btn-back" aria-label="Kembali" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <img src={S2_img_1} alt="" />
+                </button>
+                <h1 className="header-title">Buat Password</h1>
+              </header>
+              <nav className="progress-container" aria-label="Progress pendaftaran">
+                <div className="progress-bar active-gradient" />
+                <div className="progress-bar active-gradient" />
+                <div className="progress-bar inactive" />
+              </nav>
+              <main className="main-content">
+                <div className="step-text">Langkah 2 dari 3</div>
+                <h2 className="page-title">Amankan Akun Kamu</h2>
+                <p className="page-description">Buat password yang kuat dan belum pernah kamu pakai sebelumnya.</p>
+                <form onSubmit={handleSubmit} className="register-form">
+                  <div className="form-group">
+                    <label htmlFor="password" className="input-label">Password</label>
+                    <div className="input-wrapper">
+                      <input type="password" id="password" className="input-field" placeholder="Masukkan password" value={password} onChange={(e) => { setPassword(e.target.value); setError(''); }} />
+                      <button type="button" className="btn-icon" aria-label="Tampilkan password">
+                        <img src={S2_img_2} alt="" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="confirm-password" className="input-label">Konfirmasi Password</label>
+                    <div className="input-wrapper">
+                      <input type="password" id="confirm-password" className="input-field" placeholder="Ulangi password" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }} />
+                      <button type="button" className="btn-icon" aria-label="Tampilkan password">
+                        <img src={img_3} alt="" />
+                      </button>
+                    </div>
+                  </div>
+                  <ul className="requirements-list">
+                    <li className="requirement-item">
+                      <span className="icon-check">
+                        <img src={img_4} alt="" />
+                      </span>
+                      <span className="requirement-text">Minimal 6 karakter</span>
+                    </li>
+                    <li className="requirement-item">
+                      <span className="icon-check">
+                        <img src={img_5} alt="" />
+                      </span>
+                      <span className="requirement-text">Kombinasi huruf &amp; angka</span>
+                    </li>
+                  </ul>
+                  {error && <p className="form-error">{error}</p>}
+                  <div className="form-actions">
+                    <button type="submit" className="btn-submit">Lanjut</button>
+                  </div>
+                </form>
+              </main>
+            </section>
+
+    </div>
+  );
+}
+
+/* ================= Step 3 — /auth/register-03 (was Register03.jsx) ================= */
+
+const Register03Styles = `
+/* Scoped styles for Register03 — converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-register-03 to isolate this page. */
+
+.page-register-03 {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-register-03, .page-register-03 * {
+  box-sizing: border-box;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Verification */
+.page-register-03 #section-verification {
+    width: 100%;
+    max-width: 100%;
+    background-color: #fffbf4;
+    /* Approximating the complex radial gradients from Figma */
+    background-image: 
+      radial-gradient(circle at 85% 15%, rgba(255, 201, 60, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 15% 85%, rgba(255, 159, 28, 0.15) 0%, transparent 50%);
+    box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page-register-03 .verification-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 36px;
+    flex-grow: 1;
+    text-align: center;
+  }
+
+  .page-register-03 .spinner-wrapper {
+    padding-bottom: 28px;
+  }
+
+  @keyframes register03-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .page-register-03 .spinner {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    border: 4px solid #f6f1e9;
+    border-top-color: #e8790c;
+    animation: register03-spin 0.9s linear infinite;
+  }
+
+  .page-register-03 .heading {
+    color: #1a1410;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    padding-bottom: 10px;
+  }
+
+  .page-register-03 .description {
+    color: #514840;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+    padding-bottom: 24px;
+  }
+
+  .page-register-03 .info-box {
+    background-color: #f6f1e9;
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 10px;
+    text-align: left;
+    width: 100%;
+  }
+
+  .page-register-03 .info-icon {
+    padding-top: 1px;
+    width: 16px;
+    flex-shrink: 0;
+  }
+
+  .page-register-03 .info-icon img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .page-register-03 .info-text {
+    color: #a79c8f;
+    font-size: 12px;
+    line-height: 1.4;
+    margin: 0;
+  }
+
+  /* ---- error state (registration failed) ---- */
+  .page-register-03 .error-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    padding-top: 24px;
+  }
+
+  .page-register-03 .btn-primary {
+    background-color: #1a1410;
+    color: #ffffff;
+    width: 100%;
+    padding: 15px;
+    border-radius: 5px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .page-register-03 .btn-primary:hover {
+    background-color: #332820;
+  }
+
+  .page-register-03 .btn-secondary {
+    background-color: transparent;
+    color: #1a1410;
+    width: 100%;
+    padding: 14px;
+    border-radius: 5px;
+    border: 1px solid #e3d9cb;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+`;
+
+/* Dedupes a registration POST already in flight (e.g. quick back-and-forth
+   navigation between steps) so the request is never sent twice. */
+let pendingRegistration = null;
+
+function submitRegistration(payload) {
+  if (!pendingRegistration) {
+    pendingRegistration = registerUser(payload).finally(() => {
+      pendingRegistration = null;
+    });
+  }
+  return pendingRegistration;
+}
+
+function Register03() {
+  const navigate = useNavigate();
+  const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    const flowData = registerFlow.get();
+
+    // Direct visits / refreshes have no collected data. Restart from step 1.
+    if (!flowData.phone || !flowData.password) {
+      navigate('/auth/register-01', { replace: true });
+      return undefined;
+    }
+
+    const startedAt = Date.now();
+    const MIN_SPINNER_MS = 1200;
+
+    submitRegistration({
+      username: flowData.phone,
+      password: flowData.password,
+      password2: flowData.password2 || flowData.password,
+      email: flowData.email || '',
+      full_name: '',
+      phone: flowData.phone,
+      referral_code: flowData.referralCode || '',
+      otp: '',
+      withdraw_pin: '',
+    })
+      .then((user) => {
+        // Keep the verification animation visible even on a fast response.
+        const wait = Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt));
+        setTimeout(() => {
+          if (!active) return;
+          registerFlow.clear();
+          registerFlow.save({ user });
+          navigate('/auth/register-04');
+        }, wait);
+      })
+      .catch((err) => {
+        const wait = Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt));
+        setTimeout(() => {
+          if (!active) return;
+          setError(err?.message || 'Pendaftaran gagal. Silakan coba lagi.');
+        }, wait);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [navigate, attempt]);
+
+  return (
+    <div className="page-register-03">
+      <style>{Register03Styles}</style>
+      <section id="section-verification">
+              <div className="verification-container">
+                {error ? (
+                  <>
+                    <h1 className="heading">Pendaftaran Belum Berhasil</h1>
+                    <p className="description">Datamu masih tersimpan. Periksa pesan di bawah ini lalu coba lagi ya.</p>
+                    <NotifCard variant="error" title="Pendaftaran Gagal" description={error} showClose={false} />
+                    <div className="error-actions">
+                      <button type="button" className="btn-primary" onClick={() => { setError(''); setAttempt((n) => n + 1); }}>Coba Lagi</button>
+                      <button type="button" className="btn-secondary" onClick={() => navigate('/auth/register-01')}>Ubah Data</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="spinner-wrapper">
+                      <div className="spinner" />
+                    </div>
+                    <h1 className="heading">Memverifikasi Akun Kamu</h1>
+                    <p className="description">Mohon tunggu sebentar. Kami sedang memverifikasi informasi akun kamu untuk memastikan proses pendaftaran berjalan dengan aman.</p>
+                    <div className="info-box">
+                      <div className="info-icon">
+                        <img src={S3_img_1} alt="Info Icon" />
+                      </div>
+                      <p className="info-text">Proses ini membutuhkan waktu beberapa detik untuk memastikan pendaftaran kamu aman dan bukan otomatis (anti-spam).</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </section>
+
+    </div>
+  );
+}
+
+/* ================= Step 4 — /auth/register-04 (was Register04.jsx) ================= */
+
+const Register04Styles = `
+/* Scoped styles for Register04 — converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-register-04 to isolate this page. */
+
+.page-register-04 {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f5f5f5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-register-04, .page-register-04 * {
+  box-sizing: border-box;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:SuccessScreen */
+.page-register-04 #section-success {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .page-register-04 .mobile-container {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
+    background-color: #fffbf4;
+    /* Approximating the complex radial gradients from Figma */
+    background-image: 
+      radial-gradient(circle at 80% 15%, rgba(255, 201, 60, 0.15) 0%, transparent 60%),
+      radial-gradient(circle at 20% 85%, rgba(255, 159, 28, 0.12) 0%, transparent 60%);
+    box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
+    display: flex;
+    flex-direction: column;
+    padding: 268px 24px 28px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-register-04 .content-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-grow: 1;
+  }
+
+  .page-register-04 .success-icon {
+    width: 120px;
+    height: 125px;
+    object-fit: contain;
+    margin-bottom: 20px;
+  }
+
+  .page-register-04 .success-title {
+    color: #1a1410;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .page-register-04 .success-description {
+    color: #514840;
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: center;
+    margin: 0;
+    padding: 0 4px;
+  }
+
+  .page-register-04 .action-area {
+    width: 100%;
+    margin-top: 32px;
+    padding-top: 20px;
+  }
+
+  .page-register-04 .btn-primary {
+    background-color: #1a1410;
+    color: #ffffff;
+    width: 100%;
+    padding: 15px;
+    border-radius: 5px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .page-register-04 .btn-primary:hover {
+    background-color: #332820;
+  }
+  
+  .page-register-04 .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  /* Responsive adjustments for actual mobile devices */
+  @media (max-width: 480px) {
+    .page-register-04 #section-success {
+      padding: 0;
+      align-items: flex-start;
+    }
+    
+    .page-register-04 .mobile-container {
+      min-height: 100vh;
+      box-shadow: none;
+      border-radius: 0;
+      padding-top: 30vh; /* Adjust top padding for smaller screens */
+    }
+  }
+`;
+
+function Register04() {
+  const navigate = useNavigate();
+
+  return (
+    <div className="page-register-04">
+      <style>{Register04Styles}</style>
+      <section id="section-success">
+              <div className="mobile-container">
+                <div className="content-area">
+                  <img src={S4_img_1} alt="Success Illustration" className="success-icon" />
+                  <h1 className="success-title">Akun Berhasil Dibuat</h1>
+                  <p className="success-description">Akun Jelajah Emas kamu sudah siap digunakan. Yuk, mulai jelajahi informasi dan layanan emas digital bersama Jelajah Emas.</p>
+                </div>
+                <div className="action-area">
+                  <button className="btn-primary" onClick={(e) => { e.preventDefault(); navigate('/auth/login'); }}>Lanjut</button>
+                </div>
+              </div>
+            </section>
+
+    </div>
+  );
+}
+
+const STEP_COMPONENTS = { 1: Register01, 2: Register02, 3: Register03, 4: Register04 };
+
+export default function Register({ step = 1 }) {
+  const Step = STEP_COMPONENTS[step] ?? STEP_COMPONENTS[1];
+  return <Step />;
+}

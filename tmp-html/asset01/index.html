@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generated Page</title>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="global.css">
+  <style id="sections-styles">
+/* CSS for section section:Hero */
+.hero-section {
+  max-width: 412px;
+  height: 240px;
+  margin: 0 auto;
+  background: radial-gradient(43.75% 50% at 41.67% 0%, #241c16 0%, #1a1410 55%, #120d09 100%);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.top-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  z-index: 2;
+}
+.back-btn {
+  width: 34px;
+  height: 34px;
+  background-color: rgba(255, 249, 242, 0.12);
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+}
+.page-title {
+  color: #fff9f2;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+.asset-card {
+  background-color: rgba(255, 249, 242, 0.08);
+  border-radius: 14px;
+  padding: 13px 14px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+  z-index: 2;
+}
+.asset-label {
+  color: rgba(255, 249, 242, 0.5);
+  font-size: 12px;
+  margin: 0;
+}
+.asset-value {
+  color: #fff9f2;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 2px 0 0 0;
+}
+.asset-fiat {
+  color: rgba(255, 249, 242, 0.45);
+  font-size: 12px;
+  margin: 0;
+}
+.character-img {
+  position: absolute;
+  right: -10px;
+  top: 37px;
+  width: 135px;
+  height: 132px;
+  z-index: 1;
+}
+
+/* CSS for section section:FloatingCard */
+.floating-price-section {
+  max-width: 412px;
+  margin: -47px auto 0 auto;
+  padding: 0 20px;
+  position: relative;
+  z-index: 10;
+  background: linear-gradient(to bottom, transparent 47px, #fff9f2 47px);
+}
+.price-card {
+  background-image: url('images/d35f294fb1a21fb0aa4f326dc1672ebf0f14686d.png');
+  background-size: cover;
+  background-position: center;
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 94px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.gold-icon {
+  width: 45px;
+  height: 44px;
+}
+.price-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.price-label {
+  color: #a79c8f;
+  font-size: 12px;
+  margin: 0;
+}
+.price-value {
+  color: #1a1410;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+.price-change {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.change-value {
+  color: #e24c4c;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* CSS for section section:Programs */
+.programs-section {
+  max-width: 412px;
+  margin: 0 auto;
+  background-color: #fff9f2;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title {
+  color: #1a1410;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+.badge-live {
+  background-color: #e24c4c;
+  color: #ffffff;
+  font-size: 10px;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-weight: 700;
+}
+.link-all {
+  color: #e8790c;
+  font-size: 12px;
+  text-decoration: none;
+  font-weight: 700;
+}
+.tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+.tab {
+  background-color: #f6f1e9;
+  color: #514840;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tab.active {
+  background-color: #1a1410;
+  color: #fff9f2;
+}
+.program-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.program-card {
+  border: 1px solid #efe7dc;
+  border-radius: 16px;
+  background-color: transparent;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.card-main {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.product-icon {
+  width: 34px;
+  height: 34px;
+  background-color: #f6f1e9;
+  border: 1px solid rgba(26, 20, 16, 0.22);
+  border-radius: 9px;
+}
+.product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.product-name {
+  color: #1a1410;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+}
+.product-spec {
+  color: #a79c8f;
+  font-size: 12px;
+  margin: 0;
+}
+.quota-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+.quota-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.quota-label {
+  color: #a79c8f;
+  font-size: 12px;
+}
+.quota-value {
+  color: #1a1410;
+  font-size: 12px;
+  font-weight: 700;
+}
+.progress-bar {
+  height: 6px;
+  background-color: #f6f1e9;
+  border-radius: 4px;
+  width: 100%;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffc93c 0%, #e8790c 100%);
+  border-radius: 4px;
+}
+.stats-grid {
+  display: flex;
+  border-top: 1px solid #efe7dc;
+  padding-top: 12px;
+  margin-top: 4px;
+}
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  align-items: flex-start;
+}
+.stat-label {
+  color: #a79c8f;
+  font-size: 10px;
+}
+.stat-value {
+  color: #1a1410;
+  font-size: 12px;
+  font-weight: 700;
+}
+.stat-value.highlight {
+  color: #2f8f5a;
+}
+.card-footer {
+  background-color: #f6f1e9;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.footer-icon {
+  width: 21px;
+  height: 21px;
+}
+.footer-text {
+  color: #1a1410;
+  font-size: 12px;
+  font-weight: 700;
+  flex: 1;
+}
+.footer-arrow {
+  width: 14px;
+  height: 14px;
+}
+
+/* CSS for section section:FAQ */
+.faq-section {
+  max-width: 412px;
+  margin: 0 auto;
+  background-color: #fff9f2;
+  padding: 6px 20px 24px 20px;
+  display: flex;
+  flex-direction: column;
+}
+.faq-title {
+  color: #1a1410;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+}
+.faq-list {
+  display: flex;
+  flex-direction: column;
+}
+.faq-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #efe7dc;
+  cursor: pointer;
+}
+.faq-item:last-child {
+  border-bottom: none;
+}
+.faq-question {
+  color: #1a1410;
+  font-size: 14px;
+  font-weight: 400;
+}
+  </style>
+  <script src="global.js" defer></script>
+</head>
+<body>
+<section id="section-hero" class="hero-section">
+  <div class="top-nav">
+    <a href="#" class="back-btn">
+      <img src="images/74_305.svg" alt="Back">
+    </a>
+    <h1 class="page-title">Kumpulkan Aset Anda</h1>
+  </div>
+  <div class="asset-card">
+    <p class="asset-label">Total Aset Emas Kamu</p>
+    <p class="asset-value">1,367 gram</p>
+    <p class="asset-fiat">≈ Rp3.512.870</p>
+  </div>
+  <img src="images/27d2feb51364f020c6b57863d6f2929526f97178.png" alt="Character" class="character-img">
+</section>
+<section id="section-floating-card" class="floating-price-section">
+  <div class="price-card">
+    <img src="images/6e7afc8beed777ee8ad0a014432f7422da8ce4ac.png" alt="Gold Coin" class="gold-icon">
+    <div class="price-info">
+      <p class="price-label">Harga Emas Hari Ini</p>
+      <p class="price-value">Rp 2.569.270 / gram</p>
+    </div>
+    <div class="price-change">
+      <img src="images/140_495.svg" alt="Up">
+      <span class="change-value">+ 1,01%</span>
+    </div>
+  </div>
+</section>
+<section id="section-programs" class="programs-section">
+  <div class="section-header">
+    <div class="title-wrapper">
+      <h2 class="section-title">Rencana Program</h2>
+      <span class="badge-live">Live</span>
+    </div>
+    <a href="#" class="link-all">Lihat Semua</a>
+  </div>
+  
+  <div class="tabs">
+    <button class="tab active">Semua</button>
+    <button class="tab">Pemula</button>
+    <button class="tab">Reguler</button>
+    <button class="tab">Prioritas</button>
+  </div>
+
+  <div class="program-list">
+    <!-- Card 1 -->
+    <div class="program-card">
+      <div class="card-main">
+        <div class="card-header">
+          <div class="product-icon"></div>
+          <div class="product-info">
+            <h3 class="product-name">Nama produk</h3>
+            <p class="product-spec">Spesifikasi</p>
+          </div>
+        </div>
+        
+        <div class="quota-container">
+          <div class="quota-info">
+            <span class="quota-label">Kuota Peserta Aktif</span>
+            <span class="quota-value">5.208 / 8.000</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 65%;"></div>
+          </div>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-label">Pembagian</span>
+            <span class="stat-value highlight">10%/Rp 2.000</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Frekuensi</span>
+            <span class="stat-value">Siklus</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Estimasi Biaya</span>
+            <span class="stat-value">Rp157.000</span>
+          </div>
+        </div>
+      </div>
+      <a href="#" class="card-footer">
+        <img src="images/50152a965b856a6eb89e7be494cdab9588c66fa7.png" alt="Doc" class="footer-icon">
+        <span class="footer-text">Lihat detail rencana</span>
+        <img src="images/74_384.svg" alt="Arrow" class="footer-arrow">
+      </a>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="program-card">
+      <div class="card-main">
+        <div class="card-header">
+          <div class="product-icon"></div>
+          <div class="product-info">
+            <h3 class="product-name">Nama produk</h3>
+            <p class="product-spec">Spesifikasi</p>
+          </div>
+        </div>
+        
+        <div class="quota-container">
+          <div class="quota-info">
+            <span class="quota-label">Kuota Peserta Aktif</span>
+            <span class="quota-value">5.208 / 8.000</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 65%;"></div>
+          </div>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-label">Pembagian</span>
+            <span class="stat-value highlight">10%</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Frekuensi</span>
+            <span class="stat-value">Siklus</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Estimasi Biaya</span>
+            <span class="stat-value">Rp157.000</span>
+          </div>
+        </div>
+      </div>
+      <a href="#" class="card-footer">
+        <img src="images/50152a965b856a6eb89e7be494cdab9588c66fa7.png" alt="Doc" class="footer-icon">
+        <span class="footer-text">Lihat detail rencana</span>
+        <img src="images/139_437.svg" alt="Arrow" class="footer-arrow">
+      </a>
+    </div>
+
+    <!-- Card 3 -->
+    <div class="program-card">
+      <div class="card-main">
+        <div class="card-header">
+          <div class="product-icon"></div>
+          <div class="product-info">
+            <h3 class="product-name">Nama produk</h3>
+            <p class="product-spec">Spesifikasi</p>
+          </div>
+        </div>
+        
+        <div class="quota-container">
+          <div class="quota-info">
+            <span class="quota-label">Kuota Peserta Aktif</span>
+            <span class="quota-value">5.208 / 8.000</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 65%;"></div>
+          </div>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-label">Pembagian</span>
+            <span class="stat-value highlight">10%</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Frekuensi</span>
+            <span class="stat-value">Siklus</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Estimasi Biaya</span>
+            <span class="stat-value">Rp157.000</span>
+          </div>
+        </div>
+      </div>
+      <a href="#" class="card-footer">
+        <img src="images/50152a965b856a6eb89e7be494cdab9588c66fa7.png" alt="Doc" class="footer-icon">
+        <span class="footer-text">Lihat detail rencana</span>
+        <img src="images/139_481.svg" alt="Arrow" class="footer-arrow">
+      </a>
+    </div>
+  </div>
+</section>
+<section id="section-faq" class="faq-section">
+  <h2 class="faq-title">Seputar Investasi Emas</h2>
+  <div class="faq-list">
+    <div class="faq-item">
+      <span class="faq-question">Apa itu Investasi Emas Rutin?</span>
+      <img src="images/74_478.svg" alt="Expand">
+    </div>
+    <div class="faq-item">
+      <span class="faq-question">Emas yang terkumpul disimpan di mana?</span>
+      <img src="images/74_483.svg" alt="Expand">
+    </div>
+    <div class="faq-item">
+      <span class="faq-question">Bagaimana cara mengubah atau membatalkan paket?</span>
+      <img src="images/74_488.svg" alt="Expand">
+    </div>
+  </div>
+</section>
+</body>
+</html>

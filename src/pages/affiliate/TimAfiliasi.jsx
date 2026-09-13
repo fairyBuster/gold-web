@@ -1,0 +1,581 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import img_1 from '../../assets/images/41_1038.svg';
+import img_2 from '../../assets/images/d8da7d40a36530662fd38ce2db2d88617de3e965.png';
+import img_3 from '../../assets/images/53_210.svg';
+import img_4 from '../../assets/images/53_217.svg';
+import img_5 from '../../assets/images/53_289.svg';
+import NotifCard from '../../components/NotifCard.jsx';
+import { getAccountInfo } from '../../lib/authApi.js';
+import { getDownlineStats } from '../../lib/affiliateApi.js';
+import { formatRupiah } from '../../lib/transactionFormat.js';
+
+/* Data: GET /api/auth/downline-stats/ returns per-level (1-5) downline stats.
+   "Total Diundang" uses level 1 members_total; the "Tim Kamu" cards
+   (Langsung/Tingkat 2/3) count only ACTIVE members (members_active) per level.
+   The footer count sums levels 1-3 (the levels the detail page shows), all
+   members. "Total Bonus" sums profit + purchase commissions across
+   all levels — those amounts are the commissions earned BY the current user
+   from each level. The referral code comes from GET /api/auth/account-info/. */
+
+/* Page styles are kept inline in this file so the page is a single-file import. */
+const styles = `
+/* Scoped styles for TimAfiliasi — converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-tim-afiliasi to isolate this page. */
+
+.page-tim-afiliasi {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f0f0f0;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-tim-afiliasi, .page-tim-afiliasi * {
+  box-sizing: border-box;
+}
+
+.page-tim-afiliasi h1,.page-tim-afiliasi  h2,.page-tim-afiliasi  h3,.page-tim-afiliasi  p {
+  margin: 0;
+}
+
+.page-tim-afiliasi .mobile-section {
+  max-width: 100%;
+  margin: 0 auto;
+  background-color: #fffbf4;
+  padding-left: 20px;
+  padding-right: 20px;
+  box-shadow: -10px 0 20px -10px rgba(0,0,0,0.05), 10px 0 20px -10px rgba(0,0,0,0.05);
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Header */
+.page-tim-afiliasi #section-header {
+    padding-top: 20px;
+    padding-bottom: 4px;
+  }
+  .page-tim-afiliasi .header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .page-tim-afiliasi .back-btn {
+    background-color: #f6f1e9;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    padding: 0;
+  }
+  .page-tim-afiliasi .title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1410;
+  }
+
+/* CSS for section section:Hero */
+.page-tim-afiliasi #section-hero {
+    padding-top: 14px;
+    padding-bottom: 0;
+  }
+  .page-tim-afiliasi .hero-card {
+    background: linear-gradient(135deg, #241c16 0%, #1a1410 55%, #120d09 100%);
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+  }
+  .page-tim-afiliasi .hero-illustration {
+    position: absolute;
+    top: 10px;
+    right: 0;
+    width: 99px;
+    height: 103px;
+    object-fit: cover;
+    z-index: 0;
+  }
+  .page-tim-afiliasi .hero-label {
+    color: rgba(255, 249, 242, 0.55);
+    font-size: 12px;
+    position: relative;
+    z-index: 1;
+  }
+  .page-tim-afiliasi .code-box {
+    background-color: #fff9f2;
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    max-width: 258px;
+  }
+  .page-tim-afiliasi .code-text {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1410;
+    letter-spacing: 0.5px;
+  }
+  .page-tim-afiliasi .copy-btn {
+    background-color: #f6f1e9;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #514840;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .page-tim-afiliasi .stats-row {
+    display: flex;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+    margin-top: 6px;
+  }
+  .page-tim-afiliasi .stat-box {
+    flex: 1;
+    background-color: rgba(255, 249, 242, 0.1);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .page-tim-afiliasi .stat-num {
+    color: #fff9f2;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .page-tim-afiliasi .stat-label {
+    color: rgba(255, 249, 242, 0.5);
+    font-size: 10px;
+  }
+  .page-tim-afiliasi .status-text {
+    font-size: 12px;
+    color: #a79c8f;
+    text-align: center;
+    margin-top: 10px;
+  }
+  .page-tim-afiliasi .notice-wrapper {
+    margin-top: 12px;
+  }
+
+/* CSS for section section:Actions */
+.page-tim-afiliasi #section-actions {
+    padding-top: 22px;
+    padding-bottom: 22px;
+  }
+  .page-tim-afiliasi .actions-container {
+    display: flex;
+    gap: 10px;
+  }
+  .page-tim-afiliasi .action-btn {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 14px;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .page-tim-afiliasi .action-btn.primary {
+    background-color: #f1b04a;
+    color: #1a1410;
+  }
+  .page-tim-afiliasi .action-btn.secondary {
+    background-color: #f6f1e9;
+    color: #514840;
+  }
+  .page-tim-afiliasi .action-btn:disabled {
+    opacity: 0.7;
+    cursor: default;
+  }
+
+/* CSS for section section:HowItWorks */
+.page-tim-afiliasi #section-how-it-works {
+    padding-top: 0;
+    padding-bottom: 22px;
+  }
+  .page-tim-afiliasi #section-how-it-works .section-header {
+    margin-bottom: 14px;
+  }
+  .page-tim-afiliasi #section-how-it-works .section-header h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1410;
+    margin-bottom: 4px;
+  }
+  .page-tim-afiliasi #section-how-it-works .section-header p {
+    font-size: 12px;
+    color: #a79c8f;
+    line-height: 1.4;
+  }
+  .page-tim-afiliasi .steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .page-tim-afiliasi .step-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .page-tim-afiliasi .step-icon {
+    width: 24px;
+    height: 24px;
+    background-color: #960084;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .page-tim-afiliasi .step-item p {
+    font-size: 12px;
+    color: #514840;
+    line-height: 1.5;
+    margin: 0;
+  }
+  .page-tim-afiliasi .step-item p strong {
+    font-weight: 700;
+    color: #1a1410;
+  }
+
+/* CSS for section section:Bonus */
+.page-tim-afiliasi #section-bonus {
+    padding-top: 0;
+    padding-bottom: 22px;
+  }
+  .page-tim-afiliasi #section-bonus .section-header {
+    margin-bottom: 14px;
+  }
+  .page-tim-afiliasi #section-bonus .section-header h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1410;
+  }
+  .page-tim-afiliasi .bonus-card {
+    background-color: #ffffff;
+    border: 1px solid #efe7dc;
+    border-radius: 16px;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  .page-tim-afiliasi .bonus-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid #efe7dc;
+  }
+  .page-tim-afiliasi .bonus-row:last-child {
+    border-bottom: none;
+  }
+  .page-tim-afiliasi .bonus-label {
+    font-size: 12px;
+    color: #a79c8f;
+  }
+  .page-tim-afiliasi .bonus-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1a1410;
+  }
+
+/* CSS for section section:Team */
+.page-tim-afiliasi #section-team {
+    padding-top: 0;
+    padding-bottom: 22px;
+  }
+  .page-tim-afiliasi #section-team .section-header {
+    margin-bottom: 14px;
+  }
+  .page-tim-afiliasi #section-team .section-header h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1410;
+    margin-bottom: 4px;
+  }
+  .page-tim-afiliasi #section-team .section-header p {
+    font-size: 12px;
+    color: #a79c8f;
+    line-height: 1.4;
+  }
+  .page-tim-afiliasi .team-stats-container {
+    display: flex;
+    gap: 10px;
+  }
+  .page-tim-afiliasi .team-stat-card {
+    flex: 1;
+    background-color: #ffffff;
+    border: 1px solid #efe7dc;
+    border-radius: 14px;
+    padding: 14px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .page-tim-afiliasi .team-stat-num {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1410;
+  }
+  .page-tim-afiliasi .team-stat-label {
+    font-size: 11px;
+    color: #a79c8f;
+  }
+
+/* CSS for section section:Footer */
+.page-tim-afiliasi #section-footer {
+    padding-top: 0;
+    padding-bottom: 38px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .page-tim-afiliasi .detail-link {
+    background-color: rgba(255, 159, 28, 0.1);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-decoration: none;
+  }
+  .page-tim-afiliasi .detail-text {
+    color: #e8790c;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .page-tim-afiliasi .disclaimer {
+    font-size: 10px;
+    color: #a79c8f;
+    text-align: center;
+    line-height: 1.5;
+    padding: 0 10px;
+  }
+`;
+
+const TEAM_LEVELS = [1, 2, 3];
+
+/* Fetches the per-level downline statistics plus the current user's referral
+   code in parallel. Every stat on the page renders '—' until this resolves. */
+function useTimAfiliasiData() {
+  const [stats, setStats] = useState(null);
+  const [referralCode, setReferralCode] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const [account, statsPayload] = await Promise.all([
+          getAccountInfo(),
+          getDownlineStats(),
+        ]);
+        if (cancelled) return;
+        setReferralCode(String(account?.referral_code || '').trim());
+        setStats(Array.isArray(statsPayload?.levels) ? statsPayload.levels : []);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err?.message || 'Gagal memuat data tim.');
+        }
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { stats, referralCode, error };
+}
+
+export default function TimAfiliasi() {
+  const navigate = useNavigate();
+  const { stats, referralCode, error } = useTimAfiliasiData();
+  /* Hasil salin/bagikan tampil lewat shared NotifCard. */
+  const [shareNote, setShareNote] = useState(null);
+
+  const findLevel = (level) => (stats || []).find((item) => item.level === level) || null;
+  const level1 = findLevel(1);
+  const totalBonus = (stats || []).reduce(
+    (sum, item) => sum + Number(item.profit_commission_amount || 0) + Number(item.purchase_commission_amount || 0),
+    0,
+  );
+  const teamCards = TEAM_LEVELS.map((level) => {
+    const entry = findLevel(level);
+    return { level, active: entry ? entry.members_active : null };
+  });
+  const totalMembers = TEAM_LEVELS.reduce((sum, level) => sum + (findLevel(level)?.members_total || 0), 0);
+  const statusText = stats === null && !error ? 'Memuat data tim...' : '';
+
+  /* "Bagikan Kode": pakai Web Share API kalau tersedia (umumnya mobile);
+     kalau tidak, salin teks referral ke clipboard sebagai fallback. */
+  const handleShare = async () => {
+    if (!referralCode) return;
+    const text = `Gabung Jelajah Emas yuk! Pakai kode referral saya: ${referralCode}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Jelajah Emas', text });
+      } catch {
+        /* Pengguna menutup share sheet — tidak ada aksi lanjutan. */
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareNote({ variant: 'success', title: 'Teks Dibagikan', description: 'Teks referral disalin ke clipboard. Tempel di chat atau media sosial kamu.' });
+    } catch {
+      setShareNote({ variant: 'error', title: 'Gagal Membagikan', description: 'Tidak dapat membagikan kode. Coba lagi ya.' });
+    }
+  };
+
+  return (
+    <div className="page-tim-afiliasi">
+      <style>{styles}</style>
+      <div>
+              <section id="section-header" className="mobile-section">
+                <header className="header">
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <img src={img_1} alt="" />
+                  </button>
+                  <h1 className="title">Tim &amp; Afiliasi</h1>
+                </header>
+              </section>
+              <section id="section-hero" className="mobile-section">
+                <div className="hero-card">
+                  <img className="hero-illustration" src={img_2} alt="Team Illustration" />
+                  <p className="hero-label">Kode Referral Kamu</p>
+                  <div className="code-box">
+                    <span className="code-text">{referralCode || '—'}</span>
+                    <button className="copy-btn">Salin</button>
+                  </div>
+                  <div className="stats-row">
+                    <div className="stat-box">
+                      <span className="stat-num">{level1 ? level1.members_total : '—'}</span>
+                      <span className="stat-label">Total Diundang</span>
+                    </div>
+                    <div className="stat-box">
+                      <span className="stat-num">{stats ? formatRupiah(totalBonus) : '—'}</span>
+                      <span className="stat-label">Total Bonus</span>
+                    </div>
+                  </div>
+                </div>
+                {error ? (
+                  <NotifCard variant="error" title="Gagal Memuat Data Tim" description={error} />
+                ) : statusText ? (
+                  <p className="status-text">{statusText}</p>
+                ) : null}
+              </section>
+              <section id="section-actions" className="mobile-section">
+                <div className="actions-container">
+                  <button className="action-btn primary" onClick={handleShare} disabled={!referralCode}>
+                    <img src={img_3} alt="" />
+                    <span>Bagikan Kode</span>
+                  </button>
+                  <button className="action-btn secondary" onClick={(e) => { e.preventDefault(); navigate('/affiliate/riwayat-komisi'); }}>
+                    <img src={img_4} alt="" />
+                    <span>Riwayat</span>
+                  </button>
+                </div>
+                {shareNote ? (
+                  <div className="notice-wrapper">
+                    <NotifCard variant={shareNote.variant} title={shareNote.title} description={shareNote.description} onClose={() => setShareNote(null)} />
+                  </div>
+                ) : null}
+              </section>
+              <section id="section-how-it-works" className="mobile-section">
+                <div className="section-header">
+                  <h2>Cara Kerja</h2>
+                  <p>Ikuti langkah berikut untuk mulai mendapatkan bonus dari program afiliasi.</p>
+                </div>
+                <div className="steps-list">
+                  <div className="step-item">
+                    <div className="step-icon" />
+                    <p>Bagikan <strong>kode referral</strong> kamu ke teman atau keluarga lewat link, chat, atau media sosial.</p>
+                  </div>
+                  <div className="step-item">
+                    <div className="step-icon" />
+                    <p>Teman kamu mendaftar akun baru dan memasukkan kode referral saat proses pendaftaran.</p>
+                  </div>
+                  <div className="step-item">
+                    <div className="step-icon" />
+                    <p>Setelah teman kamu <strong>menyelesaikan transaksi pertama</strong>, bonus akan otomatis masuk ke saldo kamu.</p>
+                  </div>
+                </div>
+              </section>
+              <section id="section-bonus" className="mobile-section">
+                <div className="section-header">
+                  <h2>Bonus &amp; Komisi</h2>
+                </div>
+                <div className="bonus-card">
+                  <div className="bonus-row">
+                    <span className="bonus-label">Bonus undangan langsung</span>
+                    <span className="bonus-value">s.d. 33%</span>
+                  </div>
+                  <div className="bonus-row">
+                    <span className="bonus-label">Bonus jaringan dua</span>
+                    <span className="bonus-value">s.d. 2%</span>
+                  </div>
+                  <div className="bonus-row">
+                    <span className="bonus-label">Bonus jaringan tiga</span>
+                    <span className="bonus-value">s.d. 1%</span>
+                  </div>
+                  <div className="bonus-row">
+                    <span className="bonus-label">Batas Undangan per Bulan</span>
+                    <span className="bonus-value">Tidak terbatas</span>
+                  </div>
+                </div>
+              </section>
+              <section id="section-team" className="mobile-section">
+                <div className="section-header">
+                  <h2>Tim Kamu</h2>
+                  <p>Pantau seluruh jaringan tim kamu hingga 3 tingkat keanggotaan.</p>
+                </div>
+                <div className="team-stats-container">
+                  <div className="team-stat-card">
+                    <span className="team-stat-num">{teamCards[0].active ?? '—'}</span>
+                    <span className="team-stat-label">Langsung</span>
+                  </div>
+                  <div className="team-stat-card">
+                    <span className="team-stat-num">{teamCards[1].active ?? '—'}</span>
+                    <span className="team-stat-label">Tingkat 2</span>
+                  </div>
+                  <div className="team-stat-card">
+                    <span className="team-stat-num">{teamCards[2].active ?? '—'}</span>
+                    <span className="team-stat-label">Tingkat 3</span>
+                  </div>
+                </div>
+              </section>
+              <section id="section-footer" className="mobile-section">
+                <Link to="/affiliate/detail-tim" className="detail-link">
+                  <span className="detail-text">
+                    {stats ? `Lihat Detail Tim (${totalMembers} Anggota)` : 'Lihat Detail Tim'}
+                  </span>
+                  <img src={img_5} alt="" />
+                </Link>
+                <p className="disclaimer">
+                  Program afiliasi ini tunduk pada Syarat &amp; Ketentuan yang berlaku dan dapat berubah sewaktu-waktu tanpa pemberitahuan sebelumnya.
+                </p>
+              </section>
+            </div>
+
+    </div>
+  );
+}
