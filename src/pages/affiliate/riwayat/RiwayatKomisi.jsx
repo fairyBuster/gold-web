@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom';
 import img_1 from '../../../assets/images/67_135.svg';
 import img_2 from '../../../assets/images/d8da7d40a36530662fd38ce2db2d88617de3e965.png';
 import img_3 from '../../../assets/images/402d907c628503f9f6fc98788c4a2ed737081803.png';
+import pageBg from '../../../assets/images/083535.png';
 import NotifCard from '../../../components/NotifCard.jsx';
 import ListPagination from '../../../components/ListPagination.jsx';
 import ListState from '../../../components/ListState.jsx';
 import { useTransactionFeed } from '../../../lib/useTransactionFeed.js';
-import { formatAmountLabel, formatRupiah, parseDate } from '../../../lib/transactionFormat.js';
+import { formatAmountLabel, formatRupiah, parseDate, formatTime } from '../../../lib/transactionFormat.js';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -22,10 +23,10 @@ const styles = `
   max-width: 100%;
   min-height: 100vh;
   background-color: #fffbf4;
-  background-image:
-    radial-gradient(circle at 76% 11%, rgba(255, 201, 60, 0.28) 0%, rgba(255, 201, 60, 0) 70%),
-    radial-gradient(circle at 111% 25%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 70%),
-    radial-gradient(circle at 90% -40%, rgba(255, 159, 28, 0.38) 0%, rgba(255, 159, 28, 0) 70%);
+  /* Latar artwork 083535.png (dipasang inline di root), direntangkan penuh. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
   position: relative;
   overflow-x: hidden;
   box-shadow: 0px 0px 20px rgba(0,0,0,0.05);
@@ -150,6 +151,19 @@ const styles = `
 .page-riwayat-komisi .history-section {
   padding: 0 20px 20px 20px;
 }
+.page-riwayat-komisi .loading-spinner {
+  display: block;
+  width: 34px;
+  height: 34px;
+  margin: 48px auto;
+  border-radius: 50%;
+  border: 3px solid #efe7dc;
+  border-top-color: #e8790c;
+  animation: rkomisi-spin 0.9s linear infinite;
+}
+@keyframes rkomisi-spin {
+  to { transform: rotate(360deg); }
+}
 .page-riwayat-komisi .month-group {
   margin-bottom: 24px;
 }
@@ -245,11 +259,13 @@ function memberPhone(trx) {
   return match ? match[1] : '';
 }
 
-/* "04 Sep 2026" — date shown on each card. */
+/* "04 Sep 2026 • 14:30" — date + time shown on each card. */
 function cardDate(iso) {
   const date = parseDate(iso);
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  const day = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  const time = formatTime(iso);
+  return time ? `${day} • ${time}` : day;
 }
 
 /* "September 2026" — month section label. */
@@ -301,7 +317,7 @@ export default function RiwayatKomisi() {
   const monthTotal = sumAmount(items.filter((trx) => isCurrentMonth(trx.created_at)));
 
   return (
-    <div className="page-riwayat-komisi">
+    <div className="page-riwayat-komisi" style={{ backgroundImage: `url(${pageBg})` }}>
       <style>{styles}</style>
       <div>
               <section id="section-header">
@@ -343,7 +359,7 @@ export default function RiwayatKomisi() {
                 {error ? (
                   <NotifCard variant="error" title="Gagal Memuat Riwayat" description={error} />
                 ) : loading ? (
-                  <ListState text="Memuat riwayat\u2026" />
+                  <div className="loading-spinner" />
                 ) : groups.length === 0 ? (
                   <ListState text={level === 'all' ? 'Belum ada komisi.' : 'Belum ada komisi di level ini.'} />
                 ) : (
@@ -354,7 +370,7 @@ export default function RiwayatKomisi() {
                         {group.items.map((trx) => {
                           const phone = memberPhone(trx);
                           return (
-                            <Link to="/affiliate/riwayat-detail-komisi" className="history-card" key={trx.id ?? `${trx.trx_id}-${trx.created_at}`}>
+                            <Link to="/index/affiliate/riwayat-detail-komisi" className="history-card" key={trx.id ?? `${trx.trx_id}-${trx.created_at}`}>
                               <img src={img_3} alt="Avatar" className="avatar" />
                               <div className="card-content">
                                 <div className="card-header">
@@ -383,3 +399,4 @@ export default function RiwayatKomisi() {
     </div>
   );
 }
+ 

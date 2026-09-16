@@ -1,3 +1,7 @@
+import { useEffect, useState } from 'react';
+import { useShowNotif } from '../../lib/useShowNotif.js';
+import { changePassword, getAccountInfo } from '../../lib/authApi.js';
+import pkg from '../../../package.json';
 import img_1 from '../../assets/images/166_376.svg';
 import img_2 from '../../assets/images/165_101.svg';
 import img_3 from '../../assets/images/165_101.svg';
@@ -255,7 +259,119 @@ const styles = `
   }
 `;
 
+/* ---- Cache Aplikasi ("Bersihkan Cache") -----------------------------------
+   "Cache" = data sementara di browser: cache harga emas (localStorage
+   'je_gold_price') dan id handoff antar halaman (sessionStorage 'je_*').
+   Browser tidak punya API ukuran storage, jadi ukuran dihitung dari panjang
+   key+value (UTF-16 ~ 2 byte per karakter). Sesi login ('je_auth_session')
+   dan penanda notif dibaca ('je_notif_seen_at') tidak dihapus — keduanya
+   state pengguna, bukan cache. */
+const CACHE_LS_KEYS = ['je_gold_price'];
+const CACHE_SS_KEYS = ['je_news_id', 'je_asset_product_id', 'je_poinmall_prize_id', 'je_poinmall_result', 'je_withdrawal_id'];
+
+function measureCacheBytes() {
+  let bytes = 0;
+  const add = (storage, keys) => {
+    for (const key of keys) {
+      try {
+        const value = storage.getItem(key);
+        if (value !== null) bytes += (key.length + value.length) * 2;
+      } catch {
+        /* storage tidak tersedia — lewati */
+      }
+    }
+  };
+  add(window.localStorage, CACHE_LS_KEYS);
+  add(window.sessionStorage, CACHE_SS_KEYS);
+  return bytes;
+}
+
+function clearAppCache() {
+  const remove = (storage, keys) => {
+    for (const key of keys) {
+      try {
+        storage.removeItem(key);
+      } catch {
+        /* storage tidak tersedia — lewati */
+      }
+    }
+  };
+  remove(window.localStorage, CACHE_LS_KEYS);
+  remove(window.sessionStorage, CACHE_SS_KEYS);
+}
+
+/* Ukuran cache kecil (< 2 KB), jadi byte/KB sudah cukup; id-ID memakai koma. */
+function formatCacheBytes(bytes) {
+  if (bytes >= 1048576) return `${(bytes / 1048576).toLocaleString('id-ID', { maximumFractionDigits: 1 })} MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toLocaleString('id-ID', { maximumFractionDigits: 1 })} KB`;
+  return `${bytes.toLocaleString('id-ID')} byte`;
+}
+
 export default function Setelan() {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [cacheBytes, setCacheBytes] = useState(() => measureCacheBytes());
+  const [submitting, setSubmitting] = useState(false);
+  /* `phone` untuk payload change-password diambil dari account-info sekali
+     saat halaman dibuka (gagal ambil → submit mengingatkan user). */
+  const [phone, setPhone] = useState('');
+  const showNotif = useShowNotif();
+
+  useEffect(() => {
+    let active = true;
+    getAccountInfo()
+      .then((data) => { if (active && data?.phone) setPhone(String(data.phone)); })
+      .catch(() => { /* biarin kosong — submit akan minta coba lagi */ });
+    return () => { active = false; };
+  }, []);
+
+  /* Submit: POST /api/auth/change-password/ — verifikasi kata sandi lama
+     (tanpa OTP). Validasi lokal (kosong, minimal 8 karakter, kombinasi huruf
+     & angka, konfirmasi sama) tampil lewat overlay /notif; sukses → notif +
+     kembali ke halaman sebelumnya (perilaku lama). */
+  const handleSave = async () => {
+    if (submitting) return;
+    if (!currentPassword) { showNotif({ title: 'Lengkapi Data', description: 'Masukkan kata sandi lama.' }); return; }
+    if (!newPassword) { showNotif({ title: 'Lengkapi Data', description: 'Masukkan kata sandi baru.' }); return; }
+    if (!confirmPassword) { showNotif({ title: 'Lengkapi Data', description: 'Ulangi kata sandi baru.' }); return; }
+    if (newPassword.length < 8) { showNotif({ title: 'Kata Sandi Tidak Sesuai', description: 'Kata sandi baru minimal 8 karakter.' }); return; }
+    if (!/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) { showNotif({ title: 'Kata Sandi Tidak Sesuai', description: 'Kata sandi baru harus kombinasi huruf & angka.' }); return; }
+    if (newPassword !== confirmPassword) { showNotif({ title: 'Kata Sandi Tidak Sesuai', description: 'Konfirmasi kata sandi tidak sama.' }); return; }
+    if (!phone) { showNotif({ title: 'Gagal Mengubah Password', description: 'Data akun belum termuat. Coba lagi sebentar lagi ya.' }); return; }
+
+    setSubmitting(true);
+    try {
+      await changePassword({ phone, oldPassword: currentPassword, newPassword, newPasswordConfirm: confirmPassword });
+      showNotif({ variant: 'success', title: 'Kata Sandi Berhasil Diubah', description: 'Kata sandi kamu berhasil diubah.' });
+      window.history.back();
+    } catch (err) {
+      /* Penanda verifikasi kata sandi lama ada di payload.old_password —
+         teks yang tampil tetap ditulis frontend (lihat apiClient). */
+      const wrongOldPassword = Boolean(err?.payload && typeof err.payload === 'object' && err.payload.old_password);
+      showNotif({
+        title: 'Gagal Mengubah Password',
+        description: wrongOldPassword ? 'Kata sandi lama tidak sesuai.' : (err?.message || 'Kata sandi gagal diubah. Silakan coba lagi.'),
+      });
+      setSubmitting(false);
+    }
+  };
+
+  /* Bersihkan cache lalu ukur ulang; notif menunjukkan ukuran yang dibebaskan
+     (atau bahwa cache memang sudah kosong). */
+  const handleClearCache = () => {
+    const freed = cacheBytes;
+    clearAppCache();
+    setCacheBytes(measureCacheBytes());
+    showNotif({
+      variant: 'success',
+      title: 'Cache Dibersihkan',
+      description: freed > 0
+        ? `Data sementara sebesar ${formatCacheBytes(freed)} berhasil dihapus.`
+        : 'Tidak ada data sementara yang perlu dihapus.',
+    });
+  };
+
   return (
     <div className="page-setelan">
       <style>{styles}</style>
@@ -277,7 +393,7 @@ export default function Setelan() {
                   <div className="form-group">
                     <label htmlFor="current-password">Kata Sandi Saat Ini</label>
                     <div className="input-wrapper">
-                      <input type="password" id="current-password" placeholder="Masukkan kata sandi lama" />
+                      <input type="password" id="current-password" placeholder="Masukkan kata sandi lama" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
                       <button type="button" className="toggle-password" aria-label="Toggle password visibility">
                         <img src={img_2} alt="" />
                       </button>
@@ -286,7 +402,7 @@ export default function Setelan() {
                   <div className="form-group">
                     <label htmlFor="new-password">Kata Sandi Baru</label>
                     <div className="input-wrapper">
-                      <input type="password" id="new-password" placeholder="Masukkan kata sandi baru" />
+                      <input type="password" id="new-password" placeholder="Masukkan kata sandi baru" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
                       <button type="button" className="toggle-password" aria-label="Toggle password visibility">
                         <img src={img_3} alt="" />
                       </button>
@@ -299,20 +415,20 @@ export default function Setelan() {
                   <div className="form-group">
                     <label htmlFor="confirm-password">Konfirmasi Kata Sandi Baru</label>
                     <div className="input-wrapper">
-                      <input type="password" id="confirm-password" placeholder="Ulangi kata sandi baru" />
+                      <input type="password" id="confirm-password" placeholder="Ulangi kata sandi baru" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
                       <button type="button" className="toggle-password" aria-label="Toggle password visibility">
                         <img src={img_4} alt="" />
                       </button>
                     </div>
                   </div>
-                  <button type="submit" className="btn-primary" onClick={(e) => { e.preventDefault(); window.history.back(); }}>Simpan Kata Sandi</button>
+                  <button type="submit" className="btn-primary" onClick={(e) => { e.preventDefault(); handleSave(); }}>Simpan Kata Sandi</button>
                 </form>
               </section>
               <section id="section-clear-cache" className="container">
                 <hr className="divider" />
                 <div className="section-header">
                   <h2>Bersihkan Cache</h2>
-                  <p>Lorem ipsum dolor sit amet, hapus data sementara buat bantu aplikasi jalan lebih ringan.</p>
+                  <p>Hapus data sementara buat bantu aplikasi jalan lebih ringan.</p>
                 </div>
                 <div className="cache-card">
                   <div className="cache-info">
@@ -321,15 +437,15 @@ export default function Setelan() {
                     </div>
                     <div className="cache-details">
                       <h3>Cache Aplikasi</h3>
-                      <p>42 MB terpakai</p>
+                      <p>{formatCacheBytes(cacheBytes)} terpakai</p>
                     </div>
                   </div>
-                  <button className="btn-secondary">Bersihkan</button>
+                  <button type="button" className="btn-secondary" onClick={handleClearCache}>Bersihkan</button>
                 </div>
               </section>
               <section id="section-footer" className="container">
                 <footer className="app-footer">
-                  <p>JelajahEmas versi 1.0.0</p>
+                  <p>JelajahEmas versi {pkg.version}</p>
                 </footer>
               </section>
             </div>

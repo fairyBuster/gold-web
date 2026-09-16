@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Desktop screenshot harness</title>
+<style>
+  body { margin: 0; background: #101010; }
+  iframe { width: 1440px; height: 900px; border: 0; display: block; }
+</style>
+</head>
+<body>
+<!-- Loads a route inside a 1440x900 iframe after injecting the E2E token,
+     so headless Edge --screenshot can capture the desktop rendering.
+     Usage: index.html?route=/index/support/livechat -->
+<iframe id="f" src="about:blank"></iframe>
+<script>
+(async function () {
+  try {
+    const res = await fetch('/e2e-token.json', { cache: 'no-store' });
+    const tok = await res.json();
+    localStorage.setItem('je_auth_session', JSON.stringify({ access: tok.access, refresh: tok.refresh || '' }));
+  } catch (e) { /* no token — route may fall back to login */ }
+  const route = new URLSearchParams(location.search).get('route') || '/index/home';
+  document.getElementById('f').src = route;
+})();
+</script>
+</body>
+</html>

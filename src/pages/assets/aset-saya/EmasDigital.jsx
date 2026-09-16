@@ -1,3 +1,10 @@
+import { useEffect, useState } from 'react';
+/* Total emas digital = balance_hold ÷ harga emas per gram dari backend —
+   sumber angka yang sama dengan CetakEmas step 1 (GET /api/gold/info/). */
+import { getGoldInfo } from '../../../lib/goldApi.js';
+/* Profit all-time (interest_total) — sama dengan ringkasan RiwayatAsetSaya. */
+import { getBalanceStatistics } from '../../../lib/authApi.js';
+import { formatRupiah } from '../../../lib/transactionFormat.js';
 import img_1 from '../../../assets/images/41_1038.svg';
 import img_2 from '../../../assets/images/615cb7874b4304ede07a379f82cc29690a4f8ed1.png';
 import img_3 from '../../../assets/images/82_901.svg';
@@ -162,9 +169,14 @@ const styles = `
     z-index: 1;
   }
   .page-emas-digital .stat-box {
-    background-color: rgba(255, 249, 242, 0.65);
+    /* Solid card on the cream hero gradient — the previous translucent fill
+       (rgba(255,249,242,.65)) was nearly invisible, so the box now carries a
+       white background, a hairline border and the page's warm soft shadow. */
+    background-color: #ffffff;
+    border: 1px solid #f0e5d3;
     border-radius: 12px;
     padding: 12px 8px;
+    box-shadow: 0 6px 16px rgba(120, 80, 10, 0.08);
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -242,9 +254,82 @@ const styles = `
     color: #a79c8f;
     line-height: 1.4;
   }
+
+/* Bar shimmer untuk nilai yang masih menunggu backend (total emas digital
+   dan nilai rupiahnya) — konvensi skeleton Home/Asset/CetakEmas: bar
+   seukuran teks, digerakkan flag loading yang mati di finally sehingga
+   request gagal pun berhenti pada teks fallback. */
+  .page-emas-digital .skeleton-bar {
+    display: inline-block;
+    vertical-align: middle;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(26, 20, 16, 0.08) 25%, rgba(26, 20, 16, 0.16) 37%, rgba(26, 20, 16, 0.08) 63%);
+    background-size: 400% 100%;
+    animation: emas-digital-shimmer 1.4s ease infinite;
+  }
+  @keyframes emas-digital-shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: 0 0; }
+  }
 `;
 
+/* "22:04 WIB" — waktu data emas diambil, dipakai footer "Diperbarui ...". */
+function updatedTimeText() {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`;
+}
+
+/* Skeleton shimmer untuk nilai yang masih menunggu backend (total emas
+   digital dan nilai rupiahnya) — konvensi skeleton Home/Asset/CetakEmas:
+   bar inline-block seukuran teks aslinya supaya layout tidak bergeser. */
+function MetricSkeleton({ width = 84, height = 12 }) {
+  return <span className="skeleton-bar" style={{ width, height }} aria-hidden="true" />;
+}
+
 export default function EmasDigital() {
+  const [goldInfo, setGoldInfo] = useState(null);
+  const [profit, setProfit] = useState(null);
+  const [updatedAt, setUpdatedAt] = useState('');
+  /* True sampai request gold info selesai (sukses maupun gagal) — kartu
+     total emas menampilkan skeleton selama menunggu. */
+  const [loading, setLoading] = useState(true);
+
+  /* Total emas digital = balance_hold ÷ harga emas per gram (GET
+     /api/gold/info/, pola CetakEmas holdGramsText) dan profit all-time dari
+     GET /api/auth/balance-statistics/all-time/ (interest_total). Angka mockup
+     hanya jadi fallback bila request gagal — selama menunggu tampil skeleton. */
+  useEffect(() => {
+    let active = true;
+    getGoldInfo()
+      .then((payload) => {
+        if (!active || !payload) return;
+        setGoldInfo(payload);
+        setUpdatedAt(updatedTimeText());
+      })
+      .catch(() => { /* offline — placeholder tetap tampil */ })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    getBalanceStatistics('all-time')
+      .then((stats) => {
+        const value = Number(stats?.interest_total);
+        if (active && Number.isFinite(value)) setProfit(value);
+      })
+      .catch(() => { /* offline — placeholder tetap tampil */ });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const hold = Number(goldInfo?.balance_hold);
+  const pricePerGram = Number(goldInfo?.price_per_gram);
+  const hasInfo = Number.isFinite(hold) && Number.isFinite(pricePerGram) && pricePerGram > 0;
+  const gramsText = hasInfo ? (hold / pricePerGram).toLocaleString('id-ID', { maximumFractionDigits: 3 }) : '1,367';
+  const fiatText = hasInfo ? `≈ ${formatRupiah(hold)}` : '≈ Rp3.512.870';
+  const holdText = hasInfo ? formatRupiah(hold) : 'Rp70.934';
+  const profitText = profit != null ? `+${formatRupiah(profit)}` : '+Rp85.000';
+  const updatedText = updatedAt ? `Diperbarui pada pukul ${updatedAt}` : 'Diperbarui pada pukul 10:02 WIB';
+
   return (
     <div className="page-emas-digital">
       <style>{styles}</style>
@@ -266,23 +351,27 @@ export default function EmasDigital() {
                     <div className="balance-card">
                       <p className="card-label">Total Emas Digital</p>
                       <div className="amount-wrapper">
-                        <span className="amount-number">1,367</span>
+                        <span className="amount-number">
+                          {loading ? <MetricSkeleton width={110} height={26} /> : gramsText}
+                        </span>
                         <span className="amount-unit">gram</span>
                       </div>
-                      <p className="amount-fiat">≈ Rp 3.512.870</p>
+                      <p className="amount-fiat">
+                        {loading ? <MetricSkeleton width={90} height={12} /> : fiatText}
+                      </p>
                       <img className="card-illustration" src={img_2} alt="Jelajah Emas Digital Card" />
                     </div>
-                    <p className="update-info">Diperbarui pada pukul 10:02 WIB</p>
-                    <div className="stats-container">
+                    <p className="update-info">{updatedText}</p>
+                    {/* <div className="stats-container">
                       <div className="stat-box">
                         <p className="stat-title">Profit</p>
-                        <p className="stat-value text-profit">+Rp 85.000</p>
+                        <p className="stat-value text-profit">{profitText}</p>
                       </div>
                       <div className="stat-box">
                         <p className="stat-title">Balance Hold</p>
-                        <p className="stat-value">Rp 70.934</p>
+                        <p className="stat-value">{holdText}</p>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </section>

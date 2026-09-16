@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NOTIF-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="notif-metrics">pending</pre>
+  <script type="module">
+    /* E2E: verifies that useShowNotif() renders a floating overlay on top of
+       the CURRENT page (no route change) and that X / auto-dismiss close it.
+
+       Trigger: /auth/lupa-password step 1 — clicking "Kirim Kode Verifikasi"
+       with an empty phone fails client validation and calls showNotif()
+       synchronously (no API request involved). */
+    const metrics = { errors: [] };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const writeMetrics = () => {
+      document.getElementById('notif-metrics').textContent = JSON.stringify(metrics, null, 2);
+      document.title = 'NOTIF-DONE ' + JSON.stringify(metrics);
+    };
+
+    history.replaceState(null, '', '/auth/lupa-password');
+    metrics.pathAtStart = location.pathname;
+
+    await import('/src/main.jsx');
+
+    const waitFor = async (selector, timeout = 5000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+
+    const submitBtn = await waitFor('.page-lupa-password .submit-btn');
+    metrics.pageRendered = !!submitBtn;
+    if (!submitBtn) { writeMetrics(); throw new Error('page not rendered'); }
+
+    await sleep(100);
+    metrics.pathBefore = location.pathname;
+    metrics.historyLengthBefore = history.length;
+
+    /* ---- Trigger 1: overlay appears over the current page ---- */
+    submitBtn.click();
+    await sleep(200);
+
+    const overlay = document.querySelector('.notif-overlay');
+    metrics.overlayAppeared = !!overlay;
+    metrics.routeUnchangedAfterShow = location.pathname === metrics.pathBefore;
+    metrics.historyLengthAfterShow = history.length;
+    metrics.pageBehindStillMounted = !!document.querySelector('.page-lupa-password');
+    metrics.inlinePageHasNoBackdrop = !document.querySelector('.notif-screen-backdrop');
+
+    if (overlay) {
+      const card = overlay.querySelector('.notif-card');
+      const inner = overlay.querySelector('.notif-overlay-inner');
+      const overlayStyle = getComputedStyle(overlay);
+      const rect = inner.getBoundingClientRect();
+      metrics.overlayPosition = overlayStyle.position;
+      metrics.overlayZIndex = overlayStyle.zIndex;
+      metrics.overlayPointerEvents = overlayStyle.pointerEvents;
+      metrics.cardVariant = card ? card.className : null;
+      metrics.title = overlay.querySelector('.notification-title')?.textContent;
+      metrics.description = overlay.querySelector('.notification-desc')?.textContent;
+      metrics.hasCloseButton = !!overlay.querySelector('.close-button');
+      metrics.innerRect = { top: Math.round(rect.top), left: Math.round(rect.left), width: Math.round(rect.width) };
+      metrics.viewport = { w: innerWidth, h: innerHeight };
+    }
+
+    /* ---- Close via the X button ---- */
+    overlay?.querySelector('.close-button')?.click();
+    await sleep(200);
+    metrics.overlayClosedByX = !document.querySelector('.notif-overlay');
+    metrics.routeUnchangedAfterClose = location.pathname === metrics.pathBefore;
+    metrics.pageStillMountedAfterClose = !!document.querySelector('.page-lupa-password');
+
+    /* ---- Trigger 2: auto-dismiss (4s timer) ---- */
+    submitBtn.click();
+    await sleep(200);
+    metrics.reappeared = !!document.querySelector('.notif-overlay');
+    await sleep(4600);
+    metrics.autoDismissed = !document.querySelector('.notif-overlay');
+    metrics.routeUnchangedAfterDismiss = location.pathname === metrics.pathBefore;
+
+    writeMetrics();
+  </script>
+</body>
+</html>

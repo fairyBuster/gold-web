@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RIWAYATPOIN-LIVE-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="rp-live-metrics">pending</pre>
+  <script type="module">
+    /* Live probe (TANPA stub fetch): kartu ringkasan Riwayat Poin harus sama
+       dengan respons asli GET /api/roulette/points/ — "Poin Didapat" =
+       total_earned dan "Poin Ditukar" = -total_spent (atau "0"). */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const session = await (await fetch('/e2e-token.json')).json();
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: session.access }));
+    window.sessionStorage.clear();
+    metrics.state.tokenUser = session.user;
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitUntil = async (predicate, timeout = 20000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        if (predicate()) return true;
+        await sleep(100);
+      }
+      return false;
+    };
+
+    /* Ekspektasi independen: respons asli GET /api/roulette/points/. */
+    const { getRoulettePoints } = await import('/src/lib/rouletteApi.js');
+    const pointsApi = await getRoulettePoints();
+    metrics.state.pointsApi = pointsApi;
+    const fmt = (v) => (Number(v) || 0).toLocaleString('id-ID');
+    const expectedEarned = fmt(pointsApi?.total_earned);
+    const spent = Number(pointsApi?.total_spent) || 0;
+    const expectedSpent = spent ? `-${fmt(spent)}` : '0';
+    metrics.state.expected = { earned: expectedEarned, spent: expectedSpent };
+
+    history.replaceState(null, '', '/index/rewards/riwayat-poin');
+    await import('/src/main.jsx');
+    await waitUntil(() => document.querySelector('.page-riwayat-poin .summary-card'));
+
+    const values = () =>
+      [...document.querySelectorAll('.page-riwayat-poin .summary-value')].map((el) => el.textContent.trim());
+    await waitUntil(() => {
+      const v = values();
+      return v.length === 2 && v[0] !== '' && v[0] !== '—';
+    });
+
+    metrics.rendered = {
+      path: window.location.pathname,
+      labels: [...document.querySelectorAll('.page-riwayat-poin .summary-label')].map((el) => el.textContent.trim()),
+      values: values(),
+    };
+    metrics.allPassed =
+      metrics.rendered.path === '/index/rewards/riwayat-poin'
+      && metrics.rendered.labels.join('|') === 'Poin Didapat|Poin Ditukar'
+      && metrics.rendered.values.join('|') === `${expectedEarned}|${expectedSpent}`
+      && metrics.errors.length === 0;
+
+    document.getElementById('rp-live-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'RIWAYATPOIN-LIVE-DONE';
+  </script>
+</body>
+</html>

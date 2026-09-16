@@ -7,8 +7,17 @@
      3 -> /assets/cetak-emas-03
    ============================================================================ */
 
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import NotifCard from '../../../components/NotifCard.jsx';
+import { listAddresses } from '../../../lib/addressApi.js';
+/* Tukar emas (balance_hold → emas fisik): harga emas, tarif cetak, ongkir,
+   dan saldo semuanya dari backend (GET /api/gold/info/); order dibuat via
+   POST /api/gold/swap/; detail order lama dibuka dari riwayat via
+   GET /api/gold/orders/<id>/. Tidak ada harga dari API publik di alur ini. */
+import { getGoldInfo, getGoldOrder, swapGold } from '../../../lib/goldApi.js';
+import { parseDate, formatTime } from '../../../lib/transactionFormat.js';
+import { useShowNotif } from '../../../lib/useShowNotif.js';
 
 /* Step 1 imports (renamed to avoid collisions with other steps) */
 import S1_img_1 from '../../../assets/images/36_668.svg';
@@ -18,11 +27,15 @@ import S1_img_3 from '../../../assets/images/97196130a1fd8b9d5ad63809c0373395554
 /* Step 2 imports (renamed to avoid collisions with other steps) */
 import S2_img_1 from '../../../assets/images/34_305.svg';
 import S2_img_2 from '../../../assets/images/97196130a1fd8b9d5ad63809c0373395554691fe.png';
+import S2_img_3 from '../../../assets/images/gold.png';
 
 /* Step 3 imports (renamed to avoid collisions with other steps) */
 import S3_img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.png';
 import S3_img_2 from '../../../assets/images/40_904.svg';
 import S3_img_3 from '../../../assets/images/40_904.svg';
+
+/* Background artwork shared by all Cetak Emas steps (assigned inline in JSX). */
+import pageBg from '../../../assets/images/083535.png';
 
 
 /* ================= Step 1 — /assets/cetak-emas-01 (was CetakEmas01.jsx) ================= */
@@ -42,16 +55,16 @@ const CetakEmas01Styles = `
     -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   width: 100%;
+  /* Background artwork (assigned inline in JSX on the root) is a full-page
+     image with glows anchored to the top/bottom — stretch it. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
 }
 
 .page-cetak-emas-01 .app-container {
     width: 100%;
     max-width: 100%;
-    background-color: #fffbf4;
-    background-image: 
-        radial-gradient(circle at 76% 11%, rgba(255, 201, 60, 0.28) 0%, rgba(255, 201, 60, 0) 70%),
-        radial-gradient(circle at 111% 25%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 70%),
-        radial-gradient(circle at 90% 50%, rgba(255, 159, 28, 0.38) 0%, rgba(255, 159, 28, 0) 70%);
     min-height: 100vh;
     box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
     position: relative;
@@ -333,28 +346,239 @@ const CetakEmas01Styles = `
     .page-cetak-emas-01 .primary-btn:hover {
         background-color: #e5a33d;
     }
+    .page-cetak-emas-01 .primary-btn:disabled {
+        background-color: #efe7dc;
+        color: #a79c8f;
+        cursor: not-allowed;
+    }
+    .page-cetak-emas-01 .footer-note {
+        margin-top: 10px;
+        color: #a79c8f;
+        font-size: 12px;
+        text-align: center;
+    }
+    .page-cetak-emas-01 .balance-sub {
+        color: rgba(255, 249, 242, 0.55);
+        font-size: 11px;
+    }
+
+/* Bar shimmer untuk nilai yang masih menunggu backend (saldo, detail
+   pencetakan, alamat, ringkasan) — konvensi skeleton halaman Home; tint
+   #fff9f2 di .skeleton-bar-light mengikuti teks kartu gelap balance-card. */
+.page-cetak-emas-01 .skeleton-bar {
+    display: inline-block;
+    vertical-align: middle;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(26, 20, 16, 0.08) 25%, rgba(26, 20, 16, 0.16) 37%, rgba(26, 20, 16, 0.08) 63%);
+    background-size: 400% 100%;
+    animation: cetak-emas-shimmer 1.4s ease infinite;
+}
+.page-cetak-emas-01 .skeleton-bar-light {
+    background: linear-gradient(90deg, rgba(255, 249, 242, 0.12) 25%, rgba(255, 249, 242, 0.24) 37%, rgba(255, 249, 242, 0.12) 63%);
+}
+@keyframes cetak-emas-shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: 0 0; }
+}
 `;
 
-/* Printable weights (grams) offered on step 1, with the reference gold price
-   per gram carried over from the previous 1-gram mockup value. */
+/* Berat cetak yang dipilih di step 1 dibawa ke step 2/3 via location.state +
+   sessionStorage (fallback hard-refresh). */
 const PRINT_WEIGHTS = [0.5, 1, 2, 5, 10, 25];
-const GOLD_PRICE_PER_GRAM = 1569270;
+const GRAM_KEY = 'je_gold_swap_gram';
+const ORDER_KEY = 'je_gold_order';
+/* Kutipan harga (harga/gram + biaya) saat step 1 lanjut — step 2 memakai
+   kutipan yang sama supaya "Nilai Emas" di kedua layar identik walau harga
+   live bergerak antar-fetch. */
+const QUOTE_KEY = 'je_gold_swap_quote';
+
+/* Peta status order tukar emas (diubah admin di BE) → label + warna badge. */
+const STATUS_META = {
+  PENDING: { label: 'Menunggu Diproses', className: 'pending' },
+  PROCESSING: { label: 'Sedang Diproses', className: 'processing' },
+  SHIPPED: { label: 'Dikirim', className: 'shipped' },
+  COMPLETED: { label: 'Selesai', className: 'completed' },
+  CANCELLED: { label: 'Dibatalkan', className: 'cancelled' },
+};
 
 /* "0,5" / "2" — Indonesian decimal comma for gram labels. */
 const formatGrams = (grams) => String(grams).replace('.', ',');
 const formatRupiah = (value) => `Rp ${Math.round(value).toLocaleString('id-ID')}`;
 
+/* Decimal uang dari backend berupa string — jangan di-parseFloat; Number()
+   hanya untuk format tampilan (pembulatan rupiah oleh formatRupiah). */
+const money = (value) =>
+  value === null || value === undefined || value === '' ? '—' : formatRupiah(Number(value) || 0);
+
+/* Alamat tersimpan user (GET /api/auth/address/, alamat utama lebih dulu —
+   backend mengurutkan -is_primary, -created_at) untuk kartu "Alamat
+   Pengiriman" di step 1 dan 2. undefined = masih memuat / gagal memuat;
+   null = termuat tapi user belum punya alamat — alur tukar emas memakainya
+   untuk mengarahkan otomatis ke halaman alamat. Flag loading (true sampai
+   request selesai, sukses maupun gagal) menggerakkan skeleton kartu alamat. */
+function usePrimaryAddress() {
+  const [address, setAddress] = useState(undefined);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let active = true;
+    listAddresses()
+      .then((payload) => {
+        if (!active) return;
+        setAddress(Array.isArray(payload?.results) ? payload.results[0] || null : null);
+      })
+      .catch(() => { /* Biarkan placeholder tampil jika gagal memuat. */ })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  return { address, loading };
+}
+
+/* Info tukar emas dari backend (GET /api/gold/info/): harga emas per gram,
+   tarif cetak per gram, ongkir, dan saldo balance_hold/balance_deposit —
+   satu-satunya sumber angka di alur ini. Preview di FE hanya cerminan rumus;
+   hitungan resmi tetap di server saat POST /api/gold/swap/. */
+function useGoldInfo() {
+  const [info, setInfo] = useState(null);
+  /* True sampai request selesai (sukses maupun gagal) — skeleton saldo emas,
+     detail pencetakan, dan rincian biaya tampil selama menunggu. */
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let active = true;
+    getGoldInfo()
+      .then((payload) => {
+        if (active && payload) setInfo(payload);
+      })
+      .catch(() => { /* Biarkan placeholder tampil jika gagal memuat. */ })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  return { info, loading };
+}
+
+/* "Saldo Emas Tersedia" — balance_hold ÷ harga emas per gram dari backend. */
+function holdGramsText(info) {
+  const price = Number(info?.price_per_gram);
+  const hold = Number(info?.balance_hold);
+  if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(hold)) return '2,145 gram';
+  return `${(hold / price).toLocaleString('id-ID', { maximumFractionDigits: 3 })} gram`;
+}
+
+/* Skeleton shimmer untuk nilai yang masih menunggu backend (saldo emas
+   tersedia, detail pencetakan, alamat, rincian biaya) — konvensi skeleton
+   halaman Home/Asset: bar inline-block seukuran teks aslinya supaya layout
+   tidak bergeser; digerakkan flag loading per-request yang mati di finally
+   sehingga request gagal pun berhenti pada teks fallback. light = tint krem
+   untuk kartu gelap (balance-card). */
+function MetricSkeleton({ width = 84, height = 12, light = false }) {
+  return (
+    <span
+      className={`skeleton-bar${light ? ' skeleton-bar-light' : ''}`}
+      style={{ width, height }}
+      aria-hidden="true"
+    />
+  );
+}
+
+/* Salinan error tukar emas yang ditulis FE — teks mentah backend tidak pernah
+   ditampilkan; err.payload dicek programatik untuk memilih salinan. */
+function swapErrorNotif(err) {
+  const raw = JSON.stringify(err?.payload || '').toLowerCase();
+  if (err?.status === 503 || raw.includes('real-time sedang tidak tersedia')) {
+    return { variant: 'error', title: 'Harga Tidak Tersedia', description: 'Harga emas sedang tidak tersedia. Coba beberapa saat lagi.' };
+  }
+  if (raw.includes('tidak aktif') || raw.includes('belum dikonfigurasi')) {
+    return { variant: 'error', title: 'Fitur Tidak Aktif', description: 'Fitur tukar emas sedang tidak aktif.' };
+  }
+  if (raw.includes('balance_hold tidak cukup')) {
+    return { variant: 'error', title: 'Saldo Emas Tidak Cukup', description: 'Saldo emas kamu tidak mencukupi untuk penukaran ini.' };
+  }
+  if (raw.includes('balance_deposit tidak cukup')) {
+    return { variant: 'error', title: 'Saldo Deposit Tidak Cukup', description: 'Saldo deposit kamu tidak mencukupi untuk biaya cetak dan ongkir.' };
+  }
+  if (raw.includes('gram') || raw.includes('address_id')) {
+    return { variant: 'error', title: 'Pesanan Tidak Valid', description: 'Data pesanan tidak valid. Ulangi pemilihan berat & alamat.' };
+  }
+  return { variant: 'error', title: 'Penukaran Gagal', description: err?.message || 'Tukar emas gagal. Coba lagi.' };
+}
+
 function CetakEmas01() {
   const navigate = useNavigate();
-  const [weight, setWeight] = useState(1);
+  const showNotif = useShowNotif();
+  const [weight, setWeight] = useState(() => {
+    const saved = Number(sessionStorage.getItem(GRAM_KEY));
+    return PRINT_WEIGHTS.includes(saved) ? saved : 1;
+  });
+  const { address, loading: addressLoading } = usePrimaryAddress();
+  const { info, loading: infoLoading } = useGoldInfo();
+
+  const pricePerGram = Number(info?.price_per_gram) || 0;
+  const printingFeePerGram = Number(info?.printing_fee_per_gram) || 0;
+  const shippingCost = Number(info?.shipping_cost) || 0;
+  const holdBalance = Number(info?.balance_hold) || 0;
+  const depositBalance = Number(info?.balance_deposit) || 0;
+
+  /* Preview lokal (cerminan rumus backend): nilai emas memotong balance_hold;
+     biaya cetak + ongkir memotong balance_deposit. */
+  const goldValue = weight * pricePerGram;
+  const printingFee = weight * printingFeePerGram;
+  const totalFee = printingFee + shippingCost;
+
+  /* Tombol lanjut mati selama fitur OFF / harga belum tersedia dari backend. */
+  const blockedReason = info && !info.is_active
+    ? 'Fitur tukar emas sedang tidak aktif.'
+    : info && !info.price_available
+      ? 'Harga emas sedang tidak tersedia. Coba beberapa saat lagi.'
+      : '';
+
+  const handleContinue = (e) => {
+    e.preventDefault();
+    if (blockedReason) {
+      showNotif({ variant: 'error', title: 'Belum Bisa Lanjut', description: blockedReason });
+      return;
+    }
+    /* Belum punya alamat tersimpan → otomatis ke halaman alamat; halaman itu
+       kembali ke step 1 setelah alamat disimpan. */
+    if (address === null) {
+      navigate('/index/assets/alamat-pengiriman');
+      return;
+    }
+    /* Validasi saldo di FE hanyalah pre-check — backend tetap menghitung
+       ulang dan menolak bila tidak cukup. */
+    if (info && holdBalance < goldValue) {
+      showNotif({ variant: 'error', title: 'Saldo Emas Tidak Cukup', description: 'Saldo emas kamu tidak mencukupi untuk berat ini. Pilih berat lain.' });
+      return;
+    }
+    if (info && depositBalance < totalFee) {
+      showNotif({ variant: 'error', title: 'Saldo Deposit Tidak Cukup', description: 'Saldo deposit kamu tidak mencukupi untuk biaya cetak dan ongkir.' });
+      return;
+    }
+    /* Kutipan harga ikut dibawa ke step 2 supaya angka di kedua layar sama —
+       harga live bisa bergerak beberapa ribu rupiah antar-fetch. */
+    const quote = {
+      price_per_gram: info?.price_per_gram ?? null,
+      printing_fee_per_gram: info?.printing_fee_per_gram ?? null,
+      shipping_cost: info?.shipping_cost ?? null,
+    };
+    sessionStorage.setItem(GRAM_KEY, String(weight));
+    sessionStorage.setItem(QUOTE_KEY, JSON.stringify(quote));
+    navigate('/index/assets/cetak-emas-02', { state: { gram: weight, quote } });
+  };
 
   return (
-    <div className="page-cetak-emas-01">
+    <div className="page-cetak-emas-01" style={{ backgroundImage: `url(${pageBg}), linear-gradient(#fffbf4, #fffbf4)` }}>
       <style>{CetakEmas01Styles}</style>
       <div className="app-container">
               <section id="section-header">
                 <header className="header">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); navigate('/index/home'); }}>
                     <img src={S1_img_1} alt="" />
                   </button>
                   <h1 className="page-title">Cetak Emas</h1>
@@ -364,7 +588,12 @@ function CetakEmas01() {
                 <div className="balance-card">
                   <div className="balance-info">
                     <p className="balance-label">Saldo Emas Tersedia</p>
-                    <p className="balance-amount">2,145 gram</p>
+                    <p className="balance-amount">
+                      {infoLoading ? <MetricSkeleton light width={110} height={20} /> : holdGramsText(info)}
+                    </p>
+                    <p className="balance-sub">
+                      {infoLoading ? <MetricSkeleton light width={130} height={10} /> : <>Saldo Deposit {money(info?.balance_deposit)}</>}
+                    </p>
                   </div>
                   <img className="balance-img" src={S1_img_2} alt="Character holding gold" />
                 </div>
@@ -393,12 +622,16 @@ function CetakEmas01() {
                     <span className="detail-value">{formatGrams(weight)} gram</span>
                   </div>
                   <div className="detail-row">
-                    <span className="detail-label">Biaya Cetak</span>
-                    <span className="detail-value">Rp 45.000</span>
+                    <span className="detail-label">Harga Emas / gram</span>
+                    <span className="detail-value">{infoLoading ? <MetricSkeleton width={84} height={11} /> : info ? money(info.price_per_gram) : '—'}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Tarif Cetak / gram</span>
+                    <span className="detail-value">{infoLoading ? <MetricSkeleton width={84} height={11} /> : info ? money(info.printing_fee_per_gram) : '—'}</span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Estimasi Proses</span>
-                    <span className="detail-value">45 hari kerja</span>
+                    <span className="detail-value">30–40 hari kerja</span>
                   </div>
                   <div className="detail-row no-border">
                     <span className="detail-label">Sertifikat Keaslian</span>
@@ -411,31 +644,31 @@ function CetakEmas01() {
                 <div className="address-card">
                   <img className="address-icon" src={S1_img_3} alt="Map Pin" />
                   <div className="address-info">
-                    <span className="address-name">[Nama Penerima]</span>
-                    <span className="address-text">Jl. [Nama Jalan] No. [123], [Kecamatan],<br />[Kota], [Kode Pos]</span>
+                    <span className="address-name">{addressLoading ? <MetricSkeleton width={110} height={11} /> : address?.recipient_name || '[Nama Penerima]'}</span>
+                    <span className="address-text">{addressLoading ? <MetricSkeleton width={200} height={11} /> : address?.address_details || 'Jl. [Nama Jalan] No. [123], [Kecamatan], [Kota], [Kode Pos]'}</span>
                   </div>
-                  <Link to="/assets/alamat-pengiriman" className="address-change">Ubah</Link>
+                  <Link to="/index/assets/alamat-pengiriman" className="address-change">Ubah</Link>
                 </div>
               </section>
               <section id="section-summary" className="section-container">
                 <h2>Ringkasan</h2>
                 <div className="summary-card">
                   <div className="summary-row">
-                    <span className="summary-label">Berat Emas ({formatGrams(weight)} gr)</span>
-                    <span className="summary-value">{formatRupiah(weight * GOLD_PRICE_PER_GRAM)}</span>
+                    <span className="summary-label">Nilai Emas ({formatGrams(weight)} gr)</span>
+                    <span className="summary-value">{infoLoading ? <MetricSkeleton width={84} height={11} /> : info ? money(goldValue) : '—'}</span>
                   </div>
                   <div className="summary-row">
                     <span className="summary-label">Biaya Cetak</span>
-                    <span className="summary-value">Rp 45.000</span>
+                    <span className="summary-value">{infoLoading ? <MetricSkeleton width={84} height={11} /> : info ? money(printingFee) : '—'}</span>
                   </div>
                   <div className="summary-row">
                     <span className="summary-label">Ongkos Kirim</span>
-                    <span className="summary-value">Rp 20.000</span>
+                    <span className="summary-value">{infoLoading ? <MetricSkeleton width={84} height={11} /> : info ? money(shippingCost) : '—'}</span>
                   </div>
                   <div className="summary-divider" />
                   <div className="summary-row total-row">
                     <span className="summary-label total-label">Total Biaya</span>
-                    <span className="summary-value total-value">Rp 65.000</span>
+                    <span className="summary-value total-value">{infoLoading ? <MetricSkeleton width={96} height={13} /> : info ? money(totalFee) : '—'}</span>
                   </div>
                 </div>
               </section>
@@ -449,7 +682,8 @@ function CetakEmas01() {
                 </ul>
               </section>
               <section id="section-footer" className="section-container" style={{marginTop: 'auto', paddingBottom: 20}}>
-                <button className="primary-btn" onClick={(e) => { e.preventDefault(); navigate('/assets/cetak-emas-02'); }}>Lanjutkan Pencetakan</button>
+                <button className="primary-btn" disabled={!!blockedReason} onClick={handleContinue}>Lanjutkan Pencetakan</button>
+                {blockedReason ? <p className="footer-note">{blockedReason}</p> : null}
               </section>
             </div> {/* Close app-container */}
 
@@ -468,6 +702,10 @@ const CetakEmas02Styles = `
   margin: 0;
   padding: 0;
   background-color: #fffbf4;
+  /* Background artwork (assigned inline on the root via JSX) — stretch it. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
   -webkit-font-smoothing: antialiased;
   display: flex;
   flex-direction: column;
@@ -479,7 +717,8 @@ const CetakEmas02Styles = `
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
-  background-color: #fffbf4;
+  /* Transparan biar artwork latar halaman tembus. */
+  background-color: transparent;
   box-sizing: border-box;
   padding: 0 20px;
 }
@@ -501,8 +740,8 @@ const CetakEmas02Styles = `
 .page-cetak-emas-02 .header-container {
   padding-top: 20px;
   padding-bottom: 14px;
-  /* Subtle top-left glow to approximate the complex Figma gradient */
-  background: #fffbf4 radial-gradient(circle at 80% -20%, rgba(255, 201, 60, 0.2) 0%, transparent 60%);
+  /* Glow gradient lama diganti artwork latar halaman — dibuat transparan. */
+  background-color: transparent;
 }
 .page-cetak-emas-02 .header {
   display: flex;
@@ -544,6 +783,8 @@ const CetakEmas02Styles = `
   border: 1px solid rgba(26, 20, 16, 0.22);
   border-radius: 14px;
   flex-shrink: 0;
+  /* gold.png (1254×1254, opaque) fills the framed icon slot. */
+  object-fit: cover;
 }
 .page-cetak-emas-02 .emas-info {
   display: flex;
@@ -764,13 +1005,106 @@ const CetakEmas02Styles = `
   cursor: pointer;
   text-align: center;
 }
+.page-cetak-emas-02 .btn-primary:disabled,
+.page-cetak-emas-02 .btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Bar shimmer untuk nilai yang masih menunggu backend (alamat + rincian
+   biaya) — konvensi skeleton halaman Home. */
+.page-cetak-emas-02 .skeleton-bar {
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(26, 20, 16, 0.08) 25%, rgba(26, 20, 16, 0.16) 37%, rgba(26, 20, 16, 0.08) 63%);
+  background-size: 400% 100%;
+  animation: cetak-emas-shimmer 1.4s ease infinite;
+}
+@keyframes cetak-emas-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
 `;
 
 function CetakEmas02() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const showNotif = useShowNotif();
+  const { address, loading: addressLoading } = usePrimaryAddress();
+  const { info, loading: infoLoading } = useGoldInfo();
+  const [submitting, setSubmitting] = useState(false);
+
+  /* Berat dibawa dari step 1 (location.state) — fallback sessionStorage untuk
+     hard-refresh. */
+  const savedGram = Number(location.state?.gram ?? sessionStorage.getItem(GRAM_KEY));
+  const gram = PRINT_WEIGHTS.includes(savedGram) ? savedGram : 1;
+
+  /* Angka rincian memakai kutipan step 1 dulu supaya "Nilai Emas" di sini
+     persis sama dengan layar sebelumnya (harga live bergerak antar-fetch).
+     Tanpa kutipan (halaman dibuka langsung), fallback ke info hasil fetch. */
+  const carriedQuote = location.state?.quote ?? (() => {
+    try { return JSON.parse(sessionStorage.getItem(QUOTE_KEY)); } catch { return null; }
+  })();
+  const pricePerGram = Number(carriedQuote?.price_per_gram ?? info?.price_per_gram) || 0;
+  const printingFeePerGram = Number(carriedQuote?.printing_fee_per_gram ?? info?.printing_fee_per_gram) || 0;
+  const shippingCost = Number(carriedQuote?.shipping_cost ?? info?.shipping_cost) || 0;
+  const holdBalance = Number(info?.balance_hold) || 0;
+  const depositBalance = Number(info?.balance_deposit) || 0;
+
+  /* Preview lokal — angka final tetap dihitung backend saat POST. */
+  const goldValue = gram * pricePerGram;
+  const printingFee = gram * printingFeePerGram;
+  const totalFee = printingFee + shippingCost;
+
+  const handlePay = (e) => {
+    e.preventDefault();
+    if (submitting) return;
+    if (!info) {
+      showNotif({ variant: 'error', title: 'Data Belum Termuat', description: 'Data tukar emas belum termuat. Coba beberapa saat lagi.' });
+      return;
+    }
+    if (!info.is_active) {
+      showNotif({ variant: 'error', title: 'Fitur Tidak Aktif', description: 'Fitur tukar emas sedang tidak aktif.' });
+      return;
+    }
+    if (!info.price_available) {
+      showNotif({ variant: 'error', title: 'Harga Tidak Tersedia', description: 'Harga emas sedang tidak tersedia. Coba beberapa saat lagi.' });
+      return;
+    }
+    /* Belum punya alamat tersimpan → otomatis ke halaman alamat, bukan error;
+       notif hanya untuk keadaan data alamat belum termuat/gagal. */
+    if (address === null) {
+      navigate('/index/assets/alamat-pengiriman');
+      return;
+    }
+    if (!address?.id) {
+      showNotif({ variant: 'error', title: 'Alamat Belum Ada', description: 'Tambahkan alamat pengiriman dulu sebelum menukar emas.' });
+      return;
+    }
+    /* Pre-check saldo (backend tetap validasi ulang saat swap). */
+    if (holdBalance < goldValue) {
+      showNotif({ variant: 'error', title: 'Saldo Emas Tidak Cukup', description: 'Saldo emas kamu tidak mencukupi untuk berat ini. Pilih berat lain.' });
+      return;
+    }
+    if (depositBalance < totalFee) {
+      showNotif({ variant: 'error', title: 'Saldo Deposit Tidak Cukup', description: 'Saldo deposit kamu tidak mencukupi untuk biaya cetak dan ongkir.' });
+      return;
+    }
+    setSubmitting(true);
+    swapGold(gram, address.id)
+      .then((payload) => {
+        sessionStorage.setItem(ORDER_KEY, JSON.stringify(payload));
+        navigate('/index/assets/cetak-emas-03', { state: { orderPayload: payload } });
+      })
+      .catch((err) => {
+        showNotif(swapErrorNotif(err));
+        setSubmitting(false);
+      });
+  };
 
   return (
-    <div className="page-cetak-emas-02">
+    <div className="page-cetak-emas-02" style={{ backgroundImage: `url(${pageBg})` }}>
       <style>{CetakEmas02Styles}</style>
       <div>
               <section id="section-header" style={{width: '100%', display: 'flex', justifyContent: 'center'}}>
@@ -787,10 +1121,10 @@ function CetakEmas02() {
                 <div className="mobile-container detail-emas-container">
                   <h2 className="section-title">Detail Emas</h2>
                   <div className="card detail-emas-card">
-                    <div className="emas-icon" />
+                    <img className="emas-icon" src={S2_img_3} alt="Emas" />
                     <div className="emas-info">
-                      <div className="emas-title">Emas Cetak 1 gram</div>
-                      <div className="emas-desc">Emas fisik 1 gram dengan kadar dan spesifikasi sesuai produk yang dipilih.</div>
+                      <div className="emas-title">Emas Cetak {formatGrams(gram)} gram</div>
+                      <div className="emas-desc">Emas fisik {formatGrams(gram)} gram dengan kadar dan spesifikasi sesuai produk yang dipilih.</div>
                       <div className="emas-tag">Sertifikat Disertakan</div>
                     </div>
                   </div>
@@ -802,15 +1136,15 @@ function CetakEmas02() {
                   <div className="card detail-pencetakan-card">
                     <div className="row">
                       <span className="label">Berat Dicetak</span>
-                      <span className="value">1 gram</span>
+                      <span className="value">{formatGrams(gram)} gram</span>
                     </div>
                     <div className="row">
                       <span className="label">Estimasi Proses</span>
-                      <span className="value">3–5 hari kerja</span>
+                      <span className="value">30–40 hari kerja</span>
                     </div>
                     <div className="row">
                       <span className="label">Estimasi Tiba</span>
-                      <span className="value">10–12 Sep 2026</span>
+                      <span className="value">Setelah pesanan dikirim</span>
                     </div>
                   </div>
                 </div>
@@ -821,10 +1155,10 @@ function CetakEmas02() {
                   <div className="card alamat-card">
                     <img src={S2_img_2} alt="Map Icon" className="map-icon" />
                     <div className="alamat-info">
-                      <div className="alamat-name">[Nama Penerima]</div>
-                      <div className="alamat-detail">Jl. [Nama Jalan] No. [123], [Kecamatan],<br />[Kota], [Kode Pos]</div>
+                      <div className="alamat-name">{addressLoading ? <MetricSkeleton width={110} height={11} /> : address?.recipient_name || '[Nama Penerima]'}</div>
+                      <div className="alamat-detail">{addressLoading ? <MetricSkeleton width={200} height={11} /> : address?.address_details || 'Jl. [Nama Jalan] No. [123], [Kecamatan], [Kota], [Kode Pos]'}</div>
                     </div>
-                    <button className="ubah-btn" onClick={(e) => { e.preventDefault(); navigate('/assets/alamat-pengiriman'); }}>Ubah</button>
+                    <button className="ubah-btn" onClick={(e) => { e.preventDefault(); navigate('/index/assets/alamat-pengiriman'); }}>Ubah</button>
                   </div>
                 </div>
               </section>
@@ -833,21 +1167,21 @@ function CetakEmas02() {
                   <h2 className="section-title">Rincian Biaya</h2>
                   <div className="rincian-card">
                     <div className="row">
-                      <span className="label-dark">Harga Emas (1 gr)</span>
-                      <span className="value">Rp 1.569.270</span>
+                      <span className="label-dark">Nilai Emas ({formatGrams(gram)} gr)</span>
+                      <span className="value">{infoLoading ? <MetricSkeleton width={84} height={11} /> : info ? money(goldValue) : '—'}</span>
                     </div>
                     <div className="row">
                       <span className="label-dark">Biaya Cetak</span>
-                      <span className="value">Rp 45.000</span>
+                      <span className="value">{infoLoading ? <MetricSkeleton width={84} height={11} /> : info ? money(printingFee) : '—'}</span>
                     </div>
                     <div className="row">
                       <span className="label-dark">Ongkos Kirim</span>
-                      <span className="value">Rp 20.000</span>
+                      <span className="value">{infoLoading ? <MetricSkeleton width={84} height={11} /> : info ? money(shippingCost) : '—'}</span>
                     </div>
                     <div className="divider" />
                     <div className="row total-row">
                       <span className="total-label">Total Dibayar</span>
-                      <span className="total-value">Rp 65.000</span>
+                      <span className="total-value">{infoLoading ? <MetricSkeleton width={96} height={13} /> : info ? money(totalFee) : '—'}</span>
                     </div>
                   </div>
                 </div>
@@ -857,11 +1191,11 @@ function CetakEmas02() {
                   <div className="terms-container">
                     <div className="checkbox" />
                     <div className="terms-text">
-                      Saya telah memeriksa detail pesanan dan menyetujui <span className="highlight">Syarat &amp; Ketentuan</span> pencetakan emas.
+                      Saya telah memeriksa detail pesanan dan menyetujui <Link to="/index/support/syarat-dan-ketentuan" className="highlight">Syarat &amp; Ketentuan</Link> pencetakan emas.
                     </div>
                   </div>
-                  <button className="btn-primary" onClick={(e) => { e.preventDefault(); navigate('/assets/cetak-emas-03'); }}>Bayar Sekarang</button>
-                  <button className="btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/assets/cetak-emas-01'); }}>Kembali &amp; Ubah Pesanan</button>
+                  <button className="btn-primary" disabled={submitting} onClick={handlePay}>{submitting ? 'Memproses...' : 'Bayar Sekarang'}</button>
+                  <button className="btn-secondary" disabled={submitting} onClick={(e) => { e.preventDefault(); navigate('/index/assets/cetak-emas-01'); }}>Kembali &amp; Ubah Pesanan</button>
                 </div>
               </section>
             </div>
@@ -880,7 +1214,11 @@ const CetakEmas03Styles = `
   margin: 0;
   padding: 0;
   font-family: 'Inter', sans-serif;
-  background-color: #e5e5e5; /* Background outside the app container */
+  background-color: #fffbf4;
+  /* Background artwork (assigned inline on the root via JSX) — stretch it. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
@@ -910,9 +1248,8 @@ const CetakEmas03Styles = `
 .page-cetak-emas-03 #section-hero {
     max-width: 100%;
     margin: 0 auto;
-    background-color: #fffbf4;
-    /* Approximating the soft radial gradient from the design */
-    background-image: radial-gradient(circle at 50% 0%, rgba(255, 201, 60, 0.15) 0%, rgba(255, 255, 255, 0) 60%);
+    /* Transparan biar artwork latar halaman tembus (glow radial lama dihapus). */
+    background-color: transparent;
     padding: 40px 22px 22px;
     display: flex;
     flex-direction: column;
@@ -952,7 +1289,8 @@ const CetakEmas03Styles = `
 .page-cetak-emas-03 #section-order-details {
     max-width: 100%;
     margin: 0 auto;
-    background-color: #fffbf4;
+    /* Transparan biar artwork latar halaman tembus. */
+    background-color: transparent;
     padding: 0 22px 16px;
   }
 
@@ -1005,11 +1343,24 @@ const CetakEmas03Styles = `
     font-size: 12px;
   }
 
+  /* Warna badge per status order (PENDING→COMPLETED) + CANCELLED. */
+  .page-cetak-emas-03 .status-badge.pending { background-color: rgba(241, 176, 74, 0.18); }
+  .page-cetak-emas-03 .status-badge.pending span { color: #b97a10; }
+  .page-cetak-emas-03 .status-badge.processing { background-color: rgba(47, 111, 208, 0.14); }
+  .page-cetak-emas-03 .status-badge.processing span { color: #2f6fd0; }
+  .page-cetak-emas-03 .status-badge.shipped { background-color: rgba(124, 77, 255, 0.14); }
+  .page-cetak-emas-03 .status-badge.shipped span { color: #7c4dff; }
+  .page-cetak-emas-03 .status-badge.completed { background-color: rgba(63, 166, 107, 0.14); }
+  .page-cetak-emas-03 .status-badge.completed span { color: #3fa66b; }
+  .page-cetak-emas-03 .status-badge.cancelled { background-color: rgba(226, 76, 76, 0.14); }
+  .page-cetak-emas-03 .status-badge.cancelled span { color: #e24c4c; }
+
 /* CSS for section section:Tracking */
 .page-cetak-emas-03 #section-tracking {
     max-width: 100%;
     margin: 0 auto;
-    background-color: #fffbf4;
+    /* Transparan biar artwork latar halaman tembus. */
+    background-color: transparent;
     padding: 0 22px 20px;
   }
 
@@ -1082,7 +1433,8 @@ const CetakEmas03Styles = `
 .page-cetak-emas-03 #section-actions {
     max-width: 100%;
     margin: 0 auto;
-    background-color: #fffbf4;
+    /* Transparan biar artwork latar halaman tembus. */
+    background-color: transparent;
     padding: 0 22px 40px;
     display: flex;
     flex-direction: column;
@@ -1118,13 +1470,103 @@ const CetakEmas03Styles = `
     padding: 13px;
     border-radius: 14px;
   }
+
+/* Bar shimmer kartu order saat detail dari backend masih dimuat (handoff
+   riwayat) — konvensi skeleton halaman Home. */
+.page-cetak-emas-03 .skeleton-bar {
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(26, 20, 16, 0.08) 25%, rgba(26, 20, 16, 0.16) 37%, rgba(26, 20, 16, 0.08) 63%);
+  background-size: 400% 100%;
+  animation: cetak-emas-shimmer 1.4s ease infinite;
+}
+@keyframes cetak-emas-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
 `;
+
+/* Order untuk layar step 3 — sumbernya salah satu dari:
+   1. handoff riwayat (location.state.goldOrderId) → fetch detail asli dari
+      backend (status terbaru apa adanya);
+   2. payload POST step 2 (location.state.orderPayload);
+   3. sessionStorage untuk hard-refresh setelah swap.
+   Id handoff menang atas payload supaya membuka order lama dari riwayat tidak
+   tertukar dengan order terakhir yang masih tersimpan di sesi. Flag loading
+   (hanya selama fetch handoff berjalan) menggerakkan skeleton kartu order. */
+function useDisplayOrder() {
+  const location = useLocation();
+  const handoffId = location.state?.goldOrderId ?? null;
+  const payloadOrder = (() => {
+    const payload = location.state?.orderPayload
+      || (() => { try { return JSON.parse(sessionStorage.getItem(ORDER_KEY)); } catch { return null; } })();
+    return payload?.order || null;
+  })();
+  const [order, setOrder] = useState(handoffId == null ? payloadOrder : null);
+  const [error, setError] = useState('');
+  /* True sampai fetch handoff selesai — payload step 2 tampil langsung tanpa
+     fetch, jadi jalur itu tidak pernah menampilkan skeleton. */
+  const [loading, setLoading] = useState(handoffId != null);
+
+  useEffect(() => {
+    if (handoffId == null) return undefined;
+    let active = true;
+    getGoldOrder(handoffId)
+      .then((data) => {
+        if (active && data) setOrder(data);
+      })
+      .catch((err) => {
+        if (active) setError(err?.message || 'Gagal memuat detail pesanan.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [handoffId]);
+
+  return { order, error, loading };
+}
 
 function CetakEmas03() {
   const navigate = useNavigate();
+  const { order, error, loading } = useDisplayOrder();
+  const statusMeta = STATUS_META[order?.status] || null;
+
+  /* Progres timeline: PENDING(1) → PROCESSING(2) → SHIPPED(3) → COMPLETED(4);
+     CANCELLED (0) → semua langkah non-aktif. */
+  const rank = { PENDING: 1, PROCESSING: 2, SHIPPED: 3, COMPLETED: 4 }[order?.status] || 0;
+
+  const createdText = order?.created_at
+    ? `${parseDate(order.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}, ${formatTime(order.created_at)} WIB`
+    : 'Baru saja';
+
+  /* Baris "Tanggal Pesanan" di kartu order — dd/mm/yyyy hh:mm (pola detail
+     row yang sama dengan DetailPenarikan). */
+  const orderedText = order?.created_at
+    ? `${parseDate(order.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${formatTime(order.created_at)}`
+    : '—';
+
+  /* Gagal memuat order dari riwayat (mis. 404) → notif, bukan layar kosong. */
+  if (error) {
+    return (
+      <div className="page-cetak-emas-03" style={{ backgroundImage: `url(${pageBg})` }}>
+        <style>{CetakEmas03Styles}</style>
+        <div>
+          <section id="section-hero">
+            <div className="hero-container">
+              <NotifCard variant="error" title="Gagal Memuat Pesanan" description={error} />
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="page-cetak-emas-03">
+    <div className="page-cetak-emas-03" style={{ backgroundImage: `url(${pageBg})` }}>
       <style>{CetakEmas03Styles}</style>
       <div>
               <section id="section-hero">
@@ -1137,21 +1579,21 @@ function CetakEmas03() {
               <section id="section-order-details">
                 <div className="order-card">
                   <div className="order-row border-bottom">
-                    <span className="row-label text-light font-regular">ID Pesanan</span>
-                    <span className="row-value text-dark font-bold">#CTK-20260904-0091</span>
+                    <span className="row-label text-light font-regular">Tanggal Pesanan</span>
+                    <span className="row-value text-dark font-bold">{loading ? <MetricSkeleton width={108} height={12} /> : orderedText}</span>
                   </div>
                   <div className="order-row border-bottom">
                     <span className="row-label text-light font-regular">Emas Dicetak</span>
-                    <span className="row-value text-dark font-bold">1 gram</span>
+                    <span className="row-value text-dark font-bold">{loading ? <MetricSkeleton width={52} height={12} /> : order ? `${formatGrams(Number(order.gram))} gram` : '—'}</span>
                   </div>
                   <div className="order-row border-bottom">
                     <span className="row-label text-light font-regular">Total Dibayar</span>
-                    <span className="row-value text-dark font-bold">Rp 65.000</span>
+                    <span className="row-value text-dark font-bold">{loading ? <MetricSkeleton width={84} height={12} /> : money(order?.total_fee)}</span>
                   </div>
                   <div className="order-row">
                     <span className="row-label text-light font-regular">Status</span>
-                    <div className="status-badge">
-                      <span className="text-success font-semibold">Sedang Diproses</span>
+                    <div className={`status-badge${statusMeta ? ` ${statusMeta.className}` : ''}`}>
+                      <span className="text-success font-semibold">{loading ? <MetricSkeleton width={74} height={12} /> : statusMeta?.label || '—'}</span>
                     </div>
                   </div>
                 </div>
@@ -1162,38 +1604,40 @@ function CetakEmas03() {
                   <div className="timeline">
                     {/* Item 1 */}
                     <div className="timeline-item">
-                      <div className="timeline-icon active">
-                        <img src={S3_img_2} alt="Check" />
+                      <div className={`timeline-icon ${order ? 'active' : 'inactive'}`}>
+                        {order ? <img src={S3_img_2} alt="Check" /> : null}
                       </div>
                       <div className="timeline-content">
                         <div className="item-title text-dark font-semibold">Pembayaran Diterima</div>
-                        <div className="item-desc text-light font-regular">04 Sep 2026, 14:32 WIB</div>
+                        <div className="item-desc text-light font-regular">{createdText}</div>
                       </div>
                     </div>
                     {/* Item 2 */}
                     <div className="timeline-item">
-                      <div className="timeline-icon active">
-                        <img src={S3_img_3} alt="Check" />
+                      <div className={`timeline-icon ${rank >= 2 ? 'active' : 'inactive'}`}>
+                        {rank >= 2 ? <img src={S3_img_3} alt="Check" /> : null}
                       </div>
                       <div className="timeline-content">
                         <div className="item-title text-dark font-semibold">Emas Sedang Dicetak</div>
-                        <div className="item-desc text-light font-regular">Estimasi selesai 3–5 hari kerja</div>
+                        <div className="item-desc text-light font-regular">{rank >= 2 ? 'Estimasi selesai 30–40 hari kerja' : 'Menunggu diproses admin'}</div>
                       </div>
                     </div>
                     {/* Item 3 */}
                     <div className="timeline-item">
-                      <div className="timeline-icon inactive" />
+                      <div className={`timeline-icon ${rank >= 3 ? 'active' : 'inactive'}`}>
+                        {rank >= 3 ? <img src={S3_img_3} alt="Check" /> : null}
+                      </div>
                       <div className="timeline-content">
                         <div className="item-title text-light font-semibold">Dikirim ke Alamat Kamu</div>
-                        <div className="item-desc text-light font-regular">Estimasi tiba 10–12 Sep 2026</div>
+                        <div className="item-desc text-light font-regular">{order?.tracking_number ? `No. resi ${order.tracking_number}` : 'Estimasi tiba setelah pesanan dikirim'}</div>
                       </div>
                     </div>
                   </div>
                 </div>
               </section>
               <section id="section-actions">
-                <button className="btn btn-primary font-bold" onClick={(e) => { e.preventDefault(); navigate('/home'); }}>Kembali ke Beranda</button>
-                <button className="btn btn-secondary font-bold" onClick={(e) => { e.preventDefault(); navigate('/rewards/riwayat-lainnya'); }}>Lihat Detail Pesanan</button>
+                <button className="btn btn-primary font-bold" onClick={(e) => { e.preventDefault(); navigate('/index/home'); }}>Kembali ke Beranda</button>
+                <button className="btn btn-secondary font-bold" onClick={(e) => { e.preventDefault(); navigate('/index/rewards/riwayat-lainnya'); }}>Lihat Detail Pesanan</button>
               </section>
             </div>
 
@@ -1207,3 +1651,4 @@ export default function CetakEmas({ step = 1 }) {
   const Step = STEP_COMPONENTS[step] ?? STEP_COMPONENTS[1];
   return <Step />;
 }
+ 

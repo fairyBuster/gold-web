@@ -5,7 +5,9 @@
      1 -> /assets/aset-saya-01
      2 -> /assets/aset-saya-02
    Data: GET /api/investments/ (the user's plans) via src/lib/investmentsApi.js,
-   plus the live "Harga Emas Hari Ini" card via src/lib/goldPriceApi.js.
+   GET /api/gold/info/ (balance_hold) for the "Total Aset Emas Kamu" card via
+   src/lib/goldApi.js, plus the live "Harga Emas Hari Ini" card via
+   src/lib/goldPriceApi.js.
    Step 1 keeps its empty-state design while no plans exist and lists the plan
    cards otherwise; step 2 always lists them.
    ============================================================================ */
@@ -16,8 +18,13 @@ import NotifCard from '../../../components/NotifCard.jsx';
 /* GET /api/investments/ — the logged-in user's investment plans. */
 import { listAllInvestments } from '../../../lib/investmentsApi.js';
 import { formatRupiah, parseDate } from '../../../lib/transactionFormat.js';
+/* Random plans credit a min–max range per claim — same helpers the product
+   cards and the Konfirmasi summary use. */
+import { profitRange, formatRupiahRange } from '../../../lib/productFormat.js';
 /* Live "Harga Emas Hari Ini" — free public sources, cached 5 min. */
 import { fetchGoldPrice, getCachedGoldPrice, formatIDR, formatPercentID } from '../../../lib/goldPriceApi.js';
+/* GET /api/gold/info/ — saldo emas (balance_hold) + harga per gram backend. */
+import { getGoldInfo } from '../../../lib/goldApi.js';
 import img_1 from '../../../assets/images/141_595.svg';
 import img_2 from '../../../assets/images/6e7afc8beed777ee8ad0a014432f7422da8ce4ac.png';
 import img_3 from '../../../assets/images/120_3286.svg';
@@ -82,22 +89,33 @@ function investmentProgressPercent(investment) {
   return Math.min(100, Math.round((investmentDaysPassed(investment) / duration) * 100));
 }
 
-/* "Total Aset Emas" cards count the quantity of still-ACTIVE plans. */
-function totalActiveQuantity(investments) {
-  return investments
-    .filter((investment) => investment.status === 'ACTIVE')
-    .reduce((sum, investment) => sum + (Number(investment.quantity) || 0), 0);
-}
-
-/* Both steps fetch the same user investments; newest first. */
+/* Both steps fetch the same user investments — plans masih Aktif selalu di
+   atas (terbaru dulu), yang sudah selesai turun ke paling bawah. Pages
+   publish as they arrive so the list paints from the first page instead of
+   waiting for the full history. */
 function useInvestments() {
   const [investments, setInvestments] = useState(null);
   const [error, setError] = useState('');
   useEffect(() => {
     let active = true;
-    listAllInvestments()
+    /* Selesai = status selain ACTIVE (Selesai/Kedaluwarsa/Dibatalkan) — kartu
+       yang sudah beres pindah ke paling bawah daftar. */
+    const isFinished = (investment) => String(investment?.status || '').toUpperCase() !== 'ACTIVE';
+    const sortPlans = (list) =>
+      [...list].sort(
+        (a, b) => Number(isFinished(a)) - Number(isFinished(b)) || (Number(b.id) || 0) - (Number(a.id) || 0),
+      );
+    const collected = [];
+    listAllInvestments({}, {
+      onPage: (rows) => {
+        if (!active || !Array.isArray(rows) || rows.length === 0) return;
+        collected.push(...rows);
+        setInvestments(sortPlans(collected));
+      },
+    })
       .then((list) => {
-        if (active) setInvestments([...list].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0)));
+        /* Final snapshot (also covers an empty first page). */
+        if (active) setInvestments(sortPlans(list));
       })
       .catch((err) => {
         if (active) setError(err?.message || 'Gagal memuat rencana investasi.');
@@ -127,12 +145,41 @@ function useLiveGoldPrice() {
   return goldPrice;
 }
 
+/* GET /api/gold/info/ — saldo emas (balance_hold) + harga per gram backend
+   untuk kartu "Total Aset Emas Kamu" (sumber sama dengan halaman Asset-01/
+   Emas Digital). loading true sampai request selesai — skeleton tampil
+   selama menunggu, "—" kalau gagal. */
+function useGoldInfo() {
+  const [goldInfo, setGoldInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let active = true;
+    getGoldInfo()
+      .then((payload) => {
+        if (active) setGoldInfo(payload);
+      })
+      .catch(() => {
+        /* diamkan — kartu memakai fallback "—" */
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  return { goldInfo, loading };
+}
+
 /* One plan card — shared by both steps. Styled by the .product-card rules
    scoped under each page wrapper (.page-aset-saya-01 / -02). */
 function InvestmentCard({ investment }) {
   const isActive = investment.status === 'ACTIVE';
   const daysPassed = investmentDaysPassed(investment);
   const progress = investmentProgressPercent(investment);
+  /* Random plans draw a new amount per claim between min and max, so the row
+     shows the configured range instead of one sampled daily_profit value. */
+  const perDayRange = profitRange(investment);
   const golongan =
     investment.product_golongan && investment.product_golongan !== '-' ? investment.product_golongan : '';
   const rawSpec = (investment.product_specification || '').trim();
@@ -151,18 +198,18 @@ function InvestmentCard({ investment }) {
       <div className="info-list">
         <div className="info-row">
           <span className="info-label">Pembagian / Periode</span>
-          <span className="info-value">{formatRupiah(investment.daily_profit)} / hari</span>
+          <span className="info-value">{perDayRange ? `${formatRupiahRange(perDayRange.min, perDayRange.max)} / hari` : `${formatRupiah(investment.daily_profit)} / hari`}</span>
         </div>
-        <div className="info-row">
+        {/* <div className="info-row">
           <span className="info-label">Frekuensi</span>
           <span className="info-value">{investmentFrequency(investment)}</span>
-        </div>
+        </div> */}
         <div className="info-row">
           <span className="info-label">Sumber Dana</span>
           <span className="info-value">Saldo JelajahEmas</span>
         </div>
         <div className="info-row">
-          <span className="info-label">Total Terkumpul</span>
+          <span className="info-label">Manfaat yang diterima</span>
           <span className="info-value">{formatRupiah(investment.total_claimed_profit)}</span>
         </div>
         <div className="info-row">
@@ -176,7 +223,7 @@ function InvestmentCard({ investment }) {
         </div>
         <span className="progress-text">{`${daysPassed} dari ${Number(investment.duration_days) || 0} hari`}</span>
       </div>
-      <Link to="/assets/emas-digital" className="card-link">
+      <Link to="/index/assets/emas-digital" className="card-link">
         <span>Lihat aset digital saya</span>
         <img src={S2_img_4} alt="Arrow Right" />
       </Link>
@@ -294,6 +341,31 @@ const AsetSaya01Styles = `
     color: rgba(255, 249, 242, 0.45);
     font-size: 12px;
     margin-top: 2px;
+}
+
+/* Bar shimmer untuk nilai Total Aset Emas selagi gold info dimuat —
+   konvensi skeleton halaman Asset; tint #fff9f2 mengikuti teks kartu gelap. */
+.page-aset-saya-01 .asset-metric-skeleton {
+    display: inline-block;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(255, 249, 242, 0.12) 25%, rgba(255, 249, 242, 0.24) 37%, rgba(255, 249, 242, 0.12) 63%);
+    background-size: 400% 100%;
+    animation: aset-saya-shimmer 1.4s ease infinite;
+}
+
+.page-aset-saya-01 .asset-value-skeleton {
+    width: 110px;
+    height: 20px;
+}
+
+.page-aset-saya-01 .asset-fiat-skeleton {
+    width: 90px;
+    height: 12px;
+}
+
+@keyframes aset-saya-shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: 0 0; }
 }
 
 /* CSS for section section:PriceCard */
@@ -429,13 +501,6 @@ const AsetSaya01Styles = `
     color: #a79c8f;
     font-size: 13px;
     line-height: 1.5;
-    text-align: center;
-}
-
-.page-aset-saya-01 .error-text {
-    color: #e24c4c;
-    font-size: 12px;
-    font-weight: 600;
     text-align: center;
 }
 
@@ -587,6 +652,7 @@ const AsetSaya01Styles = `
 function AsetSaya01() {
   const navigate = useNavigate();
   const { investments, error } = useInvestments();
+  const { goldInfo, loading: goldInfoLoading } = useGoldInfo();
   const goldPrice = useLiveGoldPrice();
 
   const loading = investments === null && !error;
@@ -596,7 +662,16 @@ function AsetSaya01() {
   const changePercent =
     hasLivePrice && Number.isFinite(goldPrice.changePercent) ? goldPrice.changePercent : FALLBACK_CHANGE_PERCENT;
   const trendUp = changePercent >= 0;
-  const gramTotal = totalActiveQuantity(investments || []);
+  /* Total Aset Emas Kamu = balance_hold ÷ harga emas per gram dari GET
+     /api/gold/info/; angka rupiah di bawahnya adalah balance_hold itu
+     sendiri. Gagal ambil data → "—", bukan angka dummy. */
+  const hold = Number(goldInfo?.balance_hold);
+  const infoPricePerGram = Number(goldInfo?.price_per_gram);
+  const hasGoldInfo = Number.isFinite(hold) && Number.isFinite(infoPricePerGram) && infoPricePerGram > 0;
+  const assetGramsText = hasGoldInfo
+    ? `${(hold / infoPricePerGram).toLocaleString('id-ID', { maximumFractionDigits: 3 })} gram`
+    : '—';
+  const assetFiatText = hasGoldInfo ? `≈ ${formatRupiah(hold)}` : '—';
 
   return (
     <div className="page-aset-saya-01">
@@ -613,8 +688,16 @@ function AsetSaya01() {
                   <div className="asset-summary-wrapper">
                     <div className="asset-summary">
                       <span className="asset-label">Total Aset Emas Kamu</span>
-                      <span className="asset-value">{gramTotal.toLocaleString('id-ID')} gram</span>
-                      <span className="asset-fiat">≈ {formatRupiah(gramTotal * pricePerGram)}</span>
+                      <span className="asset-value">
+                        {goldInfoLoading
+                          ? <span className="asset-metric-skeleton asset-value-skeleton" aria-hidden="true" />
+                          : assetGramsText}
+                      </span>
+                      <span className="asset-fiat">
+                        {goldInfoLoading
+                          ? <span className="asset-metric-skeleton asset-fiat-skeleton" aria-hidden="true" />
+                          : assetFiatText}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -658,7 +741,7 @@ function AsetSaya01() {
                     <h2 className="empty-title">Belum Ada Rencana Investasi</h2>
                     <p className="empty-subtitle">Buat rencana investasi emas rutin pertama kamu sekarang untuk mulai membangun aset secara konsisten.</p>
                   </div>
-                  <button className="primary-btn" onClick={(e) => { e.preventDefault(); navigate('/assets/asset-01'); }}>
+                  <button className="primary-btn" onClick={(e) => { e.preventDefault(); navigate('/index/assets/asset-01'); }}>
                     <img src={S1_img_5} alt="Plus Icon" />
                     <span>Buat Rencana Investasi</span>
                   </button>
@@ -671,7 +754,7 @@ function AsetSaya01() {
                   {investments.map((investment) => (
                     <InvestmentCard key={investment.id} investment={investment} />
                   ))}
-                  <button className="add-plan-btn" onClick={(e) => { e.preventDefault(); navigate('/assets/asset-01'); }}>
+                  <button className="add-plan-btn" onClick={(e) => { e.preventDefault(); navigate('/index/assets/asset-01'); }}>
                     <img src={S2_img_5} alt="Plus" />
                     <span>Tambah Rencana Lain</span>
                   </button>
@@ -788,6 +871,27 @@ const AsetSaya02Styles = `
     color: rgba(255, 249, 242, 0.45);
     font-size: 12px;
     margin-top: 2px;
+  }
+  /* Bar shimmer untuk nilai Total Aset Emas selagi gold info dimuat —
+     konvensi skeleton halaman Asset; tint #fff9f2 mengikuti teks kartu gelap. */
+  .page-aset-saya-02 .asset-metric-skeleton {
+    display: inline-block;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(255, 249, 242, 0.12) 25%, rgba(255, 249, 242, 0.24) 37%, rgba(255, 249, 242, 0.12) 63%);
+    background-size: 400% 100%;
+    animation: aset-saya-shimmer 1.4s ease infinite;
+  }
+  .page-aset-saya-02 .asset-value-skeleton {
+    width: 110px;
+    height: 22px;
+  }
+  .page-aset-saya-02 .asset-fiat-skeleton {
+    width: 90px;
+    height: 12px;
+  }
+  @keyframes aset-saya-shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: 0 0; }
   }
 
 /* CSS for section section:PriceBanner */
@@ -976,16 +1080,12 @@ const AsetSaya02Styles = `
     font-size: 13px;
     line-height: 1.5;
   }
-  .page-aset-saya-02 .error-text {
-    color: #e24c4c;
-    font-size: 12px;
-    font-weight: 600;
-  }
 `;
 
 function AsetSaya02() {
   const navigate = useNavigate();
   const { investments, error } = useInvestments();
+  const { goldInfo, loading: goldInfoLoading } = useGoldInfo();
   const goldPrice = useLiveGoldPrice();
 
   const loading = investments === null && !error;
@@ -995,7 +1095,16 @@ function AsetSaya02() {
   const changePercent =
     hasLivePrice && Number.isFinite(goldPrice.changePercent) ? goldPrice.changePercent : FALLBACK_CHANGE_PERCENT;
   const trendUp = changePercent >= 0;
-  const gramTotal = totalActiveQuantity(investments || []);
+  /* Total Aset Emas Kamu = balance_hold ÷ harga emas per gram dari GET
+     /api/gold/info/; angka rupiah di bawahnya adalah balance_hold itu
+     sendiri. Gagal ambil data → "—", bukan angka dummy. */
+  const hold = Number(goldInfo?.balance_hold);
+  const infoPricePerGram = Number(goldInfo?.price_per_gram);
+  const hasGoldInfo = Number.isFinite(hold) && Number.isFinite(infoPricePerGram) && infoPricePerGram > 0;
+  const assetGramsText = hasGoldInfo
+    ? `${(hold / infoPricePerGram).toLocaleString('id-ID', { maximumFractionDigits: 3 })} gram`
+    : '—';
+  const assetFiatText = hasGoldInfo ? `≈ ${formatRupiah(hold)}` : '—';
 
   return (
     <div className="page-aset-saya-02">
@@ -1011,8 +1120,16 @@ function AsetSaya02() {
                   </div>
                   <div className="total-asset-card">
                     <span className="asset-label">Total Aset Emas Kamu</span>
-                    <span className="asset-value">{gramTotal.toLocaleString('id-ID')} gram</span>
-                    <span className="asset-fiat">≈ {formatRupiah(gramTotal * pricePerGram)}</span>
+                    <span className="asset-value">
+                      {goldInfoLoading
+                        ? <span className="asset-metric-skeleton asset-value-skeleton" aria-hidden="true" />
+                        : assetGramsText}
+                    </span>
+                    <span className="asset-fiat">
+                      {goldInfoLoading
+                        ? <span className="asset-metric-skeleton asset-fiat-skeleton" aria-hidden="true" />
+                        : assetFiatText}
+                    </span>
                   </div>
                 </div>
               </header>
@@ -1042,7 +1159,7 @@ function AsetSaya02() {
                 {!loading && !error && hasInvestments && investments.map((investment) => (
                   <InvestmentCard key={investment.id} investment={investment} />
                 ))}
-                <button className="add-plan-btn" onClick={(e) => { e.preventDefault(); navigate('/assets/asset-01'); }}>
+                <button className="add-plan-btn" onClick={(e) => { e.preventDefault(); navigate('/index/assets/asset-01'); }}>
                   <img src={S2_img_5} alt="Plus" />
                   <span>Tambah Rencana Lain</span>
                 </button>

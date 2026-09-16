@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TIMAFILIASI-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="timafiliasi-metrics">pending</pre>
+  <script type="module">
+    /* Verifikasi halaman Tim & Afiliasi:
+       1) Kartu "Tim Kamu" (Langsung / Tingkat 2 / Tingkat 3) — nilai yang
+          TIDAK ada di response /api/auth/downline-stats/ harus tampil 0:
+          ?case=partial → hanya level 1 terisi;
+          ?case=nulls   → ketiga level ada tapi members_total null/undefined/0;
+          ?case=full    → ketiganya terisi.
+       2) Link undangan https://domain.com/#/pages/signup?invitecode=<kode>:
+          ?case=copy-link  → tombol Salin menyalin link lengkap (bukan kode);
+          ?case=share-link → Bagikan (fallback clipboard) mengirim pesan berisi link. */
+    const metrics = { errors: [] };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const caseName = new URLSearchParams(window.location.search).get('case') || 'partial';
+    metrics.case = caseName;
+    const REFERRAL_CODE = 'JELO7';
+    const INVITE_URL = `https://domain.com/#/pages/signup?invitecode=${REFERRAL_CODE}`;
+
+    /* Tangkap clipboard dan matikan navigator.share supaya jalur Salin/Bagikan
+       deterministik di headless (Bagikan jatuh ke fallback clipboard). */
+    const clipboard = { text: '' };
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: async (value) => { clipboard.text = String(value); } },
+      configurable: true,
+    });
+    Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
+
+    const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+    const encodeSalted = (obj) => {
+      const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+      return { data: [...(base64 + SALT)].reverse().join('') };
+    };
+    const jsonResponse = (status, payload) => new Response(JSON.stringify(payload), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const respond = (obj) => Promise.resolve(jsonResponse(200, encodeSalted(obj)));
+
+    const FULL_LEVELS = {
+      levels: [
+        { level: 1, members_total: 4, members_active: 2 },
+        { level: 2, members_total: '9', members_active: 5 },
+        { level: 3, members_total: 12, members_active: 6 },
+      ],
+    };
+    const STATS = {
+      partial: {
+        levels: [{
+          level: 1,
+          members_total: 5,
+          members_active: 3,
+          profit_commission_amount: '1000',
+          purchase_commission_amount: '2000',
+        }],
+      },
+      nulls: {
+        levels: [
+          { level: 1, members_total: null },
+          { level: 2 },
+          { level: 3, members_total: 0 },
+        ],
+      },
+      full: FULL_LEVELS,
+      'copy-link': FULL_LEVELS,
+      'share-link': FULL_LEVELS,
+    }[caseName];
+
+    window.fetch = (input) => {
+      const url = typeof input === 'string' ? input : (input?.url || '');
+      if (url.includes('/api/auth/downline-stats/')) return respond(STATS);
+      if (url.includes('/api/auth/account-info/')) return respond({ referral_code: REFERRAL_CODE });
+      return Promise.resolve(jsonResponse(404, {}));
+    };
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, timeout = 8000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const value = fn();
+        if (value) return value;
+        await sleep(50);
+      }
+      return null;
+    };
+    const texts = (sel) => [...document.querySelectorAll(sel)].map((el) => el.textContent.trim());
+
+    history.replaceState(null, '', '/index/affiliate/tim-afiliasi');
+    await import('/src/main.jsx');
+
+    /* Tunggu halaman siap: stats selesai dimuat ("Memuat data tim..." hilang)
+       dan kode referral sudah mengisi code-box. */
+    await waitFor(() =>
+      document.querySelector('.page-tim-afiliasi') &&
+      !document.querySelector('.page-tim-afiliasi .status-text') &&
+      document.querySelector('.page-tim-afiliasi .code-text')?.textContent.trim() === REFERRAL_CODE
+    );
+
+    if (caseName === 'copy-link' || caseName === 'share-link') {
+      if (caseName === 'copy-link') {
+        /* Tombol Salin harus menyalin link undangan lengkap. */
+        document.querySelector('.page-tim-afiliasi .copy-btn')?.click();
+        await waitFor(() => clipboard.text !== '');
+        metrics.copiedText = clipboard.text;
+        metrics.expected = INVITE_URL;
+        metrics.allPassed = metrics.copiedText === INVITE_URL && metrics.errors.length === 0;
+      } else {
+        /* Bagikan tanpa navigator.share jatuh ke fallback clipboard — pesan
+           harus memuat link undangan lengkap. */
+        document.querySelector('.page-tim-afiliasi .action-btn.primary')?.click();
+        await waitFor(() => clipboard.text !== '');
+        metrics.sharedText = clipboard.text;
+        metrics.inviteUrl = INVITE_URL;
+        metrics.allPassed = metrics.sharedText.includes(INVITE_URL) && metrics.errors.length === 0;
+      }
+    } else {
+      metrics.nums = texts('.page-tim-afiliasi .team-stat-num');
+      metrics.labels = texts('.page-tim-afiliasi .team-stat-label');
+      const expected = { partial: ['5', '0', '0'], nulls: ['0', '0', '0'], full: ['4', '9', '12'] }[caseName];
+      metrics.expected = expected;
+      metrics.allPassed =
+        metrics.nums.join('|') === expected.join('|') &&
+        metrics.labels.join('|') === 'Langsung|Tingkat 2|Tingkat 3' &&
+        metrics.errors.length === 0;
+    }
+
+    document.getElementById('timafiliasi-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'TIMAFILIASI-DONE ' + JSON.stringify({ case: caseName, allPassed: metrics.allPassed });
+  </script>
+</body>
+</html>

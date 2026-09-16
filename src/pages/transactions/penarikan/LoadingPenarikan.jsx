@@ -11,7 +11,10 @@ const styles = `
   font-family: 'Inter', sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f5f5f5;
+  /* Artwork + base on the root so they stay full-bleed on desktop. */
+  background-image: radial-gradient(circle at 80% 10%, rgba(255, 201, 60, 0.28) 0%, rgba(255, 201, 60, 0) 50%),
+                    radial-gradient(circle at 20% 90%, rgba(255, 159, 28, 0.25) 0%, rgba(255, 159, 28, 0) 50%),
+                    linear-gradient(#fffbf4, #fffbf4);
   display: flex;
   justify-content: center;
   min-height: 100vh;
@@ -27,7 +30,6 @@ const styles = `
 .page-loading-penarikan #section-loading {
     width: 100%;
     max-width: 100%; /* Based on Figma design width */
-    background-color: #fffbf4;
     position: relative;
     overflow: hidden;
     box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
@@ -41,9 +43,6 @@ const styles = `
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background-image: 
-      radial-gradient(circle at 80% 10%, rgba(255, 201, 60, 0.28) 0%, rgba(255, 201, 60, 0) 50%),
-      radial-gradient(circle at 20% 90%, rgba(255, 159, 28, 0.25) 0%, rgba(255, 159, 28, 0) 50%);
     position: relative;
     z-index: 1;
   }
@@ -170,7 +169,7 @@ export default function LoadingPenarikan() {
 
   useEffect(() => {
     const timer = setTimeout(
-      () => navigate('/transactions/detail-penarikan', { state: { withdrawalId } }),
+      () => navigate('/index/transactions/detail-penarikan', { state: { withdrawalId } }),
       2000
     );
     return () => clearTimeout(timer);

@@ -1,0 +1,707 @@
+﻿<!DOCTYPE html>
+<html lang="id"><head>
+  <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+  <script type="module" src="/@vite/client"></script>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EMASDIGITAL-LIVE-DONE</title>
+  <style>#edm-metrics { display: none; }</style>
+<style type="text/css" data-vite-dev-id="D:/webbaru/src/index.css">/* ============================================================
+
+   App shell styles shared by all converted pages.
+
+   Global resets below match the originals found in every
+
+   global.css, so individual page CSS files only need to carry
+
+   their page-specific (already scoped) rules.
+
+   ============================================================ */
+
+
+
+* {
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0;
+
+  -webkit-tap-highlight-color: transparent;
+
+}
+
+
+
+html,
+
+body,
+
+#root {
+
+  width: 100%;
+
+  min-height: 100vh;
+
+  margin: 0;
+
+  padding: 0;
+
+}
+
+
+
+/* Each converted page renders a single wrapper div below its page root
+
+   (e.g. #root > .page-x > div). The original mobile mockups sized that
+
+   wrapper by its content, which produced narrow centered columns on
+
+   desktop; force it to span the full width so pages have no side gaps. */
+
+#root > div > div {
+
+  width: 100%;
+
+}
+
+
+
+body {
+
+  font-family: 'Inter', sans-serif;
+
+  background-color: #f0e9df;
+
+  /* App-wide background image ΓÇö every page shows it through the
+
+     transparency rule below. */
+
+  background-image: url('/src/assets/images/background.jpg');
+
+  background-size: cover;
+
+  background-position: center top;
+
+  background-repeat: no-repeat;
+
+  background-attachment: fixed;
+
+  color: #1a1410;
+
+  min-height: 100vh;
+
+}
+
+
+
+/* Page wrappers paint their own opaque canvas; make them transparent so
+
+   the shared background image is visible on all pages. */
+
+#root > [class^="page-"] {
+
+  background-color: transparent;
+
+}
+
+
+
+a {
+
+  text-decoration: none;
+
+  color: inherit;
+
+}
+
+
+
+button {
+
+  border: none;
+
+  background: none;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+}
+
+
+
+input,
+
+textarea,
+
+select {
+
+  font-family: inherit;
+
+}
+
+
+
+/* ============================================================
+
+   Screen directory (route "/")
+
+   ============================================================ */
+
+
+
+.screen-index {
+
+  max-width: 1080px;
+
+  margin: 0 auto;
+
+  padding: 48px 24px 80px;
+
+}
+
+
+
+.screen-index__header {
+
+  text-align: center;
+
+  margin-bottom: 36px;
+
+}
+
+
+
+.screen-index__title {
+
+  font-size: 32px;
+
+  font-weight: 700;
+
+  color: #1a1410;
+
+  margin-bottom: 8px;
+
+}
+
+
+
+.screen-index__title span {
+
+  color: #e8790c;
+
+}
+
+
+
+.screen-index__subtitle {
+
+  font-size: 14px;
+
+  color: #8a7d6d;
+
+  margin-bottom: 24px;
+
+}
+
+
+
+.screen-index__search {
+
+  width: 100%;
+
+  max-width: 420px;
+
+  padding: 13px 18px;
+
+  font-size: 14px;
+
+  border: 1px solid #e2d8c8;
+
+  border-radius: 12px;
+
+  background-color: #fffbf4;
+
+  color: #1a1410;
+
+  outline: none;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__search:focus {
+
+  border-color: #e8790c;
+
+  box-shadow: 0 0 0 3px rgba(232, 121, 12, 0.15);
+
+}
+
+
+
+.screen-index__grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+
+  gap: 12px;
+
+}
+
+
+
+.screen-index__card {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  padding: 16px 18px;
+
+  background-color: #fffbf4;
+
+  border: 1px solid #e9dfd1;
+
+  border-radius: 14px;
+
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__card:hover {
+
+  border-color: #e8790c;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 10px 24px rgba(26, 20, 16, 0.08);
+
+}
+
+
+
+.screen-index__card-label {
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  color: #1a1410;
+
+}
+
+
+
+.screen-index__card-path {
+
+  font-size: 12px;
+
+  color: #b3a795;
+
+  font-family: 'SFMono-Regular', Consolas, monospace;
+
+}
+
+
+
+.screen-index__empty {
+
+  grid-column: 1 / -1;
+
+  text-align: center;
+
+  padding: 40px 0;
+
+  color: #b3a795;
+
+  font-size: 14px;
+
+}
+
+
+
+.screen-index__group {
+
+  margin-bottom: 32px;
+
+}
+
+
+
+.screen-index__group-title {
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  color: #8a7d6d;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+
+  margin-bottom: 12px;
+
+}
+
+
+
+/* ============================================================
+
+   Desktop layout (ΓëÑ768px) for all app screens.
+
+   Below 768px every page keeps its original mobile layout as-is.
+
+   From 768px up the page content renders as a centered app column
+
+   while backgrounds stay full-bleed on the page root, so no
+
+   phone-frame edges or side gaps appear. The landing page has its
+
+   own desktop layout (see LandingPagePerusahaan.jsx).
+
+   ============================================================ */
+
+
+
+@media (min-width: 768px) {
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > div,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > main,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > section {
+
+    max-width: 480px;
+
+    margin-left: auto;
+
+    margin-right: auto;
+
+    box-shadow: none;
+
+  }
+
+}
+
+
+
+/* Inner full-page containers keep a mobile drop shadow; drop it on desktop
+
+   too (they sit below the capped element, so the rule above does not reach
+
+   them). Selectors carry the #root prefix so they outrank the per-page
+
+   \3c style> blocks injected later in the document. */
+
+@media (min-width: 768px) {
+
+  #root .page-register-01 .app-container,
+
+  #root .page-register-04 .mobile-container,
+
+  #root .page-notifikasi-login .screen-container,
+
+  #root .page-notif-screen .screen-container,
+
+  #root .page-kartu-bank .mobile-app-container,
+
+  #root .page-beri-rating section:first-of-type,
+
+  #root .page-beri-rating section:last-of-type,
+
+  #root .page-livechat .input-container {
+
+    box-shadow: none;
+
+  }
+
+}
+
+</style></head>
+<body>
+  <div id="root"><div class="page-emas-digital"><style>
+/* Scoped styles for EmasDigital ΓÇö converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-emas-digital to isolate this page. */
+
+.page-emas-digital {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #fffbf4; /* Fallback page color behind the sections */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-emas-digital, .page-emas-digital * {
+  box-sizing: border-box;
+}
+
+.page-emas-digital h1,.page-emas-digital  h2,.page-emas-digital  h3,.page-emas-digital  p {
+  margin: 0;
+}
+
+.page-emas-digital .app-container {
+  width: 100%;
+  max-width: 100%; /* Based on Figma design width */
+  background-color: #ffffff;
+  margin: 0 auto;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+}
+
+/* Stretch the content column so the last section fills any space below
+   the content instead of leaving a gray band at the bottom. */
+.page-emas-digital > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Header */
+.page-emas-digital #section-header .app-container {
+    background-color: #fdf4df; /* Matches the top of the hero gradient */
+  }
+  .page-emas-digital .site-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px 20px 16px 20px;
+  }
+  .page-emas-digital .back-button {
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    background-color: rgba(255, 249, 242, 0.6);
+    border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    padding: 0;
+  }
+  .page-emas-digital .page-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1410;
+  }
+
+/* CSS for section section:Hero */
+.page-emas-digital #section-hero .app-container {
+    background: linear-gradient(180deg, #fdf4df 0%, #fef0d1 40%, #fffbf4 100%);
+  }
+  .page-emas-digital .hero-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 24px 40px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .page-emas-digital .glow-effect {
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .page-emas-digital .balance-card {
+    background-color: #ffffff;
+    border-radius: 20px;
+    padding: 26px 20px 24px 20px;
+    width: 100%;
+    max-width: 280px;
+    box-shadow: 0px 20px 40px 0px rgba(120, 80, 10, 0.12);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 28px;
+  }
+  .page-emas-digital .card-label {
+    color: #a79c8f;
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  .page-emas-digital .amount-wrapper {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .page-emas-digital .amount-number {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1a1410;
+    letter-spacing: -0.5px;
+  }
+  .page-emas-digital .amount-unit {
+    font-size: 14px;
+    font-weight: 600;
+    color: #514840;
+  }
+  .page-emas-digital .amount-fiat {
+    color: #e8790c;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .page-emas-digital .card-illustration {
+    width: 105px;
+    height: auto;
+    display: block;
+  }
+  .page-emas-digital .update-info {
+    color: rgba(26, 20, 16, 0.55);
+    font-size: 11px;
+    margin-bottom: 32px;
+    position: relative;
+    z-index: 1;
+  }
+  .page-emas-digital .stats-container {
+    display: flex;
+    gap: 14px;
+    width: 100%;
+    max-width: 280px;
+    position: relative;
+    z-index: 1;
+  }
+  .page-emas-digital .stat-box {
+    /* Solid card on the cream hero gradient ΓÇö the previous translucent fill
+       (rgba(255,249,242,.65)) was nearly invisible, so the box now carries a
+       white background, a hairline border and the page's warm soft shadow. */
+    background-color: #ffffff;
+    border: 1px solid #f0e5d3;
+    border-radius: 12px;
+    padding: 12px 8px;
+    box-shadow: 0 6px 16px rgba(120, 80, 10, 0.08);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .page-emas-digital .stat-title {
+    color: #514840;
+    font-size: 10px;
+  }
+  .page-emas-digital .stat-value {
+    color: #1a1410;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .page-emas-digital .stat-value.text-profit {
+    color: #2e8b57;
+  }
+
+/* CSS for section section:Features */
+.page-emas-digital #section-features {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .page-emas-digital #section-features .app-container {
+    background-color: #ffffff;
+    flex: 1;
+  }
+  .page-emas-digital .features-content {
+    padding: 24px 20px 40px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .page-emas-digital .section-heading {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1410;
+  }
+  .page-emas-digital .feature-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .page-emas-digital .feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .page-emas-digital .icon-wrapper {
+    width: 34px;
+    height: 34px;
+    border-radius: 17px;
+    background-color: #f6f1e9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .page-emas-digital .text-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 2px;
+  }
+  .page-emas-digital .feature-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1410;
+  }
+  .page-emas-digital .feature-desc {
+    font-size: 12px;
+    color: #a79c8f;
+    line-height: 1.4;
+  }
+</style><div><section id="section-header"><div class="app-container"><header class="site-header"><button class="back-button" aria-label="Go back"><img src="data:image/svg+xml,%3csvg%20width='16'%20height='16'%20viewBox='0%200%2016%2016'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M10%203.33337L5.33337%208.00004L10%2012.6667'%20stroke='%231A1410'%20stroke-width='1.33333'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt=""></button><h1 class="page-title">Emas Digital Saya</h1></header></div></section><section id="section-hero"><div class="app-container"><div class="hero-content"><div class="glow-effect"></div><div class="balance-card"><p class="card-label">Total Emas Digital</p><div class="amount-wrapper"><span class="amount-number">1,375</span><span class="amount-unit">gram</span></div><p class="amount-fiat">Γëê Rp3.437.500</p><img class="card-illustration" src="/src/assets/images/615cb7874b4304ede07a379f82cc29690a4f8ed1.png" alt="Jelajah Emas Digital Card"></div><p class="update-info">Diperbarui pada pukul 22:10 WIB</p><div class="stats-container"><div class="stat-box"><p class="stat-title">Profit</p><p class="stat-value text-profit">+Rp85.000</p></div><div class="stat-box"><p class="stat-title">Balance Hold</p><p class="stat-value">Rp3.437.500</p></div></div></div></div></section><section id="section-features"><div class="app-container"><div class="features-content"><h2 class="section-heading">Tentang Emas Digital Kamu</h2><div class="feature-list"><div class="feature-item"><div class="icon-wrapper"><img src="data:image/svg+xml,%3csvg%20width='16'%20height='16'%20viewBox='0%200%2016%2016'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M8.00004%202L12.6667%204V7.33333C12.6667%2010.3333%2010.6667%2012.3333%208.00004%2013.3333C5.33337%2012.3333%203.33337%2010.3333%203.33337%207.33333V4L8.00004%202Z'%20stroke='%23514840'%20stroke-width='1.06667'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Aman"></div><div class="text-wrapper"><h3 class="feature-title">Disimpan dengan Aman</h3><p class="feature-desc">Emas digital kamu disimpan di fasilitas penyimpanan berizin dan diasuransikan penuh.</p></div></div><div class="feature-item"><div class="icon-wrapper"><img src="data:image/svg+xml,%3csvg%20width='16'%20height='16'%20viewBox='0%200%2016%2016'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M8.00004%203.33325V12.6666M3.33337%207.99992H12.6667'%20stroke='%23514840'%20stroke-width='1.06667'%20stroke-linecap='round'/%3e%3c/svg%3e" alt="Cair"></div><div class="text-wrapper"><h3 class="feature-title">Bisa Dicairkan Kapan Saja</h3><p class="feature-desc">Kamu bisa menjual atau mencetak emas fisik sesuai saldo yang tersedia.</p></div></div><div class="feature-item"><div class="icon-wrapper"><img src="data:image/svg+xml,%3csvg%20width='16'%20height='16'%20viewBox='0%200%2016%2016'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M8%2014C11.3137%2014%2014%2011.3137%2014%208C14%204.68629%2011.3137%202%208%202C4.68629%202%202%204.68629%202%208C2%2011.3137%204.68629%2014%208%2014Z'%20stroke='%23514840'%20stroke-width='1.06667'/%3e%3cpath%20d='M8%205.33325V7.99992L10%209.33325'%20stroke='%23514840'%20stroke-width='1.06667'%20stroke-linecap='round'/%3e%3c/svg%3e" alt="Real-time"></div><div class="text-wrapper"><h3 class="feature-title">Harga Real-time</h3><p class="feature-desc">Nilai emas digital kamu mengikuti harga pasar terkini setiap saat.</p></div></div></div></div></div></section></div></div></div>
+  <pre id="edm-metrics">{
+  "errors": [],
+  "state": {
+    "grams": "1,375",
+    "unit": "gram",
+    "fiat": "Γëê Rp3.437.500",
+    "updated": "Diperbarui pada pukul 22:10 WIB",
+    "stats": [
+      {
+        "title": "Profit",
+        "value": "+Rp85.000",
+        "background": "rgb(255, 255, 255)"
+      },
+      {
+        "title": "Balance Hold",
+        "value": "Rp3.437.500",
+        "background": "rgb(255, 255, 255)"
+      }
+    ],
+    "mockupLeftovers": []
+  },
+  "allPassed": true
+}</pre>
+  <script type="module" src="/tmp-html/emasdigital-live/index.html?html-proxy&amp;index=0.js"></script>
+
+
+</body></html>

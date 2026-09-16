@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EMASDIGITAL-BOX-RUNNING</title>
+  <style>#ed-metrics { display: none; }</style>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="ed-metrics">pending</pre>
+  <script type="module">
+    /* E2E probe for the EmasDigital stat boxes:
+       the two .stat-box cards must render as visible boxes — solid white
+       background (computed rgb(255,255,255)), hairline border and a soft
+       shadow — instead of the old translucent cream fill. */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (selector, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+
+    history.replaceState(null, '', '/index/assets/emas-digital');
+    await import('/src/main.jsx');
+
+    await waitFor('.page-emas-digital .stat-box');
+    await sleep(300);
+
+    /* Computed styles + geometry of both boxes. */
+    metrics.state.boxes = [...document.querySelectorAll('.page-emas-digital .stat-box')].map((el) => {
+      const cs = getComputedStyle(el);
+      const rect = el.getBoundingClientRect();
+      return {
+        background: cs.backgroundColor,
+        border: `${cs.borderTopWidth} ${cs.borderTopStyle} ${cs.borderTopColor}`,
+        shadow: cs.boxShadow,
+        radius: cs.borderTopLeftRadius,
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      };
+    });
+    metrics.state.titles = [...document.querySelectorAll('.page-emas-digital .stat-box .stat-title')].map((el) => el.textContent.trim());
+    metrics.state.values = [...document.querySelectorAll('.page-emas-digital .stat-box .stat-value')].map((el) => el.textContent.trim());
+
+    const passed = metrics.state.boxes.length === 2
+      && metrics.state.boxes.every((b) => b.background === 'rgb(255, 255, 255)'
+        && b.border.startsWith('1px solid') && b.shadow !== 'none'
+        && b.width > 100 && b.height > 40)
+      && JSON.stringify(metrics.state.titles) === JSON.stringify(['Profit', 'Balance Hold'])
+      && metrics.state.values[0].includes('85.000')
+      && metrics.errors.length === 0;
+
+    metrics.allPassed = passed;
+    document.getElementById('ed-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'EMASDIGITAL-BOX-DONE';
+  </script>
+</body>
+</html>

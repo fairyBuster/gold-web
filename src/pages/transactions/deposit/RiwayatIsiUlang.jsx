@@ -6,7 +6,7 @@ import NotifCard from '../../../components/NotifCard.jsx';
 import ListPagination from '../../../components/ListPagination.jsx';
 import ListState from '../../../components/ListState.jsx';
 import { useTransactionFeed } from '../../../lib/useTransactionFeed.js';
-import { formatRupiah, formatTime, groupByDay, parseDate, statusKind } from '../../../lib/transactionFormat.js';
+import { formatRupiah, formatTime, groupByDay, statusKind } from '../../../lib/transactionFormat.js';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -234,22 +234,35 @@ const HISTORY_PAGE_SIZE = 8;
 /* Status group → right-hand state label. */
 const STATUS_LABELS = { success: 'Berhasil', pending: 'Diproses', failed: 'Gagal' };
 
-/* One-line card detail: time + backend description (deposit channel). */
+/* Backend descriptions read "Deposit via {Provider} ({wallet_type})" — map the
+   provider to the channel name the app shows when the user tops up. Providers
+   with no channel behind them yet fall back to their own name. */
+const CHANNEL_BY_PROVIDER = {
+  ClientHub: 'Virtual Account BRI',
+  QRIS: 'QRIS 01',
+  'SiTransfer Hub': 'QRIS 02',
+};
+
+function channelName(trx) {
+  const provider = /Deposit via ([^(]+)/.exec(trx.description || '')?.[1]?.trim();
+  return (provider && CHANNEL_BY_PROVIDER[provider]) || provider || trx.description;
+}
+
+/* One-line card detail: time + deposit channel. Only settled top-ups show the
+   channel name; anything else keeps the raw backend description. */
 function buildSubtitle(trx) {
-  return [formatTime(trx.created_at), trx.description].filter(Boolean).join(' • ');
+  const channel = statusKind(trx.status) === 'success' ? channelName(trx) : null;
+  return [formatTime(trx.created_at), channel || trx.description].filter(Boolean).join(' • ');
 }
 
 export default function RiwayatIsiUlang() {
   const { items, loading, error } = useTransactionFeed(DEPOSIT_TYPES, DEPOSIT_FEED_OPTIONS);
   const [visibleCount, setVisibleCount] = useState(HISTORY_PAGE_SIZE);
 
-  /* Totals for the current calendar month. */
-  const now = new Date();
-  const monthly = items.filter((trx) => {
-    const date = parseDate(trx.created_at);
-    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
-  });
-  const monthlyTotal = monthly.reduce((sum, trx) => sum + Math.abs(Number(trx.amount) || 0), 0);
+  /* All-time totals over the loaded (completed-only) feed — the card always
+     reconciles with the rows listed below it. */
+  const completed = items.filter((trx) => statusKind(trx.status) === 'success');
+  const completedTotal = completed.reduce((sum, trx) => sum + Math.abs(Number(trx.amount) || 0), 0);
   const groups = groupByDay(items.slice(0, visibleCount));
 
   return (
@@ -271,9 +284,9 @@ export default function RiwayatIsiUlang() {
                   <div className="hero-container">
                     <div className="summary-card">
                       <div className="summary-content">
-                        <p className="summary-label">Total Isi Ulang Bulan Ini</p>
-                        <p className="summary-amount">+{formatRupiah(monthlyTotal)}</p>
-                        <p className="summary-count">{monthly.length} transaksi</p>
+                        <p className="summary-label">Total Isi Ulang</p>
+                        <p className="summary-amount">{formatRupiah(completedTotal)}</p>
+                        <p className="summary-count">{completed.length} transaksi</p>
                       </div>
                       <img src={img_2} alt="" className="summary-image" />
                     </div>

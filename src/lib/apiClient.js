@@ -25,26 +25,23 @@ const LOGIN_PATHS = [
 
 export class ApiError extends Error {
   constructor(status, payload) {
-    super(extractMessage(payload) || `Permintaan gagal (status ${status}).`);
+    super(frontendMessage(status));
     this.name = 'ApiError';
     this.status = status;
     this.payload = payload;
   }
 }
 
-/* Pull the first human-readable message out of a DRF error payload, e.g.
-   { "phone": ["Phone already registered."] } -> "Phone already registered." */
-function extractMessage(payload) {
-  if (!payload) return '';
-  if (typeof payload === 'string') return payload;
-  if (Array.isArray(payload)) return payload.length ? extractMessage(payload[0]) : '';
-  if (typeof payload === 'object') {
-    if (payload.detail) return String(payload.detail);
-    for (const value of Object.values(payload)) {
-      const message = extractMessage(value);
-      if (message) return message;
-    }
-  }
+/* User-facing error text is always authored here (frontend) — backend wording
+   (DRF field errors, "validation_error" codes, raw detail strings) must never
+   reach a notification. Statuses without a dedicated hint return '' so the
+   call site's own fallback (e.g. "Voucher gagal diklaim. Silakan coba lagi.")
+   is displayed instead. The raw payload stays reachable as err.payload for
+   programmatic checks. */
+function frontendMessage(status) {
+  if (status === 0) return 'Tidak dapat terhubung ke server. Periksa koneksi internet kamu.';
+  if (status === 429) return 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi ya.';
+  if (status >= 500) return 'Server sedang bermasalah. Coba lagi beberapa saat lagi ya.';
   return '';
 }
 

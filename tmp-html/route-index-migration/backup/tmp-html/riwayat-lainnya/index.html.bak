@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RIWAYATSWAP-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="rw-metrics">pending</pre>
+  <script type="module">
+    /* E2E probe for RiwayatLainnya SWAP support:
+       - ?type=SWAP must be requested and its rows rendered.
+       - SWP/SWF rows read as debits ("-Rp..." black) with swap copy and the
+         gram parsed from the backend description ("0.5000" -> "0,5 gram");
+         cancelled swap shows the failed note; SWR refunds (RETURN) stay "+".
+       - Existing types (TRANSFER, ATTENDANCE) are unaffected.
+       - Subtitles longer than their card auto-scroll (is-marquee + --slide +
+         the rlain-subtitle-slide animation); run at 393px so overflow exists. */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const row = (id, type, amount, status, wallet, time, currency = '', description = 'raw backend description') => ({
+      id,
+      type,
+      amount,
+      currency_code: currency,
+      status,
+      wallet_type: wallet,
+      trx_id: `TRX-${id}`,
+      description,
+      created_at: `2026-09-15 ${time}`,
+    });
+
+    /* Two swap orders + one cancelled-with-refunds order, plus control rows.
+       Swap descriptions are the real backend strings (DRF quantizes gram to
+       4 decimals, so it arrives as "0.5000"). */
+    const FEED = {
+      SWAP: [
+        row(101, 'SWAP', '1218417.88', 'PENDING', 'BALANCE_HOLD', '20:12:00', '',
+          'Tukar 0.5000 gram emas dari balance_hold (harga Rp2.436.835,76/gram)'),
+        row(102, 'SWAP', '25000.00', 'PENDING', 'BALANCE_DEPOSIT', '20:11:00', '',
+          'Biaya cetak (Rp10.000,00) + ongkir (Rp15.000,00) tukar emas 0.5000 gram dari balance_deposit'),
+        row(103, 'SWAP', '2436835.76', 'COMPLETED', 'BALANCE_HOLD', '18:00:00', '',
+          'Tukar 1.0000 gram emas dari balance_hold (harga Rp2.436.835,76/gram)'),
+        row(104, 'SWAP', '45000.00', 'COMPLETED', 'BALANCE_DEPOSIT', '17:59:00', '',
+          'Biaya cetak (Rp30.000,00) + ongkir (Rp15.000,00) tukar emas 1.0000 gram dari balance_deposit'),
+        row(105, 'SWAP', '1218417.88', 'CANCELLED', 'BALANCE_HOLD', '16:00:00', '',
+          'Tukar 0.5000 gram emas dari balance_hold (harga Rp2.436.835,76/gram)'),
+      ],
+      RETURN: [
+        row(107, 'RETURN', '1218417.88', 'COMPLETED', 'BALANCE_HOLD', '16:02:00', '',
+          'Refund swap emas dibatalkan (Order #12): nilai emas kembali ke balance_hold'),
+        row(108, 'RETURN', '25000.00', 'COMPLETED', 'BALANCE_DEPOSIT', '16:01:00', '',
+          'Refund swap emas dibatalkan (Order #12): biaya cetak + ongkir kembali ke balance_deposit'),
+      ],
+      TRANSFER: [row(109, 'TRANSFER', '950', 'COMPLETED', 'BALANCE', '10:00:00', 'POINT')],
+      ATTENDANCE: [row(110, 'ATTENDANCE', '100', 'SUCCESS', 'BALANCE', '09:00:00', 'POINT')],
+    };
+
+    const requestedTypes = [];
+    const json = (data, status = 200) => new Response(JSON.stringify(data), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    window.fetch = (url) => {
+      const target = String(url);
+      if (target.includes('/api/transactions/')) {
+        const match = target.match(/type=([A-Z_]+)/);
+        const type = match ? match[1] : '';
+        if (!requestedTypes.includes(type)) requestedTypes.push(type);
+        const results = FEED[type] || [];
+        return Promise.resolve(json({ count: results.length, next: null, previous: null, results }));
+      }
+      return Promise.resolve(json({}, 404));
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const writeMetrics = (passed) => {
+      metrics.allPassed = passed;
+      document.getElementById('rw-metrics').textContent = JSON.stringify(metrics, null, 2);
+      document.title = 'RIWAYATSWAP-DONE';
+    };
+    const waitFor = async (selector, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+    const textList = (selector) => [...document.querySelectorAll(selector)].map((el) => el.textContent.trim());
+
+    history.replaceState(null, '', '/rewards/riwayat-lainnya');
+    await import('/src/main.jsx');
+
+    await waitFor('.page-riwayat-lainnya .history-card');
+    await sleep(300);
+
+    const titles = () => textList('.page-riwayat-lainnya .card-title');
+    const amounts = () => textList('.page-riwayat-lainnya .amount');
+    const subtitles = () => textList('.page-riwayat-lainnya .card-subtitle');
+
+    metrics.state.requestedTypes = requestedTypes;
+    metrics.state.firstBatchTitles = titles();
+    metrics.state.paginationInfo = document.querySelector('.list-pagination-info')?.textContent.trim() || '';
+
+    document.querySelector('.load-more-button')?.click();
+    await sleep(300);
+
+    metrics.state.titles = titles();
+    metrics.state.amounts = amounts();
+    metrics.state.classes = [...document.querySelectorAll('.page-riwayat-lainnya .amount')].map((el) => el.className);
+    metrics.state.subtitles = subtitles();
+    metrics.state.statuses = textList('.page-riwayat-lainnya .status');
+
+    /* Marquee: subjudul yang melebihi lebar kartu harus berjalan
+       (is-marquee + --slide negatif + animasi rlain-subtitle-slide). */
+    const marqueeEls = [...document.querySelectorAll('.page-riwayat-lainnya .card-subtitle.is-marquee')];
+    metrics.state.subtitleCount = document.querySelectorAll('.page-riwayat-lainnya .card-subtitle').length;
+    metrics.state.marqueeCount = marqueeEls.length;
+    metrics.state.marqueeSlides = marqueeEls.map((el) => el.firstElementChild.style.getPropertyValue('--slide'));
+    metrics.state.marqueeAnimations = marqueeEls.map((el) => getComputedStyle(el.firstElementChild).animationName);
+
+    const eq = (list, expected) => JSON.stringify(list) === JSON.stringify(expected);
+    const subtitlesOk = eq(metrics.state.subtitles, [
+      '20:12 • 0,5 gram • Penukaran emas sedang diproses',
+      '20:11 • 0,5 gram • Penukaran emas sedang diproses',
+      '18:00 • 1 gram • Penukaran emas berhasil',
+      '17:59 • 1 gram • Penukaran emas berhasil',
+      '16:02 • Refund berhasil diterima',
+      '16:01 • Refund berhasil diterima',
+      '16:00 • 0,5 gram • Penukaran emas tidak berhasil',
+      '10:00 • Poin berhasil ditukar',
+      '09:00 • Absensi berhasil dicatat']);
+
+    const passed = metrics.state.requestedTypes.includes('SWAP')
+      && metrics.state.requestedTypes.length === 10
+      && metrics.state.firstBatchTitles.length === 8
+      && metrics.state.paginationInfo === 'Menampilkan 8 dari 9 transaksi'
+      && eq(metrics.state.titles, ['Tukar Emas', 'Biaya Tukar Emas', 'Tukar Emas', 'Biaya Tukar Emas',
+        'Refund', 'Refund', 'Tukar Emas', 'Tukar poin', 'Absensi Jelajah Emas'])
+      && eq(metrics.state.amounts, ['-Rp1.218.418', '-Rp25.000', '-Rp2.436.836', '-Rp45.000',
+        '+Rp1.218.418', '+Rp25.000', '-Rp1.218.418', '+950 Poin', '+100 Poin'])
+      && eq(metrics.state.classes, ['amount negative', 'amount negative', 'amount negative', 'amount negative',
+        'amount positive', 'amount positive', 'amount negative', 'amount positive', 'amount positive'])
+      && eq(metrics.state.statuses, ['Diproses', 'Diproses', 'Berhasil', 'Berhasil',
+        'Berhasil', 'Berhasil', 'Gagal', 'Berhasil', 'Berhasil'])
+      && subtitlesOk
+      && metrics.state.marqueeCount >= 1
+      && metrics.state.marqueeSlides.every((v) => v.startsWith('-') && v.endsWith('px'))
+      && metrics.state.marqueeAnimations.every((n) => n === 'rlain-subtitle-slide')
+      && metrics.errors.length === 0;
+    writeMetrics(passed);
+  </script>
+</body>
+</html>

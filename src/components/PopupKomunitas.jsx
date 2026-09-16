@@ -1,6 +1,9 @@
+import { useEffect, useState } from 'react';
 import imgClose from '../assets/images/167_476.svg';
 import imgTelegram from '../assets/images/167_489.svg';
 import imgWhatsapp from '../assets/images/167_493.svg';
+import imgHelp from '../assets/images/98_1430.svg';
+import { listSupportLinks } from '../lib/supportLinksApi.js';
 
 /* Styles are kept inline in this file so the component is a single-file import. */
 const styles = `
@@ -161,12 +164,30 @@ const styles = `
   background-color: #f1b04a;
   color: #1a1410;
 }
+
+.popup-komunitas .btn-soft {
+  background-color: #f6f1e9;
+  color: #1a1410;
+}
 `;
+
+/* Channel entries in GET /api/support/links/ (same mapping as HubungiCs):
+   id 13 "Saluran Telegram", id 12 "Saluran WhatsApp", id 11 "Layanan
+   Bantuan". */
+const TELEGRAM_LINK_ID = 13;
+const WHATSAPP_LINK_ID = 12;
+const HELP_LINK_ID = 11;
 
 /**
  * Shared "Gabung Komunitas Kami" popup.
  * Usage: <PopupKomunitas onClose={...} /> — renders a fixed overlay on any page.
- * onClose defaults to going back in history.
+ * The X button and a tap on the dark overlay both close it; onClose defaults
+ * to going back in history.
+ * Used by Home (shown once per page load — reappears after every refresh) and
+ * by the standalone PopupAwal mockup page.
+ * The action buttons open the Telegram/WhatsApp channels and the help service
+ * configured in GET /api/support/links/; until those load (or when the request
+ * fails) the hrefs fall back to '#' like the original mockup.
  */
 export default function PopupKomunitas({
   onClose,
@@ -179,8 +200,29 @@ export default function PopupKomunitas({
     </>
   ),
   badge = 'Baru',
-  description = 'Lorem ipsum dolor sit amet, dapatkan info promo, event, dan diskusi seputar emas bareng ribuan member lainnya.',
+  description = 'Dapatkan info promo, event, dan diskusi seputar emas bareng ribuan member lainnya.',
 }) {
+  const [supportLinks, setSupportLinks] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+    listSupportLinks()
+      .then((links) => {
+        if (active) setSupportLinks(links);
+      })
+      .catch(() => {
+        /* keep the '#' fallback */
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  /* Entries soft-disabled by admin (is_active false) count as absent. */
+  const telegramLink = supportLinks.find((link) => link.id === TELEGRAM_LINK_ID && link.is_active !== false);
+  const whatsappLink = supportLinks.find((link) => link.id === WHATSAPP_LINK_ID && link.is_active !== false);
+  const helpLink = supportLinks.find((link) => link.id === HELP_LINK_ID && link.is_active !== false);
+
   const handleClose = (e) => {
     e.preventDefault();
     if (onClose) onClose();
@@ -191,7 +233,10 @@ export default function PopupKomunitas({
     <>
       <style>{styles}</style>
       <div className="popup-komunitas">
-        <div className="overlay">
+        {/* Tapping the dark backdrop (anywhere outside the card) closes the
+            popup like the X; clicks inside the card bubble up here too, so
+            only act when the overlay itself is the target. */}
+        <div className="overlay" onClick={(e) => { if (e.target === e.currentTarget) handleClose(e); }}>
           <div className="modal-container">
             <div className="modal-header">
               <div className="sun-graphic">
@@ -209,13 +254,17 @@ export default function PopupKomunitas({
               </div>
               <p className="description">{description}</p>
               <div className="action-buttons">
-                <a href="#" className="btn btn-dark" onClick={(e) => e.preventDefault()}>
+                <a href={telegramLink?.url || '#'} className="btn btn-dark" onClick={(e) => { if (!telegramLink?.url) e.preventDefault(); }}>
                   <img src={imgTelegram} alt="" />
                   Gabung Telegram
                 </a>
-                <a href="#" className="btn btn-primary" onClick={(e) => e.preventDefault()}>
+                <a href={whatsappLink?.url || '#'} className="btn btn-primary" onClick={(e) => { if (!whatsappLink?.url) e.preventDefault(); }}>
                   <img src={imgWhatsapp} alt="" />
                   Gabung WhatsApp
+                </a>
+                <a href={helpLink?.url || '#'} className="btn btn-soft" onClick={(e) => { if (!helpLink?.url) e.preventDefault(); }}>
+                  <img src={imgHelp} alt="" />
+                  Layanan Bantuan
                 </a>
               </div>
             </div>

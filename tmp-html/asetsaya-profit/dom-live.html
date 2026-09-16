@@ -1,0 +1,848 @@
+﻿<!DOCTYPE html>
+<html lang="id"><head>
+  <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+  <script type="module" src="/@vite/client"></script>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ASETSAYA-PROFIT-LIVE-DONE</title>
+<style type="text/css" data-vite-dev-id="D:/webbaru/src/index.css">/* ============================================================
+
+   App shell styles shared by all converted pages.
+
+   Global resets below match the originals found in every
+
+   global.css, so individual page CSS files only need to carry
+
+   their page-specific (already scoped) rules.
+
+   ============================================================ */
+
+
+
+* {
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0;
+
+  -webkit-tap-highlight-color: transparent;
+
+}
+
+
+
+html,
+
+body,
+
+#root {
+
+  width: 100%;
+
+  min-height: 100vh;
+
+  margin: 0;
+
+  padding: 0;
+
+}
+
+
+
+/* Each converted page renders a single wrapper div below its page root
+
+   (e.g. #root > .page-x > div). The original mobile mockups sized that
+
+   wrapper by its content, which produced narrow centered columns on
+
+   desktop; force it to span the full width so pages have no side gaps. */
+
+#root > div > div {
+
+  width: 100%;
+
+}
+
+
+
+body {
+
+  font-family: 'Inter', sans-serif;
+
+  background-color: #f0e9df;
+
+  /* App-wide background image ΓÇö every page shows it through the
+
+     transparency rule below. */
+
+  background-image: url('/src/assets/images/background.jpg');
+
+  background-size: cover;
+
+  background-position: center top;
+
+  background-repeat: no-repeat;
+
+  background-attachment: fixed;
+
+  color: #1a1410;
+
+  min-height: 100vh;
+
+}
+
+
+
+/* Page wrappers paint their own opaque canvas; make them transparent so
+
+   the shared background image is visible on all pages. */
+
+#root > [class^="page-"] {
+
+  background-color: transparent;
+
+}
+
+
+
+a {
+
+  text-decoration: none;
+
+  color: inherit;
+
+}
+
+
+
+button {
+
+  border: none;
+
+  background: none;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+}
+
+
+
+input,
+
+textarea,
+
+select {
+
+  font-family: inherit;
+
+}
+
+
+
+/* ============================================================
+
+   Screen directory (route "/")
+
+   ============================================================ */
+
+
+
+.screen-index {
+
+  max-width: 1080px;
+
+  margin: 0 auto;
+
+  padding: 48px 24px 80px;
+
+}
+
+
+
+.screen-index__header {
+
+  text-align: center;
+
+  margin-bottom: 36px;
+
+}
+
+
+
+.screen-index__title {
+
+  font-size: 32px;
+
+  font-weight: 700;
+
+  color: #1a1410;
+
+  margin-bottom: 8px;
+
+}
+
+
+
+.screen-index__title span {
+
+  color: #e8790c;
+
+}
+
+
+
+.screen-index__subtitle {
+
+  font-size: 14px;
+
+  color: #8a7d6d;
+
+  margin-bottom: 24px;
+
+}
+
+
+
+.screen-index__search {
+
+  width: 100%;
+
+  max-width: 420px;
+
+  padding: 13px 18px;
+
+  font-size: 14px;
+
+  border: 1px solid #e2d8c8;
+
+  border-radius: 12px;
+
+  background-color: #fffbf4;
+
+  color: #1a1410;
+
+  outline: none;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__search:focus {
+
+  border-color: #e8790c;
+
+  box-shadow: 0 0 0 3px rgba(232, 121, 12, 0.15);
+
+}
+
+
+
+.screen-index__grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+
+  gap: 12px;
+
+}
+
+
+
+.screen-index__card {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  padding: 16px 18px;
+
+  background-color: #fffbf4;
+
+  border: 1px solid #e9dfd1;
+
+  border-radius: 14px;
+
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__card:hover {
+
+  border-color: #e8790c;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 10px 24px rgba(26, 20, 16, 0.08);
+
+}
+
+
+
+.screen-index__card-label {
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  color: #1a1410;
+
+}
+
+
+
+.screen-index__card-path {
+
+  font-size: 12px;
+
+  color: #b3a795;
+
+  font-family: 'SFMono-Regular', Consolas, monospace;
+
+}
+
+
+
+.screen-index__empty {
+
+  grid-column: 1 / -1;
+
+  text-align: center;
+
+  padding: 40px 0;
+
+  color: #b3a795;
+
+  font-size: 14px;
+
+}
+
+
+
+.screen-index__group {
+
+  margin-bottom: 32px;
+
+}
+
+
+
+.screen-index__group-title {
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  color: #8a7d6d;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+
+  margin-bottom: 12px;
+
+}
+
+
+
+/* ============================================================
+
+   Desktop layout (ΓëÑ768px) for all app screens.
+
+   Below 768px every page keeps its original mobile layout as-is.
+
+   From 768px up the page content renders as a centered app column
+
+   while backgrounds stay full-bleed on the page root, so no
+
+   phone-frame edges or side gaps appear. The landing page has its
+
+   own desktop layout (see LandingPagePerusahaan.jsx).
+
+   ============================================================ */
+
+
+
+@media (min-width: 768px) {
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > div,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > main,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > section {
+
+    max-width: 480px;
+
+    margin-left: auto;
+
+    margin-right: auto;
+
+    box-shadow: none;
+
+  }
+
+}
+
+
+
+/* Inner full-page containers keep a mobile drop shadow; drop it on desktop
+
+   too (they sit below the capped element, so the rule above does not reach
+
+   them). Selectors carry the #root prefix so they outrank the per-page
+
+   \3c style> blocks injected later in the document. */
+
+@media (min-width: 768px) {
+
+  #root .page-register-01 .app-container,
+
+  #root .page-register-04 .mobile-container,
+
+  #root .page-notifikasi-login .screen-container,
+
+  #root .page-notif-screen .screen-container,
+
+  #root .page-kartu-bank .mobile-app-container,
+
+  #root .page-beri-rating section:first-of-type,
+
+  #root .page-beri-rating section:last-of-type,
+
+  #root .page-livechat .input-container {
+
+    box-shadow: none;
+
+  }
+
+}
+
+</style></head>
+<body>
+  <div id="root"><div class="page-aset-saya-01"><style>
+/* Scoped styles for AsetSaya01 ΓÇö converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-aset-saya-01 to isolate this page. */
+
+.page-aset-saya-01, .page-aset-saya-01 * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.page-aset-saya-01 {
+    font-family: 'Inter', sans-serif;
+    background-color: #fffbf4;
+    background-image: 
+        radial-gradient(circle at 76.9% 178.5%, rgba(255, 201, 60, 0.28) 0%, rgba(255, 201, 60, 0) 70%),
+        radial-gradient(circle at 111.1% 142.8%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 70%),
+        radial-gradient(circle at 90.9% 125%, rgba(255, 159, 28, 0.38) 0%, rgba(255, 159, 28, 0) 70%);
+    background-attachment: fixed;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  width: 100%;
+}
+
+.page-aset-saya-01 section {
+    width: 100%;
+    max-width: 100%;
+    position: relative;
+}
+
+/* Keep the content wrapper full-width so the page never collapses into a
+   narrow centered column on wide screens. */
+.page-aset-saya-01 > div {
+  width: 100%;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Top */
+.page-aset-saya-01 .top-container {
+    background: radial-gradient(circle at 41.6% 50%, #241c16 0%, #1a1410 55%, #120d09 100%);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.page-aset-saya-01 .header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.page-aset-saya-01 .back-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background-color: rgba(255, 249, 242, 0.12);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.page-aset-saya-01 .back-btn:hover {
+    background-color: rgba(255, 249, 242, 0.2);
+}
+
+.page-aset-saya-01 .header-title {
+    color: #fff9f2;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.page-aset-saya-01 .asset-summary-wrapper {
+    padding-bottom: 12px;
+}
+
+.page-aset-saya-01 .asset-summary {
+    background-color: rgba(255, 249, 242, 0.08);
+    border-radius: 14px;
+    padding: 13px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.page-aset-saya-01 .asset-label {
+    color: rgba(255, 249, 242, 0.5);
+    font-size: 12px;
+}
+
+.page-aset-saya-01 .asset-value {
+    color: #fff9f2;
+    font-size: 18px;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+.page-aset-saya-01 .asset-fiat {
+    color: rgba(255, 249, 242, 0.45);
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+/* CSS for section section:PriceCard */
+.page-aset-saya-01 #section-price-card {
+    margin-top: 20px; /* Sit below the dark header instead of overlapping it */
+    z-index: 10;
+}
+
+.page-aset-saya-01 .price-card-container {
+    padding: 0 20px;
+}
+
+.page-aset-saya-01 .price-card {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.page-aset-saya-01 .gold-coin {
+    width: 45px;
+    height: 44px;
+    object-fit: contain;
+}
+
+.page-aset-saya-01 .price-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-grow: 1;
+}
+
+.page-aset-saya-01 .price-label {
+    color: #a79c8f;
+    font-size: 12px;
+}
+
+.page-aset-saya-01 .price-value {
+    color: #1a1410;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.page-aset-saya-01 .price-change {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.page-aset-saya-01 .change-value {
+    color: #e24c4c;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* CSS for section section:EmptyState */
+.page-aset-saya-01 .empty-state-container {
+    padding: 60px 20px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.page-aset-saya-01 .illustration-wrapper {
+    margin-bottom: 24px;
+}
+
+.page-aset-saya-01 .illustration {
+    width: 120px;
+    height: 133px;
+    object-fit: contain;
+}
+
+.page-aset-saya-01 .text-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+.page-aset-saya-01 .empty-title {
+    color: #1a1410;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.page-aset-saya-01 .empty-subtitle {
+    color: #a79c8f;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 280px;
+}
+
+.page-aset-saya-01 .primary-btn {
+    background-color: #f1b04a;
+    color: #1a1410;
+    border: none;
+    border-radius: 14px;
+    padding: 14px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    width: auto;
+}
+
+.page-aset-saya-01 .primary-btn:hover {
+    opacity: 0.9;
+}
+
+/* ---- Step 1 investment-plan list (GET /api/investments/) ---- */
+
+.page-aset-saya-01 .investments-container {
+    padding: 22px 20px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.page-aset-saya-01 .status-text {
+    color: #a79c8f;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.page-aset-saya-01 .product-card {
+    background-color: #ffffff;
+    border: 1px solid #efe7dc;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-aset-saya-01 .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #efe7dc;
+}
+
+.page-aset-saya-01 .product-icon {
+    width: 34px;
+    height: 34px;
+    background-color: #f6f1e9;
+    border: 1px solid rgba(26, 20, 16, 0.22);
+    border-radius: 9px;
+}
+
+.page-aset-saya-01 .product-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.page-aset-saya-01 .product-name {
+    color: #1a1410;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.page-aset-saya-01 .product-spec {
+    color: #a79c8f;
+    font-size: 12px;
+}
+
+.page-aset-saya-01 .status-badge {
+    margin-left: auto;
+    background-color: rgba(63, 166, 107, 0.14);
+    color: #2f8f5a;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 10px;
+}
+
+.page-aset-saya-01 .status-badge.inactive {
+    background-color: rgba(26, 20, 16, 0.08);
+    color: #a79c8f;
+}
+
+.page-aset-saya-01 .info-list {
+    display: flex;
+    flex-direction: column;
+    padding-top: 14px;
+}
+
+.page-aset-saya-01 .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+}
+
+.page-aset-saya-01 .info-label {
+    color: #a79c8f;
+    font-size: 12px;
+}
+
+.page-aset-saya-01 .info-value {
+    color: #1a1410;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.page-aset-saya-01 .progress-section {
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.page-aset-saya-01 .progress-bar-bg {
+    width: 100%;
+    height: 6px;
+    background-color: #f6f1e9;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.page-aset-saya-01 .progress-bar-fill {
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, #ffc93c 0%, #e8790c 100%);
+    border-radius: 4px;
+}
+
+.page-aset-saya-01 .progress-text {
+    color: #a79c8f;
+    font-size: 12px;
+}
+
+.page-aset-saya-01 .card-link {
+    margin-top: 10px;
+    padding-top: 12px;
+    border-top: 1px solid #efe7dc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    text-decoration: none;
+}
+
+.page-aset-saya-01 .card-link span {
+    color: #e8790c;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.page-aset-saya-01 .add-plan-btn {
+    background: transparent;
+    border: 1px dashed rgba(26, 20, 16, 0.25);
+    border-radius: 14px;
+    padding: 13px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.page-aset-saya-01 .add-plan-btn span {
+    color: #e8790c;
+    font-size: 14px;
+    font-weight: 600;
+}
+</style><div><section id="section-top"><div class="top-container"><header class="header"><button class="back-btn" aria-label="Kembali"><img src="data:image/svg+xml,%3csvg%20width='15'%20height='15'%20viewBox='0%200%2015%2015'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M9.375%203.125L5%207.5L9.375%2011.875'%20stroke='%23FFF9F2'%20stroke-width='1.25'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Back Icon"></button><h1 class="header-title">Kumpulkan Aset Anda</h1></header><div class="asset-summary-wrapper"><div class="asset-summary"><span class="asset-label">Total Aset Emas Kamu</span><span class="asset-value">2 gram</span><span class="asset-fiat">Γëê Rp4.866.211</span></div></div></div></section><section id="section-price-card"><div class="price-card-container"><div class="price-card" style="background-image: url(&quot;/src/assets/images/d35f294fb1a21fb0aa4f326dc1672ebf0f14686d.png&quot;);"><img src="/src/assets/images/6e7afc8beed777ee8ad0a014432f7422da8ce4ac.png" alt="Gold Coin" class="gold-coin"><div class="price-info"><span class="price-label">Harga Emas Hari Ini</span><span class="price-value">Rp 2.433.106 / gram</span></div><div class="price-change"><img src="data:image/svg+xml,%3csvg%20width='11'%20height='11'%20viewBox='0%200%2011%2011'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M5.5%202.29163V8.70829M8.25%205.95829L5.5%208.70829L2.75%205.95829'%20stroke='%23E24C4C'%20stroke-width='1.00833'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Down Arrow" style="transform: rotate(180deg);"><span class="change-value">- 0,18%</span></div></div></div></section><section id="section-investments"><div class="investments-container"><div class="product-card"><div class="card-header"><div class="product-icon"></div><div class="product-title-group"><span class="product-name">Logam 24K</span><span class="product-spec">24K</span></div><div class="status-badge">Aktif</div></div><div class="info-list"><div class="info-row"><span class="info-label">Pembagian / Periode</span><span class="info-value">Rp6.250 ΓÇô Rp10.350 / hari</span></div><div class="info-row"><span class="info-label">Sumber Dana</span><span class="info-value">Saldo JelajahEmas</span></div><div class="info-row"><span class="info-label">Total Terkumpul</span><span class="info-value">Rp0</span></div><div class="info-row"><span class="info-label">Pembagian selanjutnya</span><span class="info-value">16 Sep 2026, 18:58 WIB</span></div></div><div class="progress-section"><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 0%;"></div></div><span class="progress-text">0 dari 40 hari</span></div><a class="card-link" href="/assets/emas-digital"><span>Lihat aset digital saya</span><img src="data:image/svg+xml,%3csvg%20width='12'%20height='12'%20viewBox='0%200%2012%2012'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M4.5%203L7.5%206L4.5%209'%20stroke='%23E8790C'%20stroke-width='1.1'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Arrow Right"></a></div><div class="product-card"><div class="card-header"><div class="product-icon"></div><div class="product-title-group"><span class="product-name">Logam 24K</span><span class="product-spec">24K</span></div><div class="status-badge">Aktif</div></div><div class="info-list"><div class="info-row"><span class="info-label">Pembagian / Periode</span><span class="info-value">Rp6.250 ΓÇô Rp10.350 / hari</span></div><div class="info-row"><span class="info-label">Sumber Dana</span><span class="info-value">Saldo JelajahEmas</span></div><div class="info-row"><span class="info-label">Total Terkumpul</span><span class="info-value">Rp0</span></div><div class="info-row"><span class="info-label">Pembagian selanjutnya</span><span class="info-value">16 Sep 2026, 18:58 WIB</span></div></div><div class="progress-section"><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 0%;"></div></div><span class="progress-text">0 dari 40 hari</span></div><a class="card-link" href="/assets/emas-digital"><span>Lihat aset digital saya</span><img src="data:image/svg+xml,%3csvg%20width='12'%20height='12'%20viewBox='0%200%2012%2012'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M4.5%203L7.5%206L4.5%209'%20stroke='%23E8790C'%20stroke-width='1.1'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Arrow Right"></a></div><button class="add-plan-btn"><img src="data:image/svg+xml,%3csvg%20width='15'%20height='15'%20viewBox='0%200%2015%2015'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M7.5%203.125V11.875M3.125%207.5H11.875'%20stroke='%23E8790C'%20stroke-width='1.25'%20stroke-linecap='round'/%3e%3c/svg%3e" alt="Plus"><span>Tambah Rencana Lain</span></button></div></section></div></div></div>
+  <pre id="as-live-metrics">{
+  "errors": [],
+  "state": {
+    "tokenUser": "1019:+6289954545454",
+    "investmentIds": [
+      1346,
+      1345
+    ],
+    "expectedRows": [
+      "Rp6.250 ΓÇô Rp10.350 / hari",
+      "Rp6.250 ΓÇô Rp10.350 / hari"
+    ],
+    "domRows": [
+      "Rp6.250 ΓÇô Rp10.350 / hari",
+      "Rp6.250 ΓÇô Rp10.350 / hari"
+    ]
+  },
+  "allPassed": true
+}</pre>
+  <script type="module" src="/tmp-html/asetsaya-profit/live.html?html-proxy&amp;index=0.js"></script>
+
+
+</body></html>

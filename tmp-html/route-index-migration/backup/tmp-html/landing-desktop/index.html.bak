@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Landing desktop E2E</title>
+<style>
+  body { font-family: monospace; margin: 0; padding: 16px; background: #111; color: #eee; }
+  .frame { margin-bottom: 24px; border: 2px solid #555; }
+  iframe { display: block; border: 0; background: #fff; }
+  pre { background: #000; padding: 12px; white-space: pre-wrap; font-size: 12px; }
+  h1 { font-size: 14px; }
+  h2 { font-size: 13px; margin: 4px 0; color: #9f9; }
+</style>
+</head>
+<body>
+<h1>Landing /landing — widths 390 / 800 / 1440</h1>
+<div id="frames"></div>
+<h2>RESULTS</h2>
+<pre id="results">pending…</pre>
+<script>
+const WIDTHS = [390, 800, 1440];
+const frames = document.getElementById('frames');
+const iframes = WIDTHS.map((w) => {
+  const wrap = document.createElement('div');
+  wrap.className = 'frame';
+  wrap.style.width = w + 'px';
+  const label = document.createElement('h2');
+  label.textContent = 'width ' + w;
+  const f = document.createElement('iframe');
+  f.src = '/landing';
+  f.width = w;
+  f.height = 1100;
+  f.dataset.w = w;
+  wrap.appendChild(label);
+  wrap.appendChild(f);
+  frames.appendChild(wrap);
+  return f;
+});
+
+function rowsOf(els) {
+  return new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size;
+}
+
+function measure(win, doc) {
+  const q = (s) => doc.querySelector(s);
+  const qa = (s) => Array.from(doc.querySelectorAll(s));
+  const r = (el) => (el ? el.getBoundingClientRect() : null);
+  const n = (v) => (v == null ? null : Math.round(v));
+  const out = {};
+  out.innerWidth = win.innerWidth;
+  out.hOverflow = doc.documentElement.scrollWidth - doc.documentElement.clientWidth;
+
+  const cards = qa('.feature-card');
+  out.featureRows = rowsOf(cards);
+  out.featureDisplay = win.getComputedStyle(q('.feature-cards')).display;
+
+  out.stepRows = rowsOf(qa('.step-item'));
+
+  const vp = r(q('.video-placeholder'));
+  out.video = vp ? { w: n(vp.width), h: n(vp.height) } : null;
+
+  const faqList = r(q('.faq-list'));
+  out.faqW = faqList ? n(faqList.width) : null;
+  const dl = r(q('.download-card'));
+  out.downloadW = dl ? n(dl.width) : null;
+  const nf = q('.newsletter-form') || q('.newsletter-success');
+  out.newsletterW = nf ? n(r(nf).width) : null;
+
+  const copy = r(q('.hero-copy'));
+  const mock = r(q('.hero-mockup'));
+  const title = q('.hero-copy .section-title');
+  out.hero = copy && mock ? {
+    copyTop: n(copy.top), copyRight: n(copy.right), mockTop: n(mock.top), mockLeft: n(mock.left),
+    mockW: n(mock.width),
+    row: mock.top < copy.bottom && mock.bottom > copy.top,
+    gap: mock.left >= copy.right ? n(mock.left - copy.right) : null
+  } : null;
+  out.heroTitle = title ? {
+    align: win.getComputedStyle(title).textAlign,
+    size: win.getComputedStyle(title).fontSize
+  } : null;
+
+  const tcards = qa('.testimonial-card');
+  const scroll = q('.testimonials-scroll');
+  out.testimonials = {
+    count: tcards.length,
+    rows: rowsOf(tcards),
+    perRow: tcards.filter((c) => Math.round(c.getBoundingClientRect().top) === Math.round(tcards[0].getBoundingClientRect().top)).length,
+    hScroll: scroll ? scroll.scrollWidth - scroll.clientWidth : null,
+    display: scroll ? win.getComputedStyle(scroll).display : null
+  };
+
+  const logo = r(q('.footer-logo'));
+  const links = r(q('.footer-links-container'));
+  out.footerTopRow = logo && links ? links.left > logo.right - 2 && links.top < logo.bottom : null;
+
+  const fcr = r(q('.feature-cards'));
+  out.contentLeft = fcr ? n(fcr.left) : null;
+  return out;
+}
+
+function tryRun(attempt) {
+  const all = iframes.every((f) => {
+    try {
+      return f.contentDocument && f.contentDocument.querySelector('.page-landing-page-perusahaan');
+    } catch (e) { return false; }
+  });
+  if (!all && attempt < 50) { setTimeout(() => tryRun(attempt + 1), 400); return; }
+  if (!all) {
+    document.getElementById('results').textContent = 'ERROR: app never mounted in iframe(s)';
+    document.title = 'E2E-DONE';
+    return;
+  }
+  setTimeout(() => {
+    const result = {};
+    iframes.forEach((f) => {
+      result['w' + f.dataset.w] = measure(f.contentWindow, f.contentDocument);
+    });
+    document.getElementById('results').textContent = JSON.stringify(result, null, 2);
+    document.title = 'E2E-DONE';
+  }, 1200);
+}
+tryRun(0);
+</script>
+</body>
+</html>

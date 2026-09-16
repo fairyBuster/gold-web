@@ -1,7 +1,7 @@
 /* ============================================================================
    PilihBank.jsx — bank picker for the "Tambah Rekening Bank" flow.
    Reads the active bank directory from GET /api/banks/ and stores the pick
-   in kartuBankFlow so the form (/profil/kartu-bank-02) can read it.
+   in kartuBankFlow so the form (/index/profil/kartu-bank-02) can read it.
    The "Rekening Bank" / "E-Wallet" tabs split the directory by its
    `category` field (BANK/EWALLET), which admins manage from the admin menu.
    ============================================================================ */
@@ -30,6 +30,9 @@ const styles = `
 .page-pilih-bank {
     font-family: 'Inter', sans-serif;
     background-color: #fffbf4;
+    /* Full-bleed page canvas — the opaque base is applied as a background-image
+       layer so it survives the global transparent-root rule. */
+    background-image: linear-gradient(#fffbf4, #fffbf4);
     display: flex;
     justify-content: center;
     min-height: 100vh;
@@ -40,7 +43,6 @@ const styles = `
     width: 100%;
     max-width: 100%;
     min-height: 100vh;
-    background-color: #fffbf4;
     /* Approximating the warm glow from the design */
     background-image: radial-gradient(circle at 80% 120%, rgba(255, 200, 100, 0.3) 0%, rgba(255, 251, 244, 0) 60%);
     box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
@@ -229,7 +231,7 @@ export default function PilihBank() {
   /* Pilih bank → simpan ke flow, lanjut ke form tambah rekening. */
   const pick = (bank) => {
     kartuBankFlow.save({ bankId: bank.id, bankName: bank.name, bankCode: bank.code });
-    navigate('/profil/kartu-bank-02');
+    navigate('/index/profil/kartu-bank-02');
   };
 
   return (

@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>KartuBank probe — masking nomor rekening</title>
+</head>
+<body>
+<div id="root"></div>
+<pre id="kartubank-metrics">pending</pre>
+<script type="module">
+  /* Probe KartuBank step 1 (route /index/profil/kartu-bank) — kartu rekening:
+     nomor disensor mulai digit ke-6 berapapun panjangnya (16 & 8 digit →
+     "xxxxx ••••"), ≤5 digit tampil apa adanya; nama pemilik: kata kedua dst
+     jadi inisial + bullets. Tidak boleh ada nomor/nama asli yang bocor ke DOM.
+     Tombol back harus langsung pindah ke halaman Profil (bukan history.back). */
+  const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+
+  const encodeSalted = (obj) => {
+    const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+    return { data: [...(base64 + SALT)].reverse().join('') };
+  };
+  const json = (obj) => Promise.resolve(new Response(JSON.stringify(encodeSalted(obj)), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+
+  const BANKS = [
+    { id: 1, bank_name: 'BCA', account_number: '6594949480404946', account_name: 'Budi Santoso', is_default: true },
+    { id: 2, bank_name: 'BRI', account_number: '88081234', account_name: 'Ahmad', is_default: false },
+    { id: 3, bank_name: 'Mandiri', account_number: '12345', account_name: 'Citra Dewi', is_default: false },
+  ];
+
+  window.fetch = (input) => {
+    const url = typeof input === 'string' ? input : (input?.url ?? String(input));
+    if (url.includes('/api/banks/user/')) return json(BANKS);
+    return json({});
+  };
+
+  localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+  history.replaceState(null, '', '/index/profil/kartu-bank');
+
+  const metrics = { steps: [] };
+  const write = () => { document.getElementById('kartubank-metrics').textContent = JSON.stringify(metrics, null, 2); };
+  const waitFor = async (fn, timeout = 15000, step = 200) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      try { if (fn()) return true; } catch { /* belum siap */ }
+      await new Promise((r) => setTimeout(r, step));
+    }
+    return false;
+  };
+
+  try {
+    await import('/src/main.jsx');
+
+    const snapshot = () => [...document.querySelectorAll('.bank-card')].map((card) => ({
+      bankName: card.querySelector('.bank-name')?.textContent.trim() ?? null,
+      accountNumber: card.querySelector('.account-number')?.textContent.trim() ?? null,
+      accountName: card.querySelector('.account-name')?.textContent.trim() ?? null,
+    }));
+
+    const cardsRendered = await waitFor(() => snapshot().length === 3);
+    metrics.steps.push(['3 kartu rekening tampil', cardsRendered]);
+
+    const cards = snapshot();
+    metrics.rendered = {
+      cards,
+      pageText: document.body.textContent,
+    };
+
+    /* Tidak ada bagian nomor/nama asli yang bocor (last4 lama sudah disensor). */
+    const raw = document.body.textContent;
+    const noLeak = !raw.includes('6594949480404946') && !raw.includes('4946')
+      && !raw.includes('88081234') && !raw.includes('Budi Santoso') && !raw.includes('Citra Dewi');
+
+    metrics.steps.push(['nomor/nama asli tidak bocor', noLeak]);
+
+    /* Tombol back → langsung ke halaman Profil (bukan history.back). */
+    document.querySelector('.page-kartu-bank .btn-back')?.click();
+    const navigated = await waitFor(() => location.pathname === '/index/profil' && !!document.querySelector('.page-profil'));
+    metrics.steps.push(['tombol back → /index/profil', navigated]);
+
+    metrics.allPassed = cardsRendered && noLeak && navigated &&
+      cards.length === 3 &&
+      cards[0].bankName === 'BCA' && cards[0].accountNumber === '65949 ••••' && cards[0].accountName === 'a.n. Budi S••••••' &&
+      cards[1].bankName === 'BRI' && cards[1].accountNumber === '88081 ••••' && cards[1].accountName === 'a.n. Ahm••' &&
+      cards[2].bankName === 'Mandiri' && cards[2].accountNumber === '12345' && cards[2].accountName === 'a.n. Citra D•••';
+  } catch (error) {
+    metrics.error = String(error);
+    metrics.allPassed = false;
+  }
+
+  write();
+</script>
+</body>
+</html>

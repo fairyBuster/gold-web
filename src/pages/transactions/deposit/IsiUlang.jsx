@@ -1,7 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import img_1 from '../../../assets/images/41_1038.svg';
 import img_2 from '../../../assets/images/33_71.svg';
+/* Page background artwork — assigned inline on the root node (see styles). */
+import img_3 from '../../../assets/images/083535.png';
+import { useShowNotif } from '../../../lib/useShowNotif.js';
+/* Saldo dompet isi ulang — GET /api/auth/account-info/. */
+import { getAccountInfo } from '../../../lib/authApi.js';
+import { formatIDR } from '../../../lib/goldPriceApi.js';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -17,11 +23,11 @@ const styles = `
 .page-isi-ulang {
   font-family: 'Inter', sans-serif;
   background-color: #fffbf4;
-  background-image: 
-    radial-gradient(circle at 90% 0%, rgba(255, 201, 60, 0.25) 0%, rgba(255, 201, 60, 0) 50%),
-    radial-gradient(circle at 10% 100%, rgba(255, 159, 28, 0.15) 0%, rgba(255, 159, 28, 0) 50%);
+  /* Background artwork (assigned inline from the imported asset) is a
+     full-page image with glows anchored to the top/bottom — stretch it. */
+  background-size: 100% 100%;
   background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-position: top center;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -107,7 +113,8 @@ const styles = `
   }
   .page-isi-ulang .amount-input {
     font-size: 20px;
-    color: #a79c8f;
+    /* Nominal yang diketik hitam biar kebaca; placeholder tetap abu (rule di bawah). */
+    color: #1a1410;
     border: none;
     background: transparent;
     outline: none;
@@ -297,52 +304,90 @@ const PAYMENT_METHODS = [
     category: 'VIRTUAL ACCOUNT',
     name: 'VA BRI',
     desc: 'Bayar melalui ATM, m-Banking, atau Internet Banking BRI.',
-    route: '/transactions/virtual-account',
+    route: '/index/transactions/virtual-account',
   },
   {
     id: 'va_permata',
     category: 'VIRTUAL ACCOUNT',
     name: 'VA Permata',
-    desc: "Bayar melalui ATM, Livin', atau Internet Banking Permata.",
-    route: '/transactions/virtual-account',
+    desc: "Bayar melalui ATM, Mbanking Permata, atau Internet Banking Permata.",
+    route: '/index/transactions/virtual-account',
   },
+  {
+    id: 'qris_0',
+    category: 'E-WALLET & QRIS',
+    name: 'Bank Transfer Manual',
+    desc: 'Pindai kode QR menggunakan aplikasi e-wallet atau m-Banking apa pun.',
+    route: '/index/transactions/qris',
+  },
+
   {
     id: 'qris_1',
     category: 'E-WALLET & QRIS',
-    name: 'lpay',
+    name: 'QRIS 1',
     desc: 'Pindai kode QR menggunakan aplikasi e-wallet atau m-Banking apa pun.',
-    route: '/transactions/qris',
+    route: '/index/transactions/qris',
   },
   {
     id: 'qris_2',
     category: 'E-WALLET & QRIS',
-    name: 'mgmpay',
+    name: 'QRIS 2',
     desc: 'Pindai kode QR menggunakan aplikasi e-wallet atau m-Banking apa pun.',
-    route: '/transactions/qris',
+    route: '/index/transactions/qris',
   },
   {
     id: 'qris_3',
     category: 'E-WALLET & QRIS',
-    name: 'quenpay',
+    name: 'QRIS 3',
     desc: 'Pindai kode QR menggunakan aplikasi e-wallet atau m-Banking apa pun.',
-    route: '/transactions/qris',
+    route: '/index/transactions/qris',
   },
   {
     id: 'qris_4',
     category: 'E-WALLET & QRIS',
-    name: 'ffpay',
+    name: 'QRIS 4',
     desc: 'Pindai kode QR menggunakan aplikasi e-wallet atau m-Banking apa pun.',
-    route: '/transactions/qris',
+    route: '/index/transactions/qris',
   },
 ];
 
 export default function IsiUlang() {
   const navigate = useNavigate();
   const [methodId, setMethodId] = useState(PAYMENT_METHODS[0].id);
+  const [amountText, setAmountText] = useState('');
+  /* Saldo dompet isi ulang — `balance_deposit` dari GET /api/auth/account-info/.
+     "—" tampil sampai datanya landing. */
+  const [account, setAccount] = useState(null);
+  const showNotif = useShowNotif();
   const method = PAYMENT_METHODS.find((item) => item.id === methodId) || PAYMENT_METHODS[0];
+  const depositBalanceText = account ? formatIDR(Number(account.balance_deposit) || 0) : '';
+
+  useEffect(() => {
+    let active = true;
+    getAccountInfo()
+      .then((data) => {
+        if (active && data) setAccount(data);
+      })
+      .catch(() => {
+        /* placeholder "—" bertahan kapan API tidak terjangkau */
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  /* Validasi kosong tampil lewat halaman /notif; nominal terisi lanjut ke
+     halaman pembayaran sesuai metode terpilih. */
+  const handleContinue = () => {
+    if (!amountText.replace(/\D/g, '')) {
+      showNotif({ title: 'Lengkapi Data', description: 'Masukkan nominal isi ulang.' });
+      return;
+    }
+    navigate(method.route);
+  };
 
   return (
-    <div className="page-isi-ulang">
+    <div className="page-isi-ulang" style={{ backgroundImage: `url(${img_3})` }}>
       <style>{styles}</style>
       <div>
               <section id="section-header">
@@ -358,11 +403,11 @@ export default function IsiUlang() {
                   <p className="input-label">Masukkan Nominal Isi Ulang</p>
                   <div className="input-wrapper">
                     <span className="currency-symbol">Rp</span>
-                    <input type="text" className="amount-input" placeholder="Masukkan nominal di sini" />
+                    <input type="text" inputMode="numeric" className="amount-input" placeholder="Masukkan nominal di sini" value={amountText} onChange={(e) => setAmountText(e.target.value.replace(/\D/g, ''))} />
                   </div>
                   <div className="helper-texts">
                     <p className="min-amount">Minimal pengisian Rp 10.000</p>
-                    <p className="current-balance">Saldo saat ini Rp 70.934</p>
+                    <p className="current-balance">Saldo saat ini {depositBalanceText}</p>
                   </div>
                 </div>
               </section>
@@ -419,7 +464,7 @@ export default function IsiUlang() {
               <section id="section-footer">
                 <div className="footer-divider" />
                 <div className="footer-content">
-                  <button className="btn-primary" onClick={(e) => { e.preventDefault(); navigate(method.route); }}>Lanjutkan Pembayaran</button>
+                  <button className="btn-primary" onClick={(e) => { e.preventDefault(); handleContinue(); }}>Lanjutkan Pembayaran</button>
                 </div>
               </section>
             </div>

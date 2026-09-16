@@ -172,3 +172,40 @@ select {
   letter-spacing: 0.06em;
   margin-bottom: 12px;
 }
+
+/* ============================================================
+   Desktop layout (≥768px) for all app screens.
+   Below 768px every page keeps its original mobile layout as-is.
+   From 768px up the page content renders as a centered app column
+   while backgrounds stay full-bleed on the page root, so no
+   phone-frame edges or side gaps appear. The landing page has its
+   own desktop layout (see LandingPagePerusahaan.jsx).
+   ============================================================ */
+
+@media (min-width: 768px) {
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > div,
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > main,
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > section {
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow: none;
+  }
+}
+
+/* Inner full-page containers keep a mobile drop shadow; drop it on desktop
+   too (they sit below the capped element, so the rule above does not reach
+   them). Selectors carry the #root prefix so they outrank the per-page
+   <style> blocks injected later in the document. */
+@media (min-width: 768px) {
+  #root .page-register-01 .app-container,
+  #root .page-register-04 .mobile-container,
+  #root .page-notifikasi-login .screen-container,
+  #root .page-notif-screen .screen-container,
+  #root .page-kartu-bank .mobile-app-container,
+  #root .page-beri-rating section:first-of-type,
+  #root .page-beri-rating section:last-of-type,
+  #root .page-livechat .input-container {
+    box-shadow: none;
+  }
+}

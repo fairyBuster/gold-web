@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EMASDIGITAL-LIVEAPI-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="edl-metrics">pending</pre>
+  <script type="module">
+    /* Live probe: /assets/emas-digital against the real API (no fetch stub).
+       Expected values are computed from the same endpoints the page uses
+       (GET /api/gold/info/ and /api/auth/balance-statistics/all-time/ via the
+       app's own clients), then compared with the rendered hero/stats. */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const session = await (await fetch('/e2e-token.json')).json();
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: session.access }));
+    metrics.state.tokenUser = session.user;
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, timeout = 15000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        if (fn()) return true;
+        await sleep(100);
+      }
+      return false;
+    };
+    const fmt = (value) => `Rp${Math.abs(Number(value) || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}`;
+
+    /* Expected from the live endpoints (app clients). */
+    let expected = null;
+    try {
+      const { getGoldInfo } = await import('/src/lib/goldApi.js');
+      const { getBalanceStatistics } = await import('/src/lib/authApi.js');
+      const info = await getGoldInfo();
+      const stats = await getBalanceStatistics('all-time');
+      const price = Number(info?.price_per_gram);
+      const hold = Number(info?.balance_hold);
+      metrics.state.livePrice = info?.price_per_gram;
+      metrics.state.liveHold = info?.balance_hold;
+      metrics.state.liveInterestTotal = stats?.interest_total;
+      expected = {
+        grams: (hold / price).toLocaleString('id-ID', { maximumFractionDigits: 3 }),
+        fiat: `≈ ${fmt(hold)}`,
+        hold: fmt(hold),
+        profit: `+${fmt(stats?.interest_total)}`,
+      };
+    } catch (err) {
+      metrics.state.infoError = String(err?.message || err);
+    }
+
+    history.replaceState(null, '', '/index/assets/emas-digital');
+    await import('/src/main.jsx');
+
+    /* Wait until the live data (not the 10:02 placeholder) paints the footer;
+       a timeout leaves the placeholders in place for an honest comparison. */
+    await waitFor(() => {
+      const t = document.querySelector('.page-emas-digital .update-info')?.textContent.trim() || '';
+      return t !== '' && t !== 'Diperbarui pada pukul 10:02 WIB';
+    });
+    await sleep(200);
+
+    const text = (selector) => document.querySelector(selector)?.textContent.trim() ?? '(missing)';
+    metrics.state.grams = text('.page-emas-digital .amount-number');
+    metrics.state.fiat = text('.page-emas-digital .amount-fiat');
+    metrics.state.updated = text('.page-emas-digital .update-info');
+    metrics.state.profit = text('.page-emas-digital .stat-box .stat-value.text-profit');
+    metrics.state.balanceHold = [...document.querySelectorAll('.page-emas-digital .stat-box')]
+      .find((box) => box.querySelector('.stat-title').textContent.trim() === 'Balance Hold')
+      ?.querySelector('.stat-value').textContent.trim() ?? '(missing)';
+
+    const passed = expected != null
+      && metrics.state.grams === expected.grams
+      && metrics.state.fiat === expected.fiat
+      && metrics.state.profit === expected.profit
+      && metrics.state.balanceHold === expected.hold
+      && metrics.errors.length === 0;
+
+    metrics.state.expected = expected;
+    metrics.allPassed = passed;
+    document.getElementById('edl-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'EMASDIGITAL-LIVEAPI-DONE';
+  </script>
+</body>
+</html>

@@ -6,44 +6,23 @@
      2 -> /profil/beri-rating-02
    ============================================================================ */
 
-import img_21 from '../../../assets/images/166_413.svg';
-import img_16 from '../../../assets/images/166_442.svg';
-import img_9 from '../../../assets/images/166_413.svg';
-import img_10 from '../../../assets/images/166_413.svg';
-import img_11 from '../../../assets/images/166_413.svg';
-import img_12 from '../../../assets/images/166_413.svg';
-import img_13 from '../../../assets/images/166_413.svg';
-import img_14 from '../../../assets/images/166_413.svg';
-import img_15 from '../../../assets/images/166_413.svg';
-import img_17 from '../../../assets/images/166_413.svg';
-import img_18 from '../../../assets/images/166_413.svg';
-import img_19 from '../../../assets/images/166_413.svg';
-import img_20 from '../../../assets/images/166_413.svg';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import NotifCard from '../../../components/NotifCard.jsx';
+import { useShowNotif } from '../../../lib/useShowNotif.js';
 /* Ulasan pengguna: GET /api/reviews/ untuk daftar, POST /api/reviews/ (multipart
    text + gambar) untuk kirim ulasan dari step 2. */
 import { createReview, fetchReviews } from '../../../lib/reviewsApi.js';
 
 /* Step 1 imports (renamed to avoid collisions with other steps) */
 import S1_img_1 from '../../../assets/images/166_376.svg';
-import S1_img_2 from '../../../assets/images/166_388.svg';
-import S1_img_3 from '../../../assets/images/166_388.svg';
-import S1_img_4 from '../../../assets/images/166_388.svg';
-import S1_img_5 from '../../../assets/images/166_388.svg';
-import S1_img_6 from '../../../assets/images/166_388.svg';
-import S1_img_7 from '../../../assets/images/166_413.svg';
-import S1_img_8 from '../../../assets/images/166_413.svg';
+import S1_star_outline from '../../../assets/images/166_442.svg';
+import S1_star_filled from '../../../assets/images/166_388.svg';
 
 /* Step 2 imports (renamed to avoid collisions with other steps) */
 import S2_img_1 from '../../../assets/images/165_209.svg';
 import S2_img_2 from '../../../assets/images/84da0382429e79a1abad7aa57406c47d158866a8.png';
 import S2_img_3 from '../../../assets/images/165_225.svg';
-import S2_img_4 from '../../../assets/images/165_225.svg';
-import S2_img_5 from '../../../assets/images/165_225.svg';
-import S2_img_6 from '../../../assets/images/165_225.svg';
-import S2_img_7 from '../../../assets/images/165_225.svg';
+import S2_star_filled from '../../../assets/images/166_388.svg';
 import S2_img_8 from '../../../assets/images/165_254.svg';
 
 /* Tanggal relatif ala kartu ulasan ("2 hari lalu", "1 minggu lalu"). */
@@ -89,7 +68,9 @@ const BeriRating01Styles = `
   font-family: 'Inter', sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #fff9f2;
+  /* Opaque canvas on the root so it stays full-bleed on desktop; the
+     sections below stay transparent at every width. */
+  background-image: linear-gradient(#fff9f2, #fff9f2);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -99,7 +80,6 @@ const BeriRating01Styles = `
 .page-beri-rating section {
   width: 100%;
   max-width: 100%;
-  background-color: var(--bg-color);
 }
 
 /* Add shadow to simulate the app screen container */
@@ -180,6 +160,30 @@ const BeriRating01Styles = `
   .page-beri-rating .rating-stars img {
     width: 12px;
     height: 12px;
+  }
+
+  .page-beri-rating .rating-stars .star-slot {
+    position: relative;
+    width: 12px;
+    height: 12px;
+  }
+
+  .page-beri-rating .rating-stars .star-slot .star-base {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* Bintang terisi dipotong sesuai pecahan rating (contoh 4.8 -> slot ke-5 80%). */
+  .page-beri-rating .rating-stars .star-slot .star-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 12px;
+    overflow: hidden;
+  }
+
+  .page-beri-rating .rating-stars .star-slot .star-fill img {
+    display: block;
   }
 
   .page-beri-rating .rating-count {
@@ -312,10 +316,50 @@ const BeriRating01Styles = `
   }
 `;
 
+/* ---- Kartu overall rating: simulasi harian (permintaan produk) -------------
+   Belum ada endpoint agregat di backend, jadi angka kartu disimulasikan dan
+   deterministik per hari — semua device pada hari yang sama melihat nilai
+   yang sama:
+   - Jumlah ulasan: basis 2.847, wajib bertambah tiap hari (+5..22 per hari).
+   - Rating: mulai 4.8, tidak pernah turun, naik +0.1 tiap 30 hari, maks 5.0.
+   Ganti dengan endpoint agregat begitu backend menyediakannya. */
+const REVIEWS_BASE_COUNT = 2847;
+const REVIEWS_START_MS = new Date(2026, 8, 14).getTime(); /* 14 Sep 2026, waktu lokal */
+const RATING_START_TENTHS = 48; /* 4.8 disimpan dalam persepuluh */
+const RATING_MAX_TENTHS = 50; /* plafon 5.0 */
+
+function getSimulatedReviewStats() {
+  const days = Math.max(0, Math.floor((Date.now() - REVIEWS_START_MS) / 86400000));
+  let count = REVIEWS_BASE_COUNT;
+  for (let day = 1; day <= days; day += 1) {
+    count += 5 + ((day * 7919) % 18); /* +5..22 per hari, selalu positif */
+  }
+  const tenths = Math.min(RATING_MAX_TENTHS, RATING_START_TENTHS + Math.floor(days / 30));
+  return { count, tenths };
+}
+
+/* Angka ulasan pura-pura terus bertambah selama halaman terbuka: tick ini
+   menambah +1 tiap 10 detik di atas basis simulasi harian. */
+const REVIEWS_TICK_MS = 10000;
+/* Tanpa pagination di halaman ini — hanya 10 ulasan terbaru yang dirender. */
+const MAX_VISIBLE_REVIEWS = 10;
+
 function BeriRating01() {
   const navigate = useNavigate();
-  /* null = API belum termuat/gagal (kartu bawaan desain tetap tampil). */
+  /* Angka kartu overall dari simulasi harian (lihat getSimulatedReviewStats)
+     plus tick live biar angkanya terus naik selama halaman terbuka. */
+  const { count: baseReviewCount, tenths: ratingTenths } = getSimulatedReviewStats();
+  const [liveReviewCount, setLiveReviewCount] = useState(0);
+  const reviewCount = baseReviewCount + liveReviewCount;
+  const ratingText = (ratingTenths / 10).toFixed(1);
+  /* null = API belum termuat/gagal; daftar asli dirender begitu data datang. */
   const [reviews, setReviews] = useState(null);
+
+  /* +1 tiap 10 detik; hitungan live di-reset saat halaman ditutup. */
+  useEffect(() => {
+    const timer = setInterval(() => setLiveReviewCount((prev) => prev + 1), REVIEWS_TICK_MS);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -324,7 +368,7 @@ function BeriRating01() {
         if (active) setReviews(list);
       })
       .catch(() => {
-        /* diamkan — kartu bawaan sudah tampil */
+        /* diamkan — gagal memuat, daftar dibiarkan kosong */
       });
     return () => {
       active = false;
@@ -345,98 +389,32 @@ function BeriRating01() {
               </section>
               <section id="section-reviews">
                 <div className="reviews-container">
-                  {/* Overall Rating — kartu ini masih statis; belum ada endpoint agregat. */}
                   <div className="overall-rating-card">
-                    <div className="rating-score">4.8</div>
-                    <div className="rating-stars">
-                      <img src={S1_img_2} alt="Star" />
-                      <img src={S1_img_3} alt="Star" />
-                      <img src={S1_img_4} alt="Star" />
-                      <img src={S1_img_5} alt="Star" />
-                      <img src={S1_img_6} alt="Star" />
+                    <div className="rating-score">{ratingText}</div>
+                    <div className="rating-stars" role="img" aria-label={`Rating ${ratingText} dari 5`}>
+                      {[1, 2, 3, 4, 5].map((slot) => {
+                        const fillTenths = Math.max(0, Math.min(10, ratingTenths - (slot - 1) * 10));
+                        return (
+                          <span className="star-slot" key={slot}>
+                            <img className="star-base" src={S1_star_outline} alt="" />
+                            {fillTenths > 0 && (
+                              <span className="star-fill" style={{ width: `${fillTenths * 10}%` }}>
+                                <img src={S1_star_filled} alt="" />
+                              </span>
+                            )}
+                          </span>
+                        );
+                      })}
                     </div>
-                    <div className="rating-count">2.847 ulasan</div>
+                    <div className="rating-count">{reviewCount.toLocaleString('id-ID')} ulasan</div>
                   </div>
-                  <button className="write-review-btn" onClick={() => navigate('/profil/beri-rating-02')}>
+                  <button className="write-review-btn" onClick={() => navigate('/index/profil/beri-rating-02')}>
                     Tulis Ulasan Kamu
                   </button>
-                  {/* Kartu bawaan desain tampil selama API belum termuat/gagal;
-                      begitu data datang, daftar dirender apa adanya dari API. */}
-                  {reviews === null && (
-                    <>
-                      {/* Review Card 1 */}
-                      <div className="review-card">
-                        <div className="review-images double">
-                          <div className="review-image-placeholder" />
-                          <div className="review-image-placeholder" />
-                        </div>
-                        <div className="review-content">
-                          <div className="review-header">
-                            <div className="user-info">
-                              <div className="avatar" />
-                              <div className="user-name">Dita Amelia</div>
-                            </div>
-                            <div className="review-date">2 hari lalu</div>
-                          </div>
-                          <div className="review-stars">
-                            <img src={S1_img_7} alt="Star" />
-                            <img src={S1_img_8} alt="Star" />
-                            <img src={img_9} alt="Star" />
-                            <img src={img_10} alt="Star" />
-                            <img src={img_11} alt="Star" />
-                          </div>
-                          <p className="review-text">Lorem ipsum dolor sit amet, aplikasinya gampang banget dipakai buat nabung emas tiap bulan. Proses cetak emasnya juga cepat sampai.</p>
-                        </div>
-                      </div>
-                      {/* Review Card 2 */}
-                      <div className="review-card">
-                        <div className="review-content">
-                          <div className="review-header">
-                            <div className="user-info">
-                              <div className="avatar" />
-                              <div className="user-name">Rizky Ramadhan</div>
-                            </div>
-                            <div className="review-date">5 hari lalu</div>
-                          </div>
-                          <div className="review-stars">
-                            <img src={img_12} alt="Star" />
-                            <img src={img_13} alt="Star" />
-                            <img src={img_14} alt="Star" />
-                            <img src={img_15} alt="Star" />
-                            <img src={img_16} alt="Star" />
-                          </div>
-                          <p className="review-text">Lorem ipsum dolor sit amet, fitur investasi rutinnya bantu banget buat konsisten nabung. Semoga makin banyak pilihan pecahan gramnya.</p>
-                        </div>
-                      </div>
-                      {/* Review Card 3 */}
-                      <div className="review-card">
-                        <div className="review-images single">
-                          <div className="review-image-placeholder" />
-                        </div>
-                        <div className="review-content">
-                          <div className="review-header">
-                            <div className="user-info">
-                              <div className="avatar" />
-                              <div className="user-name">Nabila Putri</div>
-                            </div>
-                            <div className="review-date">1 minggu lalu</div>
-                          </div>
-                          <div className="review-stars">
-                            <img src={img_17} alt="Star" />
-                            <img src={img_18} alt="Star" />
-                            <img src={img_19} alt="Star" />
-                            <img src={img_20} alt="Star" />
-                            <img src={img_21} alt="Star" />
-                          </div>
-                          <p className="review-text">Lorem ipsum dolor sit amet, CS-nya responsif banget waktu aku tanya soal verifikasi akun. Recommended buat pemula!</p>
-                        </div>
-                      </div>
-                    </>
-                  )}
                   {reviews !== null && reviews.length === 0 && (
                     <p className="empty-reviews">Belum ada ulasan.</p>
                   )}
-                  {reviews !== null && reviews.map((review) => (
+                  {reviews !== null && reviews.slice(0, MAX_VISIBLE_REVIEWS).map((review) => (
                     <div className="review-card" key={review.id}>
                       {review.images?.length > 0 && (
                         <div className={`review-images ${review.images.length > 1 ? 'double' : 'single'}`}>
@@ -745,26 +723,25 @@ const BeriRating02Styles = `
     opacity: 0.4;
     cursor: not-allowed;
   }
-  .page-beri-rating-02 .form-error {
-    color: #e24c4c;
-    font-size: 12px;
-    margin: 0 0 10px;
-  }
 `;
 
-/* Batas dari backend: maks 5 gambar per ulasan, 1MB per file. */
+/* Batas dari backend: teks 3-2000 karakter, rating bintang 1-5, maks 5
+   gambar per ulasan dan 1MB per file. */
+const MIN_TEXT_LENGTH = 3;
+const MAX_TEXT_LENGTH = 2000;
+const STAR_VALUES = [1, 2, 3, 4, 5];
 const MAX_PHOTOS = 5;
 const MAX_PHOTO_BYTES = 1024 * 1024;
 
 function BeriRating02() {
   const navigate = useNavigate();
   const [text, setText] = useState('');
+  /* 0 = belum dipilih; rating bintang wajib 1-5 sesuai kontrak POST /api/reviews/. */
+  const [rating, setRating] = useState(0);
   /* [{ file, url }] — url objek untuk pratinjau foto terpilih. */
   const [photos, setPhotos] = useState([]);
-  const [error, setError] = useState('');
-  /* API submit failures render via the shared NotifCard; client validation stays inline. */
-  const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const showNotif = useShowNotif();
   const fileInputRef = useRef(null);
   const photosRef = useRef(photos);
 
@@ -801,28 +778,31 @@ function BeriRating02() {
       .slice(0, Math.max(room, 0))
       .map((file) => ({ file, url: URL.createObjectURL(file) }));
     if (accepted.length) setPhotos((prev) => [...prev, ...accepted]);
-    setError(message);
+    if (message) showNotif({ title: 'Foto Tidak Sesuai', description: message });
   };
 
   const removePhoto = (photo) => {
     URL.revokeObjectURL(photo.url);
     setPhotos((prev) => prev.filter((item) => item.url !== photo.url));
-    setError('');
   };
 
-  const canSubmit = !submitting && text.trim().length >= 3 && photos.length > 0;
+  const canSubmit = !submitting
+    && text.trim().length >= MIN_TEXT_LENGTH
+    && rating > 0
+    && photos.length > 0;
 
   const submitReview = async () => {
     if (!canSubmit) return;
 
-    setError('');
-    setSubmitError('');
     setSubmitting(true);
     try {
-      await createReview({ text: text.trim(), images: photos.map((photo) => photo.file) });
-      navigate('/home');
+      await createReview({ text: text.trim(), rating, images: photos.map((photo) => photo.file) });
+      navigate('/index/home');
     } catch (err) {
-      setSubmitError(err?.message || 'Ulasan gagal dikirim. Silakan coba lagi.');
+      showNotif({
+        title: 'Ulasan Gagal Dikirim',
+        description: err?.message || 'Ulasan gagal dikirim. Silakan coba lagi.',
+      });
       setSubmitting(false);
     }
   };
@@ -850,11 +830,18 @@ function BeriRating02() {
                         <p className="rating-subtitle">Kasih tau kami pendapat kamu<br />tentang JelajahEmas.</p>
                       </div>
                       <div className="star-rating-container">
-                        <button className="star-btn"><img src={S2_img_3} alt="Star 1" /></button>
-                        <button className="star-btn"><img src={S2_img_4} alt="Star 2" /></button>
-                        <button className="star-btn"><img src={S2_img_5} alt="Star 3" /></button>
-                        <button className="star-btn"><img src={S2_img_6} alt="Star 4" /></button>
-                        <button className="star-btn"><img src={S2_img_7} alt="Star 5" /></button>
+                        {STAR_VALUES.map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            className="star-btn"
+                            aria-label={`Beri ${value} bintang`}
+                            aria-pressed={rating >= value}
+                            onClick={() => setRating(value)}
+                          >
+                            <img src={rating >= value ? S2_star_filled : S2_img_3} alt="" />
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -869,12 +856,12 @@ function BeriRating02() {
                         <textarea
                           className="review-textarea"
                           placeholder="Ceritakan pengalaman kamu pakai JelajahEmas..."
-                          maxLength={300}
+                          maxLength={MAX_TEXT_LENGTH}
                           value={text}
-                          onChange={(e) => { setText(e.target.value); setError(''); }}
+                          onChange={(e) => setText(e.target.value)}
                         />
                       </div>
-                      <div className="char-count">{text.length}/300</div>
+                      <div className="char-count">{text.length}/{MAX_TEXT_LENGTH}</div>
                     </div>
                   </div>
                 </div>
@@ -913,10 +900,6 @@ function BeriRating02() {
               <section id="section-footer">
                 <div className="app-container" style={{minHeight: 'auto', boxShadow: 'none', background: 'transparent'}}>
                   <div className="content-wrapper" style={{paddingTop: 14, paddingBottom: 24, marginTop: 'auto'}}>
-                    {error && <p className="form-error">{error}</p>}
-                    {submitError && (
-                      <NotifCard variant="error" title="Ulasan Gagal Dikirim" description={submitError} onClose={() => setSubmitError('')} />
-                    )}
                     <button className="submit-button" type="button" disabled={!canSubmit} onClick={submitReview}>
                       {submitting ? 'Mengirim...' : 'Kirim Ulasan'}
                     </button>

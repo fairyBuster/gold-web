@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>EmasDigital probe — skeleton kartu Total Emas Digital</title>
+</head>
+<body>
+<div id="root"></div>
+<pre id="digital-metrics">pending</pre>
+<script type="module">
+  /* Probe EmasDigital (route /index/assets/emas-digital):
+     - case=loading : GET /api/gold/info/ menggantung → balance-card wajib
+                      menampilkan 2 bar .skeleton-bar (angka + rupiah), teks
+                      nilai kosong, label/unit/ilustrasi tetap tampil.
+     - case=loaded  : gold info sukses → nilai asli (2,5 gram / ≈ Rp5.000.000),
+                      skeleton hilang.
+     - case=error   : gold info gagal → skeleton berhenti (finally), fallback
+                      placeholder mockup tampil (1,367 / ≈ Rp3.512.870). */
+  const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+  const probeCase = new URLSearchParams(location.search).get('case') || 'loaded';
+
+  const encodeSalted = (obj) => {
+    const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+    return { data: [...(base64 + SALT)].reverse().join('') };
+  };
+  const json = (obj) => Promise.resolve(new Response(JSON.stringify(encodeSalted(obj)), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+
+  const GOLD_INFO = { balance_hold: '5000000', balance_deposit: '0', price_per_gram: '2000000' };
+  const ALL_TIME = { interest_total: '85000' };
+
+  window.fetch = (input) => {
+    const url = typeof input === 'string' ? input : input.url;
+    if (url.includes('/api/gold/info/')) {
+      if (probeCase === 'loading') return new Promise(() => {}); /* menggantung selamanya */
+      if (probeCase === 'error') return Promise.reject(new Error('probe: network down'));
+      return json(GOLD_INFO);
+    }
+    if (url.includes('/api/auth/balance-statistics/')) return json(ALL_TIME);
+    return json({});
+  };
+
+  localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+  history.replaceState(null, '', '/index/assets/emas-digital');
+
+  const metrics = { probeCase, steps: [] };
+  const write = () => { document.getElementById('digital-metrics').textContent = JSON.stringify(metrics, null, 2); };
+  const waitFor = async (fn, timeout = 15000, step = 200) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      try { if (fn()) return true; } catch { /* belum siap */ }
+      await new Promise((r) => setTimeout(r, step));
+    }
+    return false;
+  };
+
+  try {
+    await import('/src/main.jsx');
+
+    const snapshot = () => {
+      const card = document.querySelector('.page-emas-digital .balance-card');
+      return {
+        cardPresent: !!card,
+        label: card?.querySelector('.card-label')?.textContent ?? null,
+        number: card?.querySelector('.amount-number')?.textContent ?? null,
+        unit: card?.querySelector('.amount-unit')?.textContent ?? null,
+        fiat: card?.querySelector('.amount-fiat')?.textContent ?? null,
+        skeletons: card ? card.querySelectorAll('.skeleton-bar').length : -1,
+        illustration: !!card?.querySelector('.card-illustration'),
+      };
+    };
+
+    const pageReady = await waitFor(() => snapshot().cardPresent);
+    metrics.steps.push(['balance-card tampil', pageReady]);
+
+    if (probeCase === 'loading') {
+      const skeletonShown = await waitFor(() => snapshot().skeletons === 2);
+      metrics.steps.push(['2 skeleton bar tampil', skeletonShown]);
+      await new Promise((r) => setTimeout(r, 800)); /* pastikan tetap skeleton, bukan placeholder */
+      const snap = snapshot();
+      metrics.rendered = snap;
+      metrics.allPassed =
+        pageReady && skeletonShown &&
+        snap.skeletons === 2 && snap.number === '' && snap.fiat === '' &&
+        snap.label === 'Total Emas Digital' && snap.unit === 'gram' && snap.illustration;
+    } else if (probeCase === 'loaded') {
+      const settled = await waitFor(() => snapshot().skeletons === 0 && !!snapshot().number);
+      metrics.steps.push(['skeleton hilang & nilai tampil', settled]);
+      const snap = snapshot();
+      metrics.rendered = snap;
+      metrics.allPassed =
+        pageReady && settled &&
+        snap.skeletons === 0 && snap.number === '2,5' && snap.fiat === '≈ Rp5.000.000' &&
+        snap.label === 'Total Emas Digital' && snap.unit === 'gram' && snap.illustration;
+    } else {
+      const settled = await waitFor(() => snapshot().skeletons === 0 && !!snapshot().number);
+      metrics.steps.push(['skeleton berhenti → fallback tampil', settled]);
+      const snap = snapshot();
+      metrics.rendered = snap;
+      metrics.allPassed =
+        pageReady && settled &&
+        snap.skeletons === 0 && snap.number === '1,367' && snap.fiat === '≈ Rp3.512.870';
+    }
+  } catch (error) {
+    metrics.error = String(error);
+    metrics.allPassed = false;
+  }
+
+  write();
+</script>
+</body>
+</html>

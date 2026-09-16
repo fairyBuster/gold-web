@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getRankLevels } from '../../lib/authApi.js';
+import { getRankLevels, getRankStatus } from '../../lib/authApi.js';
 import { formatRupiah } from '../../lib/transactionFormat.js';
 import img_1 from '../../assets/images/102_1724.svg';
 import img_2 from '../../assets/images/915ddfcd2308a67f93cb52100b8c074abaa5928b.png';
@@ -251,9 +251,9 @@ const styles = `
   }
 `;
 
-/* Endpoint rank-levels tidak mengirim flag basis evaluasi yang aktif, jadi
-   basis ditebak dari dimensi pertama (urutan flag backend) yang punya syarat
-   > 0 di salah satu level. */
+/* Cadangan saat rank-status tidak tersedia: endpoint rank-levels tidak
+   mengirim flag basis evaluasi yang aktif, jadi basis ditebak dari dimensi
+   pertama (urutan flag backend) yang punya syarat > 0 di salah satu level. */
 const BASIS_FIELDS = [
   { field: 'missions_required_total', unit: 'misi selesai' },
   { field: 'downlines_total_required', unit: 'downline' },
@@ -261,6 +261,17 @@ const BASIS_FIELDS = [
   { field: 'deposit_self_total_required', unit: 'deposit pribadi', currency: true },
   { field: 'team_deposit_level_1_total_required', unit: 'deposit tim', currency: true },
 ];
+
+/* Kunci nilai di respons rank-status untuk tiap dimensi evaluasi
+   (progress_basis dari server): progress user saat ini + syarat rank
+   berikutnya. */
+const STATUS_BASIS = {
+  missions: { valueKey: 'completed_missions', requiredKey: 'next_required_missions', unit: 'misi selesai' },
+  downlines_total: { valueKey: 'downlines_total', requiredKey: 'next_required_downlines_total', unit: 'downline' },
+  downlines_active: { valueKey: 'downlines_active', requiredKey: 'next_required_downlines_active', unit: 'downline aktif' },
+  deposit_self_total: { valueKey: 'deposit_self_total', requiredKey: 'next_required_deposit_self_total', unit: 'deposit pribadi', currency: true },
+  team_deposit_level_1_total: { valueKey: 'team_deposit_level_1_total', requiredKey: 'next_required_team_deposit_level_1_total', unit: 'deposit tim', currency: true },
+};
 
 function pickBasis(levels) {
   return BASIS_FIELDS.find((basis) => levels.some((level) => Number(level[basis.field]) > 0)) || null;
@@ -286,6 +297,9 @@ function requirementText(level) {
 export default function Vip() {
   /* null = API belum termuat/gagal (konten bawaan desain tetap tampil). */
   const [levels, setLevels] = useState(null);
+  /* Status rank dari /api/auth/rank-status/ — rank yang sudah terpenuhi +
+     syarat rank berikutnya; kalau gagal muat, hero memakai rank-levels. */
+  const [status, setStatus] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -296,28 +310,53 @@ export default function Vip() {
       .catch(() => {
         /* diamkan — konten bawaan sudah tampil */
       });
+    getRankStatus()
+      .then((payload) => {
+        if (active && payload) setStatus(payload);
+      })
+      .catch(() => {
+        /* diamkan — hero memakai fallback rank-levels */
+      });
     return () => {
       active = false;
     };
   }, []);
 
-  const usingData = levels !== null;
-  const currentLevel = usingData ? levels.find((level) => level.is_current_rank) || null : null;
-  const nextLevel = usingData
+  const usingData = levels !== null || status !== null;
+  const currentLevel = levels !== null ? levels.find((level) => level.is_current_rank) || null : null;
+  const nextLevel = levels !== null
     ? currentLevel
       ? levels.find((level) => level.rank > currentLevel.rank) || null
       : levels[0] || null
     : null;
-  const basis = usingData ? pickBasis(levels) : null;
-  const progressValue = Number((currentLevel || nextLevel || levels?.[0] || {}).user_progress_val) || 0;
-  const targetValue = nextLevel && basis ? Number(nextLevel[basis.field]) || 0 : 0;
-  const showProgress = Boolean(basis && nextLevel && targetValue > 0);
+
+  /* rank-status adalah sumber utama progress: progress_basis menunjuk dimensi
+     evaluasi yang aktif lengkap dengan nilai user + syarat rank berikutnya.
+     Kalau endpoint itu tidak tersedia, dimensi ditebak dari syarat di
+     rank-levels dan nilainya dibaca dari user_progress_val. */
+  const statusBasis = status ? STATUS_BASIS[status.progress_basis] || null : null;
+  const basis = statusBasis || (levels !== null ? pickBasis(levels) : null);
+  const nextTitle = status ? status.next_title : nextLevel?.title || null;
+  const progressValue = statusBasis
+    ? Number(status[statusBasis.valueKey]) || 0
+    : Number((currentLevel || nextLevel || levels?.[0] || {}).user_progress_val) || 0;
+  const targetValue = statusBasis
+    ? Number(status[statusBasis.requiredKey]) || 0
+    : nextLevel && basis
+      ? Number(nextLevel[basis.field]) || 0
+      : 0;
+  const showProgress = Boolean(basis && nextTitle && targetValue > 0);
   const progressPct = showProgress ? Math.min(100, Math.round((progressValue / targetValue) * 100)) : 0;
 
-  /* Fallback (API belum termuat/gagal) memakai konten bawaan desain. */
-  const heroTitle = usingData ? currentLevel?.title || nextLevel?.title || '' : 'Gold Member';
+  /* Fallback (API belum termuat/gagal) memakai konten bawaan desain. Hero
+     memprioritaskan rank-status: current_title = rank yang sudah terpenuhi. */
+  const heroTitle = status
+    ? status.current_title || status.next_title || ''
+    : usingData
+      ? currentLevel?.title || nextLevel?.title || ''
+      : 'Gold Member';
   const progressVisible = usingData ? showProgress : true;
-  const progressLabel = usingData ? (nextLevel ? `Menuju ${nextLevel.title}` : '') : 'Menuju Platinum';
+  const progressLabel = usingData ? (nextTitle ? `Menuju ${nextTitle}` : '') : 'Menuju Platinum';
   const progressAmount = usingData
     ? `${formatValue(progressValue, basis)} / ${formatValue(targetValue, basis)}${basis && !basis.currency ? ` ${basis.unit}` : ''}`
     : 'Rp3.512.870 / Rp10.000.000';

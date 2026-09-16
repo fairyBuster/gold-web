@@ -13,7 +13,7 @@ import img_7 from '../../assets/images/all_bg.png';
 /* API layer — the login form calls POST /api/auth/jwt/identifier-login/. */
 import { loginUser } from '../../lib/authApi.js';
 import * as authSession from '../../lib/authSession.js';
-import NotifCard from '../../components/NotifCard.jsx';
+import { useShowNotif } from '../../lib/useShowNotif.js';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -29,20 +29,20 @@ const styles = `
   justify-content: center;
   min-height: 100vh;
   width: 100%;
+  /* all_bg.png artwork (assigned inline in JSX on the root) is the full-page
+     artwork (warm glows anchored to the top and bottom edges) — stretch it so
+     it backs the entire page, not just a crop. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
 }
 
 .page-login .app-layout {
   width: 100%;
   max-width: 100%;
   min-height: 1020px;
-  /* all_bg.png is the full-page artwork (warm glows anchored to the top and
-     bottom edges) — stretch it so it backs the entire page, not just a crop. */
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-  background-position: top center;
   position: relative;
   overflow: hidden;
-  background-color: #fcf9f4;
   display: flex;
   flex-direction: column;
 }
@@ -216,13 +216,6 @@ const styles = `
     cursor: default;
   }
 
-  .page-login .login-error {
-    color: #e24c4c;
-    font-size: 12px;
-    line-height: 1.4;
-    margin: 0 0 10px 0;
-  }
-
   .page-login .login-disclaimer {
     color: #a79c8f;
     font-size: 10px;
@@ -338,44 +331,44 @@ export default function Login() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
+  const showNotif = useShowNotif();
 
   const handleLogin = async () => {
     if (loading) return;
-    setApiError('');
     if (!identifier.trim()) {
-      setError('Masukkan email atau nomor ponsel kamu.');
+      showNotif({ title: 'Lengkapi Data', description: 'Masukkan email atau nomor ponsel kamu.' });
       return;
     }
     if (!password) {
-      setError('Masukkan password kamu.');
+      showNotif({ title: 'Lengkapi Data', description: 'Masukkan password kamu.' });
       return;
     }
 
     setLoading(true);
-    setError('');
     try {
       const { access, refresh } = await loginUser({ identifier: identifier.trim(), password });
       authSession.save({ access, refresh });
-      const from = location.state?.from || '/home';
+      const from = location.state?.from || '/index/home';
       navigate(from, { replace: true });
     } catch (err) {
+      /* Server text never surfaces: 401 has no central hint, so the status
+         check below picks the right frontend wording; transport/5xx errors
+         arrive with a ready frontend message from apiClient. */
       const friendly =
         err?.status === 401
           ? 'Email/nomor ponsel atau password salah.'
           : 'Login gagal. Silakan coba lagi.';
-      setApiError(err?.message && !String(err.message).startsWith('Permintaan gagal') ? err.message : friendly);
+      showNotif({ title: 'Login Gagal', description: err?.message || friendly });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="page-login">
+    <div className="page-login" style={{ backgroundImage: `url(${img_7}), linear-gradient(#fcf9f4, #fcf9f4)` }}>
       <style>{styles}</style>
-      <div className="app-layout" style={{ backgroundImage: `url(${img_7})` }}>
+      <div className="app-layout">
               <section id="section-hero" className="hero-section">
                 <div className="bg-circle circle-1" />
                 <div className="bg-circle circle-2" />
@@ -393,20 +386,18 @@ export default function Login() {
                 <div className="login-card">
                   <div className="input-group">
                     <img src={img_2} alt="User Icon" className="input-icon" />
-                    <input type="text" placeholder="Email atau nomor ponsel" className="input-field" value={identifier} onChange={(e) => { setIdentifier(e.target.value); setError(''); setApiError(''); }} onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(); }} />
+                    <input type="text" placeholder="Email atau nomor ponsel" className="input-field" value={identifier} onChange={(e) => setIdentifier(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(); }} />
                   </div>
                   <div className="input-group">
                     <img src={img_3} alt="Lock Icon" className="input-icon" />
-                    <input type={showPassword ? 'text' : 'password'} placeholder="Password" className="input-field" value={password} onChange={(e) => { setPassword(e.target.value); setError(''); setApiError(''); }} onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(); }} />
+                    <input type={showPassword ? 'text' : 'password'} placeholder="Password" className="input-field" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(); }} />
                     <button type="button" className="toggle-btn" aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'} onClick={() => setShowPassword((v) => !v)}>
                       <img src={img_4} alt="Toggle Visibility" className="input-icon" />
                     </button>
                   </div>
                   <div className="forgot-password-container">
-                    <Link to="/auth/lupa-password" className="forgot-password-link">Lupa Password?</Link>
+                    <Link to="/index/auth/lupa-password" className="forgot-password-link">Lupa Password?</Link>
                   </div>
-                  {error && <p className="login-error">{error}</p>}
-                  {apiError && <NotifCard variant="error" title="Login Gagal" description={apiError} onClose={() => setApiError('')} />}
                   <button className="btn-login" onClick={handleLogin} disabled={loading}>{loading ? 'Memproses...' : 'Masuk'}</button>
                   <p className="login-disclaimer">Data yang kamu masukkan hanya digunakan untuk keperluan login.</p>
                 </div>
@@ -417,18 +408,18 @@ export default function Login() {
                   <span className="divider-text">atau</span>
                   <div className="divider-line" />
                 </div>
-                <button className="btn-register" onClick={(e) => { e.preventDefault(); navigate('/auth/register-01'); }}>Buat Akun</button>
-                <p className="terms-text">Dengan melanjutkan, kamu menyetujui <Link to="/support/syarat-dan-ketentuan" className="terms-link">Syarat &amp; Ketentuan</Link> kami.</p>
+                <button className="btn-register" onClick={(e) => { e.preventDefault(); navigate('/index/auth/register-01'); }}>Buat Akun</button>
+                <p className="terms-text">Dengan melanjutkan, kamu menyetujui <Link to="/index/support/syarat-dan-ketentuan" className="terms-link">Syarat &amp; Ketentuan</Link> kami.</p>
                 <div className="partner-logos">
                   <img src={img_5} alt="OJK Logo" className="logo-ojk" />
                   <img src={img_6} alt="BAPPEBTI Logo" className="logo-bappebti" />
                 </div>
                 <div className="footer-links">
-                  <Link to="/support/kebijakan-privasi">Legal</Link>
+                  <Link to="/index/support/kebijakan-privasi">Legal</Link>
                   <span className="dot">•</span>
-                  <Link to="/support/tentang-kami">Tentang Kami</Link>
+                  <Link to="/index/landing">Tentang Kami</Link>
                   <span className="dot">•</span>
-                  <Link to="/landing">Website Resmi</Link>
+                  <Link to="/index/landing">Website Resmi</Link>
                 </div>
                 <p className="company-details">
                   JelajahEmas dikelola oleh PT JELAJAH EMAS DIGITAL INDONESIA<br />

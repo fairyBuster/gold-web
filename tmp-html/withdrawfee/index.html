@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WDFEE-RUNNING</title>
+  <style>#wf-metrics { display: none; }</style>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="wf-metrics">pending</pre>
+  <script type="module">
+    /* Live probe (REAL backend via .env VITE_API_BASE_URL + real JWT from
+       /e2e-token.json): walk TarikDana step 1 (Rp35rb chip) -> step 3
+       (Lanjutkan) -> step 4 and dump the rendered amount-card rows, step-1
+       fee hint and the selected bank, to compare the Biaya Admin display
+       against the bank's withdrawal_fee/withdrawal_fee_fixed. Falls back to
+       injecting the wizard store when the UI walk is blocked (balance). */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    /* Which quick chip to press (?chip=Rp35rb default) — probing several
+       amounts checks the fee scales with the nominal. */
+    const CHIP = new URLSearchParams(location.search).get('chip') || 'Rp35rb';
+    const writeMetrics = (passed) => {
+      metrics.allPassed = passed;
+      document.getElementById('wf-metrics').textContent = JSON.stringify(metrics, null, 2);
+      document.title = 'WDFEE-DONE';
+    };
+    const waitFor = async (selector, timeout = 8000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+    const textOf = (sel) => document.querySelector(sel)?.textContent.trim() || null;
+    const rows = () => [...document.querySelectorAll('.page-tarik-dana-04 .amount-card .amount-row')]
+      .map((el) => [el.querySelector('.label')?.textContent.trim(), el.querySelector('.value')?.textContent.trim()]);
+
+    try {
+      const tok = await (await fetch('/e2e-token.json', { cache: 'no-store' })).json();
+      window.localStorage.setItem('je_auth_session', JSON.stringify({ access: tok.access, refresh: tok.refresh || '' }));
+      metrics.state.token = tok.user;
+    } catch (e) {
+      metrics.errors.push('token fetch failed: ' + e);
+    }
+
+    history.replaceState(null, '', '/index/transactions/tarik-dana-01');
+    await import('/src/main.jsx');
+
+    await waitFor('.page-tarik-dana-01 .quick-amounts');
+    await sleep(600); /* let account-info/banks land (fee hint, min text) */
+    metrics.state.step1FeeHint = textOf('.page-tarik-dana-01 .info-box .info-text');
+    metrics.state.step1MinText = textOf('.page-tarik-dana-01 .min-withdrawal');
+
+    const chip = [...document.querySelectorAll('.page-tarik-dana-01 .quick-amounts .chip')]
+      .find((el) => el.textContent.trim() === CHIP);
+    if (chip) chip.click();
+    await sleep(200);
+    metrics.state.amountText = document.querySelector('.page-tarik-dana-01 .amount-input')?.value || null;
+    document.querySelector('.page-tarik-dana-01 .submit-btn')?.click();
+
+    const step3 = await waitFor('.page-tarik-dana-03 .bank-card', 5000);
+    if (step3) {
+      await sleep(600);
+      metrics.state.selectedBank = textOf('.page-tarik-dana-03 .bank-card.selected .bank-name');
+      document.querySelector('.page-tarik-dana-03 .btn-primary')?.click();
+    } else {
+      metrics.state.uiWalkBlocked = textOf('.page-tarik-dana-01 .notif-card .notification-desc')
+        || textOf('.notif-card .notification-desc');
+      /* Fallback: inject the wizard store + navigate like step 1 would. */
+      const flow = await import('/src/lib/withdrawFlow.js');
+      flow.save({ amount: 35000, bankAccountId: null });
+      history.pushState(null, '', '/index/transactions/tarik-dana-04');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+
+    const card = await waitFor('.page-tarik-dana-04 .amount-card', 8000);
+    if (card) {
+      await sleep(800); /* banks settle (row lookup) */
+      metrics.state.step4Bank = textOf('.page-tarik-dana-04 .bank-name');
+      metrics.state.step4Rows = rows();
+    }
+    metrics.state.finalPath = location.pathname;
+
+    writeMetrics(!!card && metrics.errors.length === 0);
+  </script>
+</body>
+</html>

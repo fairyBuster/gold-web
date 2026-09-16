@@ -1,0 +1,934 @@
+﻿<!DOCTYPE html>
+<html lang="id"><head>
+  <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+  <script type="module" src="/@vite/client"></script>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HOMESK-DONE</title>
+<style type="text/css" data-vite-dev-id="D:/webbaru/src/index.css">/* ============================================================
+
+   App shell styles shared by all converted pages.
+
+   Global resets below match the originals found in every
+
+   global.css, so individual page CSS files only need to carry
+
+   their page-specific (already scoped) rules.
+
+   ============================================================ */
+
+
+
+* {
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0;
+
+  -webkit-tap-highlight-color: transparent;
+
+}
+
+
+
+html,
+
+body,
+
+#root {
+
+  width: 100%;
+
+  min-height: 100vh;
+
+  margin: 0;
+
+  padding: 0;
+
+}
+
+
+
+/* Each converted page renders a single wrapper div below its page root
+
+   (e.g. #root > .page-x > div). The original mobile mockups sized that
+
+   wrapper by its content, which produced narrow centered columns on
+
+   desktop; force it to span the full width so pages have no side gaps. */
+
+#root > div > div {
+
+  width: 100%;
+
+}
+
+
+
+body {
+
+  font-family: 'Inter', sans-serif;
+
+  background-color: #f0e9df;
+
+  /* App-wide background image ΓÇö every page shows it through the
+
+     transparency rule below. */
+
+  background-image: url('/src/assets/images/background.jpg');
+
+  background-size: cover;
+
+  background-position: center top;
+
+  background-repeat: no-repeat;
+
+  background-attachment: fixed;
+
+  color: #1a1410;
+
+  min-height: 100vh;
+
+}
+
+
+
+/* Page wrappers paint their own opaque canvas; make them transparent so
+
+   the shared background image is visible on all pages. */
+
+#root > [class^="page-"] {
+
+  background-color: transparent;
+
+}
+
+
+
+a {
+
+  text-decoration: none;
+
+  color: inherit;
+
+}
+
+
+
+button {
+
+  border: none;
+
+  background: none;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+}
+
+
+
+input,
+
+textarea,
+
+select {
+
+  font-family: inherit;
+
+}
+
+
+
+/* ============================================================
+
+   Screen directory (route "/")
+
+   ============================================================ */
+
+
+
+.screen-index {
+
+  max-width: 1080px;
+
+  margin: 0 auto;
+
+  padding: 48px 24px 80px;
+
+}
+
+
+
+.screen-index__header {
+
+  text-align: center;
+
+  margin-bottom: 36px;
+
+}
+
+
+
+.screen-index__title {
+
+  font-size: 32px;
+
+  font-weight: 700;
+
+  color: #1a1410;
+
+  margin-bottom: 8px;
+
+}
+
+
+
+.screen-index__title span {
+
+  color: #e8790c;
+
+}
+
+
+
+.screen-index__subtitle {
+
+  font-size: 14px;
+
+  color: #8a7d6d;
+
+  margin-bottom: 24px;
+
+}
+
+
+
+.screen-index__search {
+
+  width: 100%;
+
+  max-width: 420px;
+
+  padding: 13px 18px;
+
+  font-size: 14px;
+
+  border: 1px solid #e2d8c8;
+
+  border-radius: 12px;
+
+  background-color: #fffbf4;
+
+  color: #1a1410;
+
+  outline: none;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__search:focus {
+
+  border-color: #e8790c;
+
+  box-shadow: 0 0 0 3px rgba(232, 121, 12, 0.15);
+
+}
+
+
+
+.screen-index__grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+
+  gap: 12px;
+
+}
+
+
+
+.screen-index__card {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  padding: 16px 18px;
+
+  background-color: #fffbf4;
+
+  border: 1px solid #e9dfd1;
+
+  border-radius: 14px;
+
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__card:hover {
+
+  border-color: #e8790c;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 10px 24px rgba(26, 20, 16, 0.08);
+
+}
+
+
+
+.screen-index__card-label {
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  color: #1a1410;
+
+}
+
+
+
+.screen-index__card-path {
+
+  font-size: 12px;
+
+  color: #b3a795;
+
+  font-family: 'SFMono-Regular', Consolas, monospace;
+
+}
+
+
+
+.screen-index__empty {
+
+  grid-column: 1 / -1;
+
+  text-align: center;
+
+  padding: 40px 0;
+
+  color: #b3a795;
+
+  font-size: 14px;
+
+}
+
+
+
+.screen-index__group {
+
+  margin-bottom: 32px;
+
+}
+
+
+
+.screen-index__group-title {
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  color: #8a7d6d;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+
+  margin-bottom: 12px;
+
+}
+
+
+
+/* ============================================================
+
+   Desktop layout (ΓëÑ768px) for all app screens.
+
+   Below 768px every page keeps its original mobile layout as-is.
+
+   From 768px up the page content renders as a centered app column
+
+   while backgrounds stay full-bleed on the page root, so no
+
+   phone-frame edges or side gaps appear. The landing page has its
+
+   own desktop layout (see LandingPagePerusahaan.jsx).
+
+   ============================================================ */
+
+
+
+@media (min-width: 768px) {
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > div,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > main,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > section {
+
+    max-width: 480px;
+
+    margin-left: auto;
+
+    margin-right: auto;
+
+    box-shadow: none;
+
+  }
+
+}
+
+
+
+/* Inner full-page containers keep a mobile drop shadow; drop it on desktop
+
+   too (they sit below the capped element, so the rule above does not reach
+
+   them). Selectors carry the #root prefix so they outrank the per-page
+
+   \3c style> blocks injected later in the document. */
+
+@media (min-width: 768px) {
+
+  #root .page-register-01 .app-container,
+
+  #root .page-register-04 .mobile-container,
+
+  #root .page-notifikasi-login .screen-container,
+
+  #root .page-notif-screen .screen-container,
+
+  #root .page-kartu-bank .mobile-app-container,
+
+  #root .page-beri-rating section:first-of-type,
+
+  #root .page-beri-rating section:last-of-type,
+
+  #root .page-livechat .input-container {
+
+    box-shadow: none;
+
+  }
+
+}
+
+</style></head>
+<body>
+  <div id="root"><div class="page-home" style="background-image: url(&quot;/src/assets/images/083535.png&quot;);"><style>
+/* Scoped styles for Home ΓÇö converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-home to isolate this page. */
+
+.page-home, .page-home * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.page-home {
+  font-family: 'Inter', sans-serif;
+  background-color: #fffbf4;
+  color: #1a1410;
+  max-width: 100%;
+  margin: 0 auto;
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding-bottom: 80px; /* Space for bottom nav */
+  /* Background artwork (assigned inline from the imported asset) is a
+     full-page image with glows anchored to the top/bottom ΓÇö stretch it. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
+  box-shadow: 0px 0px 20px rgba(0,0,0,0.05);
+  width: 100%;
+}
+
+.page-home a {
+  text-decoration: none;
+}
+
+.page-home button {
+  border: none;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.page-home .hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.page-home .hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Header */
+.page-home .header-section {
+    position: relative;
+    width: 100%;
+    padding: 30px 20px 5px 87px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .page-home .character-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 93px;
+    height: 146px;
+    object-fit: cover;
+    z-index: 10;
+  }
+  .page-home .header-content {
+    position: relative;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .page-home .greeting {
+    color: #a79c8f;
+    font-size: 12px;
+    line-height: 16px;
+  }
+  .page-home .header-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+  .page-home .brand-logo {
+    height: 52px;
+    width: auto;
+  }
+  .page-home .header-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .page-home .icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 17px;
+    background-color: #ffffff;
+    box-shadow: 0px 2px 8px 0px rgba(26, 20, 16, 0.08);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+  .page-home .notification-btn .badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 15px;
+    height: 15px;
+    background-color: #e24c4c;
+    color: #ffffff;
+    font-size: 9px;
+    font-weight: 700;
+    border-radius: 7.5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+/* CSS for section section:AssetSummary */
+.page-home .asset-section {
+    padding: 13px 20px 0;
+  }
+  .page-home .asset-card {
+    background-size: cover;
+    background-position: center;
+    border-radius: 22px;
+    padding: 22px 22px 24.5px;
+    box-shadow: 0px 16px 30px 0px rgba(26, 20, 16, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .page-home .asset-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .page-home .asset-label {
+    color: #a79c8f;
+    font-size: 12px;
+  }
+  .page-home .asset-link {
+    color: #e8790c;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .page-home .asset-value-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .page-home .asset-value {
+    color: #1a1410;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 33px;
+  }
+  /* Loading placeholder for the saldo value: the bar keeps the 24px number's
+     footprint (h2 line-height) so the card does not jump when it resolves. */
+  .page-home .asset-value-skeleton {
+    display: inline-block;
+    width: 176px;
+    height: 26px;
+    border-radius: 7px;
+    background: linear-gradient(90deg, rgba(26, 20, 16, 0.08) 25%, rgba(26, 20, 16, 0.16) 37%, rgba(26, 20, 16, 0.08) 63%);
+    background-size: 400% 100%;
+    animation: home-asset-shimmer 1.4s ease infinite;
+  }
+  @keyframes home-asset-shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: 0 0; }
+  }
+  .page-home .visibility-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .page-home .asset-change {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 4px;
+  }
+  .page-home .change-text {
+    color: #3fa66b;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .page-home .change-text.is-down {
+    color: #e24c4c;
+  }
+
+/* CSS for section section:MarketPrice */
+.page-home .market-section {
+    padding: 14px 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .page-home .price-card {
+    background-color: #a8a19bb3;
+    /* The card artwork is sized to exactly one box ΓÇö the whole image maps to
+       this single card, no tiling or cropping. */
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 5px;
+    padding: 16px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .page-home .coin-icon {
+    width: 45px;
+    height: 44px;
+  }
+  .page-home .price-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .page-home .price-label {
+    color: #514840;
+    font-size: 11px;
+  }
+  .page-home .price-amount {
+    color: #1a1410;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .page-home .price-trend {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .page-home .trend-value {
+    color: #e24c4c;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .page-home .trend-value.positive {
+    color: #3fa66b;
+  }
+  .page-home .btn-buy {
+    background-color: #231b15;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 15px;
+    border-radius: 5px;
+    width: 100%;
+    text-align: center;
+  }
+
+/* CSS for section section:Features */
+.page-home .features-section {
+    padding: 24px 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .page-home .section-title {
+    color: #1a1410;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .page-home .features-grid {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .page-home .feature-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 68px;
+  }
+  .page-home .feature-item img {
+    width: 46px;
+    height: 46px;
+    object-fit: contain;
+  }
+  .page-home .feature-item span {
+    color: #514840;
+    font-size: 11px;
+    text-align: center;
+  }
+
+/* CSS for section section:Promotions */
+.page-home .promos-section {
+    padding: 24px 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .page-home .scroll-row {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+  }
+  .page-home .promos-section .scroll-row {
+    scroll-snap-type: x mandatory;
+  }
+  .page-home .promo-card {
+    /* Each slide is one full-width banner; swipe sideways like a carousel. */
+    min-width: 100%;
+    aspect-ratio: 242 / 100;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    scroll-snap-align: start;
+  }
+  .page-home .promo-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+/* CSS for section section:News */
+.page-home .news-section {
+    padding: 24px 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .page-home .news-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .page-home .link-all {
+    color: #e8790c;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .page-home .news-card {
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .page-home .news-image-placeholder {
+    width: 100%;
+    height: 88px;
+    background-color: #f6f1e9;
+    border: 1px solid rgba(26, 20, 16, 0.18);
+    border-radius: 14px;
+  }
+  .page-home .news-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 4px;
+  }
+  .page-home .news-title {
+    color: #1a1410;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .page-home .news-date {
+    color: #a79c8f;
+    font-size: 10px;
+  }
+  .page-home .news-status {
+    color: #a79c8f;
+    font-size: 12px;
+    padding: 8px 0;
+  }
+
+/* CSS for section section:Footer */
+.page-home .footer-section {
+    padding: 20px 24px 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .page-home .footer-logos {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .page-home .logo-ojk {
+    height: 17px;
+    width: auto;
+    border-radius: 5px;
+  }
+  .page-home .logo-bappebti {
+    height: 17px;
+    width: auto;
+    border-radius: 5px;
+  }
+  .page-home .footer-text {
+    color: #a79c8f;
+    font-size: 10px;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+/* Bottom navigation lives in src/components/BottomNav.jsx (styles inline in that file). */
+</style><div><section id="section-header" class="header-section"><img src="/src/assets/images/38a55ef245471fd7a368a8008013cd81b2525d61.png" class="character-img" alt="Mascot"><div class="header-content"><div class="header-main"><img src="/src/assets/images/3d6fb697a044e75c7a6c789438a276b40b37b5b9.png" class="brand-logo" alt="Jelajah Emas"><div class="header-actions"><button class="icon-btn"><img src="data:image/svg+xml,%3csvg%20width='17'%20height='17'%20viewBox='0%200%2017%2017'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M4.25%202.83337H10.625L12.75%204.95837V14.1667H4.25V2.83337Z'%20stroke='%231A1410'%20stroke-width='1.13333'%20stroke-linejoin='round'/%3e%3cpath%20d='M6.375%207.08337H10.625M6.375%209.91671H10.625'%20stroke='%231A1410'%20stroke-width='1.13333'%20stroke-linecap='round'/%3e%3c/svg%3e" alt="Tentang Kami"></button><button class="icon-btn notification-btn"><img src="data:image/svg+xml,%3csvg%20width='17'%20height='17'%20viewBox='0%200%2017%2017'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M8.50008%202.125C7.56077%202.125%206.65994%202.49814%205.99574%203.16233C5.33155%203.82652%204.95841%204.72736%204.95841%205.66667V7.93333C4.95841%208.42917%204.76008%208.90375%204.40591%209.25792L3.54175%2010.2708H13.4584L12.5942%209.25792C12.2419%208.907%2012.0432%208.43061%2012.0417%207.93333V5.66667C12.0417%204.72736%2011.6686%203.82652%2011.0044%203.16233C10.3402%202.49814%209.43939%202.125%208.50008%202.125Z'%20stroke='%231A1410'%20stroke-width='1.13333'%20stroke-linejoin='round'/%3e%3cpath%20d='M7.08325%2012.75C7.08325%2013.1257%207.23251%2013.4861%207.49818%2013.7517C7.76386%2014.0174%208.1242%2014.1667%208.49992%2014.1667C8.87564%2014.1667%209.23598%2014.0174%209.50165%2013.7517C9.76733%2013.4861%209.91659%2013.1257%209.91659%2012.75'%20stroke='%231A1410'%20stroke-width='1.13333'%20stroke-linecap='round'/%3e%3c/svg%3e" alt="Notification"></button></div></div></div></section><section id="section-asset" class="asset-section"><div class="asset-card" style="background-image: url(&quot;/src/assets/images/a183fe7f42819438be5c49935567e464a5e56f98.png&quot;);"><div class="asset-header"><span class="asset-label">Saldo sekarang</span><a class="asset-link" href="/assets/aset-saya-01">Lihat Milik Saya<img src="data:image/svg+xml,%3csvg%20width='10'%20height='10'%20viewBox='0%200%2010%2010'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M3.75%202.5L6.25%205L3.75%207.5'%20stroke='%23E8790C'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="&gt;"></a></div><div class="asset-value-container"><h2 class="asset-value">Rp 1.234.567</h2><button class="visibility-btn" aria-label="Sembunyikan nilai aset"><img src="data:image/svg+xml,%3csvg%20width='17'%20height='17'%20viewBox='0%200%2017%2017'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M1.41675%208.49996C1.41675%208.49996%203.96675%203.54163%208.50008%203.54163C13.0334%203.54163%2015.5834%208.49996%2015.5834%208.49996C15.5834%208.49996%2013.0334%2013.4583%208.50008%2013.4583C3.96675%2013.4583%201.41675%208.49996%201.41675%208.49996Z'%20stroke='%23A79C8F'%20stroke-width='1.13333'/%3e%3cpath%20d='M8.50011%2010.3417C9.51724%2010.3417%2010.3418%209.51712%2010.3418%208.49999C10.3418%207.48287%209.51724%206.65833%208.50011%206.65833C7.48299%206.65833%206.65845%207.48287%206.65845%208.49999C6.65845%209.51712%207.48299%2010.3417%208.50011%2010.3417Z'%20stroke='%23A79C8F'%20stroke-width='1.13333'/%3e%3c/svg%3e" alt="Toggle Visibility"></button></div><div class="asset-change"><img src="data:image/svg+xml,%3csvg%20width='12'%20height='12'%20viewBox='0%200%2012%2012'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M6%209.5V2.5M9%205.5L6%202.5L3%205.5'%20stroke='%233FA66B'%20stroke-width='1.1'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Up"><span class="change-text">Rp 0 (0,00%)</span></div></div></section><section id="section-market" class="market-section"><div class="price-card" style="background-image: url(&quot;/src/assets/images/d35f294fb1a21fb0aa4f326dc1672ebf0f14686d.png&quot;);"><img src="/src/assets/images/6e7afc8beed777ee8ad0a014432f7422da8ce4ac.png" class="coin-icon" alt="Gold Coin"><div class="price-details"><span class="price-label">Harga Emas Hari Ini</span><h3 class="price-amount">Rp 2.569.270 / gram</h3></div><div class="price-trend"><img src="data:image/svg+xml,%3csvg%20width='11'%20height='11'%20viewBox='0%200%2011%2011'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M5.5%202.29163V8.70829M8.25%205.95829L5.5%208.70829L2.75%205.95829'%20stroke='%23E24C4C'%20stroke-width='1.00833'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Down"><span class="trend-value">1,01%</span></div></div><button class="btn-buy">Beli Emas Sekarang</button></section><section id="section-features" class="features-section"><h3 class="section-title">Fitur Lainnya</h3><div class="features-grid"><a class="feature-item" href="/transactions/isi-ulang"><img src="/src/assets/images/05ab16507053b79d47257c0cb8f932cb8e444b74.png" alt="Isi Ulang"><span>Isi Ulang</span></a><a class="feature-item" href="/assets/cetak-emas-01"><img src="/src/assets/images/0682ccf19a5ccac05cf1b55cdf4ce11990d20ded.png" alt="Cetak"><span>Cetak</span></a><a class="feature-item" href="/affiliate/tim-afiliasi"><img src="/src/assets/images/daa433f6e9556af856198e9d4ecedd96ef8128a8.png" alt="Tim/Afiliasi"><span>Tim/Afiliasi</span></a><a class="feature-item" href="/transactions/tarik-dana-01"><img src="/src/assets/images/2435cd6c53c354916420eab2f8b2db60cacf59ca.png" alt="Tarik Dana"><span>Tarik Dana</span></a><a class="feature-item" href="/transactions/riwayat-transaksi"><img src="/src/assets/images/6c978b09e2741a18e62f0ff8b1cee6c908c1f1e0.png" alt="Riwayat"><span>Riwayat</span></a></div></section><section id="section-promotions" class="promos-section"><h3 class="section-title">Event &amp; Promosi</h3><div class="scroll-row hide-scrollbar"><div class="promo-card"><img src="/src/assets/images/b1.png" alt="Banner Slide 1"></div><div class="promo-card"><img src="/src/assets/images/b2.png" alt="Banner Slide 2"></div><div class="promo-card"><img src="/src/assets/images/b3.png" alt="Banner Slide 3"></div></div></section><section id="section-news" class="news-section"><div class="news-header"><h3 class="section-title">Berita Terbaru</h3><a class="link-all" href="/berita">Lihat Semua<img src="data:image/svg+xml,%3csvg%20width='11'%20height='11'%20viewBox='0%200%2011%2011'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M4.125%202.75L6.875%205.5L4.125%208.25'%20stroke='%23E8790C'%20stroke-width='1.00833'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="&gt;"></a></div><div class="scroll-row hide-scrollbar"><p class="news-status">Belum ada berita.</p></div></section><section id="section-footer" class="footer-section"><div class="footer-logos"><img src="/src/assets/images/a.png" alt="OJK" class="logo-ojk"><img src="/src/assets/images/b.png" alt="BAPPEBTI" class="logo-bappebti"></div><p class="footer-text">JelajahEmas dikelola oleh PT JELAJAH EMAS DIGITAL INDONESIA<br>AHU: AHU-A11995.AH.01.30 tahun 2026 ΓÇó NPWP: 1000000011096252</p></section><style>
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #ffffff;
+  border-top: 1px solid #efe7dc;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 10px 0 calc(14px + env(safe-area-inset-bottom));
+  z-index: 100;
+}
+
+.bottom-nav .nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 64px;
+  text-decoration: none;
+}
+
+.bottom-nav .nav-item img {
+  width: 20px;
+  height: 20px;
+}
+
+.bottom-nav .nav-item span {
+  color: #a79c8f;
+  font-size: 10px;
+}
+
+.bottom-nav .nav-item.active span {
+  color: #e8790c;
+  font-weight: 600;
+}
+
+/* Desktop: match the centered app column used by every page (index.css). */
+@media (min-width: 768px) {
+  .bottom-nav {
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 480px;
+    border-left: 1px solid #efe7dc;
+    border-right: 1px solid #efe7dc;
+  }
+}
+</style><nav class="bottom-nav"><a class="nav-item active" href="/home"><img src="data:image/svg+xml,%3csvg%20width='20'%20height='20'%20viewBox='0%200%2020%2020'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M3.33325%209.16668L9.99992%203.33334L16.6666%209.16668'%20stroke='%23E8790C'%20stroke-width='1.5'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3cpath%20d='M5%208.33334V15.8333H15V8.33334'%20stroke='%23E8790C'%20stroke-width='1.5'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Home"><span>Home</span></a><a class="nav-item" href="/assets/asset-01"><img src="data:image/svg+xml,%3csvg%20width='20'%20height='20'%20viewBox='0%200%2020%2020'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M14.9999%204.1665H4.99992C4.07944%204.1665%203.33325%204.9127%203.33325%205.83317V14.1665C3.33325%2015.087%204.07944%2015.8332%204.99992%2015.8332H14.9999C15.9204%2015.8332%2016.6666%2015.087%2016.6666%2014.1665V5.83317C16.6666%204.9127%2015.9204%204.1665%2014.9999%204.1665Z'%20stroke='%23A79C8F'%20stroke-width='1.5'/%3e%3cpath%20d='M3.33325%208.3335H16.6666'%20stroke='%23A79C8F'%20stroke-width='1.5'/%3e%3c/svg%3e" alt="Aset"><span>Aset</span></a><a class="nav-item" href="/rewards/poin-mall-01"><img src="data:image/svg+xml,%3csvg%20width='20'%20height='20'%20viewBox='0%200%2020%2020'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M3.33325%207.50016C3.33325%207.05814%203.50885%206.63421%203.82141%206.32165C4.13397%206.00909%204.55789%205.8335%204.99992%205.8335H14.9999C15.4419%205.8335%2015.8659%206.00909%2016.1784%206.32165C16.491%206.63421%2016.6666%207.05814%2016.6666%207.50016V9.16683C16.2246%209.16683%2015.8006%209.34242%2015.4881%209.65499C15.1755%209.96755%2014.9999%2010.3915%2014.9999%2010.8335C14.9999%2011.2755%2015.1755%2011.6994%2015.4881%2012.012C15.8006%2012.3246%2016.2246%2012.5002%2016.6666%2012.5002V14.1668C16.6666%2014.6089%2016.491%2015.0328%2016.1784%2015.3453C15.8659%2015.6579%2015.4419%2015.8335%2014.9999%2015.8335H4.99992C4.55789%2015.8335%204.13397%2015.6579%203.82141%2015.3453C3.50885%2015.0328%203.33325%2014.6089%203.33325%2014.1668V12.5002C3.77528%2012.5002%204.1992%2012.3246%204.51176%2012.012C4.82432%2011.6994%204.99992%2011.2755%204.99992%2010.8335C4.99992%2010.3915%204.82432%209.96755%204.51176%209.65499C4.1992%209.34242%203.77528%209.16683%203.33325%209.16683V7.50016Z'%20stroke='%23A79C8F'%20stroke-width='1.5'/%3e%3c/svg%3e" alt="Voucher"><span>Voucher</span></a><a class="nav-item" href="/profil"><img src="data:image/svg+xml,%3csvg%20width='20'%20height='20'%20viewBox='0%200%2020%2020'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M9.99992%209.58333C11.6107%209.58333%2012.9166%208.2775%2012.9166%206.66667C12.9166%205.05584%2011.6107%203.75%209.99992%203.75C8.38909%203.75%207.08325%205.05584%207.08325%206.66667C7.08325%208.2775%208.38909%209.58333%209.99992%209.58333Z'%20stroke='%23A79C8F'%20stroke-width='1.5'/%3e%3cpath%20d='M4.16675%2015.8333C4.16675%2012.9167%206.66675%2010.8333%2010.0001%2010.8333C13.3334%2010.8333%2015.8334%2012.9167%2015.8334%2015.8333'%20stroke='%23A79C8F'%20stroke-width='1.5'%20stroke-linecap='round'/%3e%3c/svg%3e" alt="Profil"><span>Profil</span></a></nav></div></div></div>
+  <pre id="homesk-metrics">{
+  "suite": "loading",
+  "errors": [],
+  "timeline": [
+    {
+      "label": "while-loading",
+      "t": 2188,
+      "skeleton": true,
+      "value": ""
+    },
+    {
+      "label": "after-load",
+      "t": 5388,
+      "skeleton": false,
+      "value": "Rp 1.234.567"
+    }
+  ],
+  "state": {
+    "hiddenText": "Rp ΓÇóΓÇóΓÇóΓÇóΓÇóΓÇó",
+    "shownAgainText": "Rp 1.234.567",
+    "path": "/home"
+  },
+  "allPassed": true
+}</pre>
+  <script type="module" src="/tmp-html/homesk/index.html?html-proxy&amp;index=0.js"></script>
+
+
+</body></html>

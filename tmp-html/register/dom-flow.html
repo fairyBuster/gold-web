@@ -1,0 +1,644 @@
+﻿<!DOCTYPE html>
+<html lang="id"><head>
+  <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+  <script type="module" src="/@vite/client"></script>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Daftar Akun ┬╖ Jelajah Emas</title>
+<style type="text/css" data-vite-dev-id="D:/webbaru/src/index.css">/* ============================================================
+
+   App shell styles shared by all converted pages.
+
+   Global resets below match the originals found in every
+
+   global.css, so individual page CSS files only need to carry
+
+   their page-specific (already scoped) rules.
+
+   ============================================================ */
+
+
+
+* {
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0;
+
+  -webkit-tap-highlight-color: transparent;
+
+}
+
+
+
+html,
+
+body,
+
+#root {
+
+  width: 100%;
+
+  min-height: 100vh;
+
+  margin: 0;
+
+  padding: 0;
+
+}
+
+
+
+/* Each converted page renders a single wrapper div below its page root
+
+   (e.g. #root > .page-x > div). The original mobile mockups sized that
+
+   wrapper by its content, which produced narrow centered columns on
+
+   desktop; force it to span the full width so pages have no side gaps. */
+
+#root > div > div {
+
+  width: 100%;
+
+}
+
+
+
+body {
+
+  font-family: 'Inter', sans-serif;
+
+  background-color: #f0e9df;
+
+  /* App-wide background image ΓÇö every page shows it through the
+
+     transparency rule below. */
+
+  background-image: url('/src/assets/images/background.jpg');
+
+  background-size: cover;
+
+  background-position: center top;
+
+  background-repeat: no-repeat;
+
+  background-attachment: fixed;
+
+  color: #1a1410;
+
+  min-height: 100vh;
+
+}
+
+
+
+/* Page wrappers paint their own opaque canvas; make them transparent so
+
+   the shared background image is visible on all pages. */
+
+#root > [class^="page-"] {
+
+  background-color: transparent;
+
+}
+
+
+
+a {
+
+  text-decoration: none;
+
+  color: inherit;
+
+}
+
+
+
+button {
+
+  border: none;
+
+  background: none;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+}
+
+
+
+input,
+
+textarea,
+
+select {
+
+  font-family: inherit;
+
+}
+
+
+
+/* ============================================================
+
+   Screen directory (route "/")
+
+   ============================================================ */
+
+
+
+.screen-index {
+
+  max-width: 1080px;
+
+  margin: 0 auto;
+
+  padding: 48px 24px 80px;
+
+}
+
+
+
+.screen-index__header {
+
+  text-align: center;
+
+  margin-bottom: 36px;
+
+}
+
+
+
+.screen-index__title {
+
+  font-size: 32px;
+
+  font-weight: 700;
+
+  color: #1a1410;
+
+  margin-bottom: 8px;
+
+}
+
+
+
+.screen-index__title span {
+
+  color: #e8790c;
+
+}
+
+
+
+.screen-index__subtitle {
+
+  font-size: 14px;
+
+  color: #8a7d6d;
+
+  margin-bottom: 24px;
+
+}
+
+
+
+.screen-index__search {
+
+  width: 100%;
+
+  max-width: 420px;
+
+  padding: 13px 18px;
+
+  font-size: 14px;
+
+  border: 1px solid #e2d8c8;
+
+  border-radius: 12px;
+
+  background-color: #fffbf4;
+
+  color: #1a1410;
+
+  outline: none;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__search:focus {
+
+  border-color: #e8790c;
+
+  box-shadow: 0 0 0 3px rgba(232, 121, 12, 0.15);
+
+}
+
+
+
+.screen-index__grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+
+  gap: 12px;
+
+}
+
+
+
+.screen-index__card {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  padding: 16px 18px;
+
+  background-color: #fffbf4;
+
+  border: 1px solid #e9dfd1;
+
+  border-radius: 14px;
+
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__card:hover {
+
+  border-color: #e8790c;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 10px 24px rgba(26, 20, 16, 0.08);
+
+}
+
+
+
+.screen-index__card-label {
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  color: #1a1410;
+
+}
+
+
+
+.screen-index__card-path {
+
+  font-size: 12px;
+
+  color: #b3a795;
+
+  font-family: 'SFMono-Regular', Consolas, monospace;
+
+}
+
+
+
+.screen-index__empty {
+
+  grid-column: 1 / -1;
+
+  text-align: center;
+
+  padding: 40px 0;
+
+  color: #b3a795;
+
+  font-size: 14px;
+
+}
+
+
+
+.screen-index__group {
+
+  margin-bottom: 32px;
+
+}
+
+
+
+.screen-index__group-title {
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  color: #8a7d6d;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+
+  margin-bottom: 12px;
+
+}
+
+
+
+/* ============================================================
+
+   Desktop layout (ΓëÑ768px) for all app screens.
+
+   Below 768px every page keeps its original mobile layout as-is.
+
+   From 768px up the page content renders as a centered app column
+
+   while backgrounds stay full-bleed on the page root, so no
+
+   phone-frame edges or side gaps appear. The landing page has its
+
+   own desktop layout (see LandingPagePerusahaan.jsx).
+
+   ============================================================ */
+
+
+
+@media (min-width: 768px) {
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > div,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > main,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > section {
+
+    max-width: 480px;
+
+    margin-left: auto;
+
+    margin-right: auto;
+
+    box-shadow: none;
+
+  }
+
+}
+
+
+
+/* Inner full-page containers keep a mobile drop shadow; drop it on desktop
+
+   too (they sit below the capped element, so the rule above does not reach
+
+   them). Selectors carry the #root prefix so they outrank the per-page
+
+   \3c style> blocks injected later in the document. */
+
+@media (min-width: 768px) {
+
+  #root .page-register-01 .app-container,
+
+  #root .page-register-04 .mobile-container,
+
+  #root .page-notifikasi-login .screen-container,
+
+  #root .page-notif-screen .screen-container,
+
+  #root .page-kartu-bank .mobile-app-container,
+
+  #root .page-beri-rating section:first-of-type,
+
+  #root .page-beri-rating section:last-of-type,
+
+  #root .page-livechat .input-container {
+
+    box-shadow: none;
+
+  }
+
+}
+
+</style></head>
+<body>
+  <div id="root"><div class="page-register-04"><style>
+/* Scoped styles for Register04 ΓÇö converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-register-04 to isolate this page. */
+
+.page-register-04 {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f5f5f5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  width: 100%;
+  /* Full-bleed page canvas ΓÇö glows + opaque base so the artwork survives the
+     global transparent-root rule. */
+  background-image: 
+    radial-gradient(circle at 80% 15%, rgba(255, 201, 60, 0.15) 0%, transparent 60%),
+    radial-gradient(circle at 20% 85%, rgba(255, 159, 28, 0.12) 0%, transparent 60%),
+    linear-gradient(#fffbf4, #fffbf4);
+}
+
+.page-register-04, .page-register-04 * {
+  box-sizing: border-box;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:SuccessScreen */
+.page-register-04 #section-success {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .page-register-04 .mobile-container {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
+    box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
+    display: flex;
+    flex-direction: column;
+    padding: 268px 24px 28px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-register-04 .content-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-grow: 1;
+  }
+
+  .page-register-04 .success-icon {
+    width: 120px;
+    height: 125px;
+    object-fit: contain;
+    margin-bottom: 20px;
+  }
+
+  .page-register-04 .success-title {
+    color: #1a1410;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .page-register-04 .success-description {
+    color: #514840;
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: center;
+    margin: 0;
+    padding: 0 4px;
+  }
+
+  .page-register-04 .action-area {
+    width: 100%;
+    margin-top: 32px;
+    padding-top: 20px;
+  }
+
+  .page-register-04 .btn-primary {
+    background-color: #1a1410;
+    color: #ffffff;
+    width: 100%;
+    padding: 15px;
+    border-radius: 5px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .page-register-04 .btn-primary:hover {
+    background-color: #332820;
+  }
+  
+  .page-register-04 .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  /* Responsive adjustments for actual mobile devices */
+  @media (max-width: 480px) {
+    .page-register-04 #section-success {
+      padding: 0;
+      align-items: flex-start;
+    }
+    
+    .page-register-04 .mobile-container {
+      min-height: 100vh;
+      box-shadow: none;
+      border-radius: 0;
+      padding-top: 30vh; /* Adjust top padding for smaller screens */
+    }
+  }
+</style><section id="section-success"><div class="mobile-container"><div class="content-area"><img src="/src/assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.png" alt="Success Illustration" class="success-icon"><h1 class="success-title">Akun Berhasil Dibuat</h1><p class="success-description">Akun Jelajah Emas kamu sudah siap digunakan. Yuk, mulai jelajahi informasi dan layanan emas digital bersama Jelajah Emas.</p></div><div class="action-area"><button class="btn-primary">Lanjut</button></div></div></section></div></div>
+  <pre id="register-metrics">{
+  "suite": "flow",
+  "errors": [],
+  "scenarios": {
+    "emptyForm": {
+      "title": "Lengkapi Data",
+      "desc": "Masukkan nama pengguna kamu.",
+      "expectedDesc": "Masukkan nama pengguna kamu.",
+      "passed": true
+    },
+    "nameBadFormat": {
+      "title": "Lengkapi Data",
+      "desc": "Nama pengguna hanya boleh berisi huruf, angka, dan spasi.",
+      "expectedDesc": "Nama pengguna hanya boleh berisi huruf, angka, dan spasi.",
+      "passed": true
+    },
+    "emailBadFormat": {
+      "title": "Lengkapi Data",
+      "desc": "Masukkan alamat email yang valid.",
+      "expectedDesc": "Masukkan alamat email yang valid.",
+      "passed": true
+    },
+    "phoneEmpty": {
+      "title": "Lengkapi Data",
+      "desc": "Masukkan nomor ponsel yang valid.",
+      "expectedDesc": "Masukkan nomor ponsel yang valid.",
+      "passed": true
+    },
+    "referralEmpty": {
+      "title": "Lengkapi Data",
+      "desc": "Masukkan kode referral kamu.",
+      "expectedDesc": "Masukkan kode referral kamu.",
+      "passed": true
+    },
+    "captchaUnchecked": {
+      "title": "Lengkapi Data",
+      "desc": "Centang \"Saya bukan robot\" dulu ya.",
+      "expectedDesc": "Centang \"Saya bukan robot\" dulu ya.",
+      "passed": true
+    },
+    "passwordMismatch": {
+      "title": "Password Tidak Sesuai",
+      "desc": "Konfirmasi password tidak sama.",
+      "expectedDesc": "Konfirmasi password tidak sama.",
+      "passed": true
+    }
+  },
+  "fetchCalls": [
+    {
+      "url": "https://backend.scagerwebsite.uk/api/auth/register/",
+      "body": "{\"username\":\"628123456789\",\"password\":\"rahasia123\",\"password2\":\"rahasia123\",\"email\":\"budi@example.com\",\"full_name\":\"Budi Santoso\",\"phone\":\"628123456789\",\"referral_code\":\"REF123\",\"otp\":\"\",\"withdraw_pin\":\"\"}"
+    }
+  ],
+  "pageRendered": true,
+  "reachedStep2": true,
+  "reachedStep3": true,
+  "reachedStep4": true,
+  "registerCalled": true,
+  "registerPayload": {
+    "username": "628123456789",
+    "password": "rahasia123",
+    "password2": "rahasia123",
+    "email": "budi@example.com",
+    "full_name": "Budi Santoso",
+    "phone": "628123456789",
+    "referral_code": "REF123",
+    "otp": "",
+    "withdraw_pin": ""
+  },
+  "payloadChecks": {
+    "fullName": true,
+    "email": true,
+    "username": true,
+    "phone": true,
+    "referral": true,
+    "password": true
+  },
+  "allPassed": true
+}</pre>
+  <script type="module" src="/tmp-html/register/index.html?html-proxy&amp;index=0.js"></script>
+
+
+</body></html>

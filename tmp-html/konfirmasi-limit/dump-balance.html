@@ -1,0 +1,738 @@
+﻿<!DOCTYPE html>
+<html lang="id"><head>
+  <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+  <script type="module" src="/@vite/client"></script>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KONFIRMASI-FLOW-DONE</title>
+<style type="text/css" data-vite-dev-id="D:/webbaru/src/index.css">/* ============================================================
+
+   App shell styles shared by all converted pages.
+
+   Global resets below match the originals found in every
+
+   global.css, so individual page CSS files only need to carry
+
+   their page-specific (already scoped) rules.
+
+   ============================================================ */
+
+
+
+* {
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0;
+
+  -webkit-tap-highlight-color: transparent;
+
+}
+
+
+
+html,
+
+body,
+
+#root {
+
+  width: 100%;
+
+  min-height: 100vh;
+
+  margin: 0;
+
+  padding: 0;
+
+}
+
+
+
+/* Each converted page renders a single wrapper div below its page root
+
+   (e.g. #root > .page-x > div). The original mobile mockups sized that
+
+   wrapper by its content, which produced narrow centered columns on
+
+   desktop; force it to span the full width so pages have no side gaps. */
+
+#root > div > div {
+
+  width: 100%;
+
+}
+
+
+
+body {
+
+  font-family: 'Inter', sans-serif;
+
+  background-color: #f0e9df;
+
+  /* App-wide background image ΓÇö every page shows it through the
+
+     transparency rule below. */
+
+  background-image: url('/src/assets/images/background.jpg');
+
+  background-size: cover;
+
+  background-position: center top;
+
+  background-repeat: no-repeat;
+
+  background-attachment: fixed;
+
+  color: #1a1410;
+
+  min-height: 100vh;
+
+}
+
+
+
+/* Page wrappers paint their own opaque canvas; make them transparent so
+
+   the shared background image is visible on all pages. */
+
+#root > [class^="page-"] {
+
+  background-color: transparent;
+
+}
+
+
+
+a {
+
+  text-decoration: none;
+
+  color: inherit;
+
+}
+
+
+
+button {
+
+  border: none;
+
+  background: none;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+}
+
+
+
+input,
+
+textarea,
+
+select {
+
+  font-family: inherit;
+
+}
+
+
+
+/* ============================================================
+
+   Screen directory (route "/")
+
+   ============================================================ */
+
+
+
+.screen-index {
+
+  max-width: 1080px;
+
+  margin: 0 auto;
+
+  padding: 48px 24px 80px;
+
+}
+
+
+
+.screen-index__header {
+
+  text-align: center;
+
+  margin-bottom: 36px;
+
+}
+
+
+
+.screen-index__title {
+
+  font-size: 32px;
+
+  font-weight: 700;
+
+  color: #1a1410;
+
+  margin-bottom: 8px;
+
+}
+
+
+
+.screen-index__title span {
+
+  color: #e8790c;
+
+}
+
+
+
+.screen-index__subtitle {
+
+  font-size: 14px;
+
+  color: #8a7d6d;
+
+  margin-bottom: 24px;
+
+}
+
+
+
+.screen-index__search {
+
+  width: 100%;
+
+  max-width: 420px;
+
+  padding: 13px 18px;
+
+  font-size: 14px;
+
+  border: 1px solid #e2d8c8;
+
+  border-radius: 12px;
+
+  background-color: #fffbf4;
+
+  color: #1a1410;
+
+  outline: none;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__search:focus {
+
+  border-color: #e8790c;
+
+  box-shadow: 0 0 0 3px rgba(232, 121, 12, 0.15);
+
+}
+
+
+
+.screen-index__grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+
+  gap: 12px;
+
+}
+
+
+
+.screen-index__card {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  padding: 16px 18px;
+
+  background-color: #fffbf4;
+
+  border: 1px solid #e9dfd1;
+
+  border-radius: 14px;
+
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__card:hover {
+
+  border-color: #e8790c;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 10px 24px rgba(26, 20, 16, 0.08);
+
+}
+
+
+
+.screen-index__card-label {
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  color: #1a1410;
+
+}
+
+
+
+.screen-index__card-path {
+
+  font-size: 12px;
+
+  color: #b3a795;
+
+  font-family: 'SFMono-Regular', Consolas, monospace;
+
+}
+
+
+
+.screen-index__empty {
+
+  grid-column: 1 / -1;
+
+  text-align: center;
+
+  padding: 40px 0;
+
+  color: #b3a795;
+
+  font-size: 14px;
+
+}
+
+
+
+.screen-index__group {
+
+  margin-bottom: 32px;
+
+}
+
+
+
+.screen-index__group-title {
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  color: #8a7d6d;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+
+  margin-bottom: 12px;
+
+}
+
+
+
+/* ============================================================
+
+   Desktop layout (ΓëÑ768px) for all app screens.
+
+   Below 768px every page keeps its original mobile layout as-is.
+
+   From 768px up the page content renders as a centered app column
+
+   while backgrounds stay full-bleed on the page root, so no
+
+   phone-frame edges or side gaps appear. The landing page has its
+
+   own desktop layout (see LandingPagePerusahaan.jsx).
+
+   ============================================================ */
+
+
+
+@media (min-width: 768px) {
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > div,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > main,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > section {
+
+    max-width: 480px;
+
+    margin-left: auto;
+
+    margin-right: auto;
+
+    box-shadow: none;
+
+  }
+
+}
+
+
+
+/* Inner full-page containers keep a mobile drop shadow; drop it on desktop
+
+   too (they sit below the capped element, so the rule above does not reach
+
+   them). Selectors carry the #root prefix so they outrank the per-page
+
+   \3c style> blocks injected later in the document. */
+
+@media (min-width: 768px) {
+
+  #root .page-register-01 .app-container,
+
+  #root .page-register-04 .mobile-container,
+
+  #root .page-notifikasi-login .screen-container,
+
+  #root .page-notif-screen .screen-container,
+
+  #root .page-kartu-bank .mobile-app-container,
+
+  #root .page-beri-rating section:first-of-type,
+
+  #root .page-beri-rating section:last-of-type,
+
+  #root .page-livechat .input-container {
+
+    box-shadow: none;
+
+  }
+
+}
+
+</style></head>
+<body>
+  <div id="root"><div class="page-konfirmasi"><style>
+/* Scoped styles for Konfirmasi ΓÇö page shell + loading/error states.
+   The modal itself lives in src/components/ModalKonfirmasi.jsx (styles inline in that file). */
+
+.page-konfirmasi {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f0f0f0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  width: 100%;
+}
+.page-konfirmasi, .page-konfirmasi * {
+  box-sizing: border-box;
+}
+
+/* Shown while the product detail loads or when it is missing / failed. */
+.page-konfirmasi .status-wrap {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+}
+.page-konfirmasi .status-text {
+  color: #514840;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 300px;
+}
+.page-konfirmasi .primary-btn {
+  background-color: #f1b04a;
+  color: #1a1410;
+  border: none;
+  border-radius: 14px;
+  padding: 13px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.page-konfirmasi .primary-btn:hover {
+  background-color: #e0a03a;
+}
+</style><style>
+.modal-konfirmasi .modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(26, 20, 16, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  z-index: 1000;
+}
+
+.modal-konfirmasi .modal-container {
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 340px;
+  border-radius: 20px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
+}
+
+.modal-konfirmasi .modal-header {
+  border-bottom: 1px solid #efe7dc;
+  padding-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.modal-konfirmasi .modal-title {
+  color: #1a1410;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.modal-konfirmasi .modal-subtitle {
+  color: #a79c8f;
+  font-size: 12px;
+  font-weight: 400;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.modal-konfirmasi .modal-body {
+  display: flex;
+  flex-direction: column;
+  padding-top: 23px;
+}
+
+.modal-konfirmasi .detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+}
+
+.modal-konfirmasi .detail-row:first-child {
+  padding-top: 0;
+}
+
+.modal-konfirmasi .detail-row:last-child {
+  padding-bottom: 13px;
+}
+
+.modal-konfirmasi .detail-label {
+  color: #514840;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.modal-konfirmasi .detail-value {
+  color: #1a1410;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.modal-konfirmasi .modal-total {
+  border-top: 1px solid #efe7dc;
+  padding-top: 12px;
+  padding-bottom: 7px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-konfirmasi .total-label {
+  color: #1a1410;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.modal-konfirmasi .total-value {
+  color: #e8790c;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.modal-konfirmasi .modal-disclaimer {
+  padding-top: 13px;
+  padding-bottom: 18px;
+}
+
+.modal-konfirmasi .modal-disclaimer p {
+  color: #a79c8f;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.modal-konfirmasi .modal-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 18px;
+}
+
+.modal-konfirmasi .btn {
+  flex: 1;
+  padding: 13px 4px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  font-family: inherit;
+  transition: opacity 0.2s ease;
+}
+
+.modal-konfirmasi .btn:not(:disabled):hover {
+  opacity: 0.9;
+}
+
+.modal-konfirmasi .btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.modal-konfirmasi .btn-cancel {
+  background-color: #f6f1e9;
+  color: #514840;
+}
+
+.modal-konfirmasi .btn-activate {
+  background-color: #f1b04a;
+  color: #1a1410;
+}
+</style><div class="modal-konfirmasi"><div class="modal-overlay"><div class="modal-container"><div class="modal-header"><h2 class="modal-title">Konfirmasi Aktivasi</h2><p class="modal-subtitle">Periksa kembali sebelum melanjutkan</p></div><div class="modal-body"><div class="detail-row"><span class="detail-label">Jenis</span><span class="detail-value">Logam 24K</span></div><div class="detail-row"><span class="detail-label">Pembagian manfaat</span><span class="detail-value">Rp6.250 ΓÇô Rp10.350</span></div><div class="detail-row"><span class="detail-label">Sumber Dana</span><span class="detail-value">Saldo Deposit</span></div></div><div class="modal-total"><span class="total-label">Estimasi Biaya</span><span class="total-value">Rp50.000</span></div><div class="modal-disclaimer"><p>Dengan menekan aktifkan, Anda menyetujui partisipasi rencana ini secara sadar sesuai dengan ketentuan yang berlaku</p></div><style>
+.notif-card {
+  width: 100%;
+  background-color: #ffffff;
+  border: 1px solid #efe7dc;
+  border-radius: 16px;
+  box-shadow: 0px 10px 24px 0px rgba(26, 20, 16, 0.1);
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  text-align: left;
+}
+
+.notif-card .icon-wrapper {
+  background-color: rgba(255, 159, 28, 0.14);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.notif-card .notif-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.notif-card.error .icon-wrapper {
+  background-color: rgba(226, 76, 76, 0.12);
+}
+
+.notif-card .text-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-grow: 1;
+  padding-top: 2px;
+}
+
+.notif-card .notification-title {
+  margin: 0;
+  color: #1a1410;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.notif-card .notification-desc {
+  margin: 0;
+  color: #514840;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.notif-card .close-button {
+  background-color: #f6f1e9;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.notif-card .close-button:hover {
+  background-color: #eaddc9;
+}
+
+.notif-card .close-icon {
+  width: 10px;
+  height: 10px;
+  object-fit: contain;
+}
+</style><div class="notif-card error"><div class="icon-wrapper"><img src="data:image/svg+xml,%3csvg%20width='18'%20height='18'%20viewBox='0%200%2018%2018'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M9%202.6v7.2'%20stroke='%23e24c4c'%20stroke-width='2.6'%20stroke-linecap='round'/%3e%3ccircle%20cx='9'%20cy='14.4'%20r='1.5'%20fill='%23e24c4c'/%3e%3c/svg%3e" alt="Error Icon" class="notif-icon"></div><div class="text-content"><h3 class="notification-title">Aktivasi Gagal</h3><p class="notification-desc">Saldo tidak mencukupi. Silakan isi ulang.</p></div></div><div class="modal-actions"><button type="button" class="btn btn-cancel">Batal</button><button type="button" class="btn btn-activate">Aktifkan</button></div></div></div></div></div></div>
+  <pre id="kf-metrics">{
+  "errors": [],
+  "case": "balance",
+  "notifTitle": "Aktivasi Gagal",
+  "notifDesc": "Saldo tidak mencukupi. Silakan isi ulang.",
+  "pageText": "\n  \n/* Scoped styles for Konfirmasi ΓÇö page shell + loading/error states.\n   The modal itself lives in src/components/ModalKonfirmasi.jsx (styles inline in that file). */\n\n.page-konfirmasi {\n  font-family: 'Inter', sans-serif;\n  margin: 0;\n  padding: 0;\n  background-color: #f0f0f0;\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n  min-height: 100vh;\n  width: 100%;\n}\n.page-konfirmasi, .page-konfirmasi * {\n  box-sizing: border-box;\n}\n\n/* Shown while the product detail loads or when it is missing / failed. */\n.page-konfirmasi .status-wrap {\n  min-height: 100vh;\n  display: flex;\n  flex-direction: column;\n  justify-content: center;\n  align-items: center;\n  gap: 16px;\n  padding: 24px;\n  text-align: center;\n}\n.page-konfirmasi .status-text {\n  color: #514840;\n  font-size: 14px;\n  line-height: 1.5;\n  margin: 0;\n  max-width: 300px;\n}\n.page-konfirmasi .primary-btn {\n  background-color: #f1b04a;\n  color: #1a1410;\n  border: none;\n  border-radius: 14px;\n  padding: 13px 24px;\n  font-size: 14px;\n  font-weight: 700;\n  cursor: pointer;\n  font-family: inherit;\n}\n.page-konfirmasi .primary-btn:hover {\n  background-color: #e0a03a;\n}\n\n.modal-konfirmasi .modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  background-color: rgba(26, 20, 16, 0.5);\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  padding: 24px;\n  z-index: 1000;\n}\n\n.modal-konfirmasi .modal-container {\n  background-color: #ffffff;\n  width: 100%;\n  max-width: 340px;\n  border-radius: 20px;\n  padding: 22px;\n  display: flex;\n  flex-direction: column;\n  box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);\n}\n\n.modal-konfirmasi .modal-header {\n  border-bottom: 1px solid #efe7dc;\n  padding-bottom: 16px;\n  display: flex;\n  flex-direction: column;\n  gap: 2px;\n}\n\n.modal-konfirmasi .modal-title {\n  color: #1a1410;\n  font-size: 16px;\n  font-weight: 700;\n  margin: 0;\n  line-height: 1.2;\n}\n\n.modal-konfirmasi .modal-subtitle {\n  color: #a79c8f;\n  font-size: 12px;\n  font-weight: 400;\n  margin: 0;\n  line-height: 1.2;\n}\n\n.modal-konfirmasi .modal-body {\n  display: flex;\n  flex-direction: column;\n  padding-top: 23px;\n}\n\n.modal-konfirmasi .detail-row {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  padding: 7px 0;\n}\n\n.modal-konfirmasi .detail-row:first-child {\n  padding-top: 0;\n}\n\n.modal-konfirmasi .detail-row:last-child {\n  padding-bottom: 13px;\n}\n\n.modal-konfirmasi .detail-label {\n  color: #514840;\n  font-size: 14px;\n  font-weight: 400;\n}\n\n.modal-konfirmasi .detail-value {\n  color: #1a1410;\n  font-size: 14px;\n  font-weight: 600;\n}\n\n.modal-konfirmasi .modal-total {\n  border-top: 1px solid #efe7dc;\n  padding-top: 12px;\n  padding-bottom: 7px;\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n}\n\n.modal-konfirmasi .total-label {\n  color: #1a1410;\n  font-size: 14px;\n  font-weight: 700;\n}\n\n.modal-konfirmasi .total-value {\n  color: #e8790c;\n  font-size: 16px;\n  font-weight: 700;\n}\n\n.modal-konfirmasi .modal-disclaimer {\n  padding-top: 13px;\n  padding-bottom: 18px;\n}\n\n.modal-konfirmasi .modal-disclaimer p {\n  color: #a79c8f;\n  font-size: 11px;\n  font-weight: 400;\n  line-height: 1.5;\n  margin: 0;\n}\n\n.modal-konfirmasi .modal-actions {\n  display: flex;\n  gap: 10px;\n  padding-top: 18px;\n}\n\n.modal-konfirmasi .btn {\n  flex: 1;\n  padding: 13px 4px;\n  border-radius: 12px;\n  border: none;\n  font-size: 14px;\n  font-weight: 600;\n  cursor: pointer;\n  text-align: center;\n  font-family: inherit;\n  transition: opacity 0.2s ease;\n}\n\n.modal-konfirmasi .btn:not(:disabled):hover {\n  opacity: 0.9;\n}\n\n.modal-konfirmasi .btn:disabled {\n  opacity: 0.6;\n  cursor: default;\n}\n\n.modal-konfirmasi .btn-cancel {\n  background-color: #f6f1e9;\n  color: #514840;\n}\n\n.modal-konfirmasi .btn-activate {\n  background-color: #f1b04a;\n  color: #1a1410;\n}\nKonfirmasi AktivasiPeriksa kembali sebelum melanjutkanJenisLogam 24KPembagian manfaatRp6.250 ΓÇô Rp10.350Sumber DanaSaldo DepositEstimasi BiayaRp50.000Dengan menekan aktifkan, Anda menyetujui partisipasi rencana ini secara sadar sesuai dengan ketentuan yang berlaku\n.notif-card {\n  width: 100%;\n  background-color: #ffffff;\n  border: 1px solid #efe7dc;\n  border-radius: 16px;\n  box-shadow: 0px 10px 24px 0px rgba(26, 20, 16, 0.1);\n  display: flex;\n  flex-direction: row;\n  align-items: flex-start;\n  gap: 12px;\n  padding: 14px 16px;\n  text-align: left;\n}\n\n.notif-card .icon-wrapper {\n  background-color: rgba(255, 159, 28, 0.14);\n  width: 36px;\n  height: 36px;\n  border-radius: 10px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  flex-shrink: 0;\n}\n\n.notif-card .notif-icon {\n  width: 18px;\n  height: 18px;\n  object-fit: contain;\n}\n\n.notif-card.error .icon-wrapper {\n  background-color: rgba(226, 76, 76, 0.12);\n}\n\n.notif-card .text-content {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n  flex-grow: 1;\n  padding-top: 2px;\n}\n\n.notif-card .notification-title {\n  margin: 0;\n  color: #1a1410;\n  font-size: 14px;\n  font-weight: 700;\n  line-height: 1.2;\n}\n\n.notif-card .notification-desc {\n  margin: 0;\n  color: #514840;\n  font-size: 12px;\n  font-weight: 400;\n  line-height: 1.5;\n}\n\n.notif-card .close-button {\n  background-color: #f6f1e9;\n  width: 22px;\n  height: 22px;\n  border-radius: 50%;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  flex-shrink: 0;\n  border: none;\n  padding: 0;\n  cursor: pointer;\n  transition: background-color 0.2s ease;\n}\n\n.notif-card .close-button:hover {\n  background-color: #eaddc9;\n}\n\n.notif-card .close-icon {\n  width: 10px;\n  height: 10px;\n  object-fit: contain;\n}\nAktivasi GagalSaldo tidak mencukupi. Silakan isi ulang.BatalAktifkan\n  pending\n  \n\n\n",
+  "finalPath": "/assets/konfirmasi",
+  "allPassed": true
+}</pre>
+  <script type="module" src="/tmp-html/konfirmasi-limit/index.html?html-proxy&amp;index=0.js"></script>
+
+
+</body></html>

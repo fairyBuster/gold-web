@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>VIDEO-PROBE-RUNNING</title>
+</head>
+<body>
+  <pre id="probe-metrics">pending</pre>
+  <script type="module">
+    /* Baca metadata video promosi (dimensi & durasi asli) supaya frame di
+       LandingPagePerusahaan bisa disetel sebanding -> tidak ada crop. */
+    const metrics = { errors: [] };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    const video = document.createElement('video');
+    video.src = '/src/assets/video/video.mp4';
+    video.muted = true;
+    let finished = false;
+    function done() {
+      if (finished) return;
+      finished = true;
+      document.getElementById('probe-metrics').textContent = JSON.stringify(metrics, null, 2);
+      document.title = 'VIDEO-PROBE-DONE';
+    }
+    video.addEventListener('loadedmetadata', () => {
+      metrics.videoWidth = video.videoWidth;
+      metrics.videoHeight = video.videoHeight;
+      metrics.ratio = +(video.videoWidth / video.videoHeight).toFixed(4);
+      metrics.duration = +video.duration.toFixed(2);
+      done();
+    });
+    video.addEventListener('error', () => {
+      metrics.errors.push('video load error code=' + (video.error ? video.error.code : '?'));
+      done();
+    });
+    setTimeout(done, 15000);
+  </script>
+</body>
+</html>

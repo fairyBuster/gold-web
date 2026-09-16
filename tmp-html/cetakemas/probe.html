@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CETAKEMAS-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="cetakemas-metrics">pending</pre>
+  <script type="module">
+    /* Verifikasi skeleton loading CetakEmas.jsx via ?case=<mode>:
+       - mode -pending : semua /api/* menggantung → bar shimmer harus tampil
+         di saldo emas, detail pencetakan, alamat, ringkasan/rincian biaya,
+         dan kartu order step 3 (handoff riwayat);
+       - mode -settled : response salt-encoded termuat → tidak ada bar,
+         nilai asli (rupiah/gram/status) tampil persis.
+       Step 3 dimasuki lewat location.state.goldOrderId palsu (history.state
+       .usr — format react-router) supaya jalur fetch handoff berjalan. */
+    const metrics = { errors: [] };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const caseName = new URLSearchParams(window.location.search).get('case') || 's1-pending';
+    metrics.case = caseName;
+    const settled = caseName.endsWith('-settled') || caseName === 's1-back';
+
+    const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+    const encodeSalted = (obj) => {
+      const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+      return { data: [...(base64 + SALT)].reverse().join('') };
+    };
+    const jsonResponse = (status, payload) => new Response(JSON.stringify(payload), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const pending = () => new Promise(() => {});
+
+    const GOLD_INFO = {
+      is_active: true,
+      price_available: true,
+      price_per_gram: '1250000',
+      printing_fee_per_gram: '25000',
+      shipping_cost: '30000',
+      balance_hold: '2500000',
+      balance_deposit: '500000',
+    };
+    const ADDRESSES = {
+      count: 1,
+      next: null,
+      previous: null,
+      results: [{
+        id: 7,
+        recipient_name: 'Budi Santoso',
+        address_details: 'Jl. Merdeka No. 1, Jakarta',
+        is_primary: true,
+      }],
+    };
+    const ORDER = {
+      id: 99,
+      gram: '2',
+      total_fee: '80000',
+      status: 'PROCESSING',
+      created_at: '2026-09-16T09:15:00Z',
+      tracking_number: '',
+    };
+
+    window.fetch = (input) => {
+      const url = typeof input === 'string' ? input : (input?.url || '');
+      if (url.includes('/api/gold/info/')) return settled ? Promise.resolve(jsonResponse(200, encodeSalted(GOLD_INFO))) : pending();
+      if (url.includes('/api/auth/address/')) return settled ? Promise.resolve(jsonResponse(200, encodeSalted(ADDRESSES))) : pending();
+      if (url.includes('/api/gold/orders/')) return settled ? Promise.resolve(jsonResponse(200, encodeSalted(ORDER))) : pending();
+      return settled ? Promise.resolve(jsonResponse(404, {})) : pending();
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+    sessionStorage.clear();
+    if (caseName.startsWith('s2')) sessionStorage.setItem('je_gold_swap_gram', '2');
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, timeout = 8000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const value = fn();
+        if (value) return value;
+        await sleep(50);
+      }
+      return null;
+    };
+    const text = (sel) => document.querySelector(sel)?.textContent.trim() || '';
+    const texts = (sel) => [...document.querySelectorAll(sel)].map((el) => el.textContent.trim());
+
+    if (caseName.startsWith('s3')) {
+      history.replaceState({ usr: { goldOrderId: 99 }, key: 'e2e', idx: 1 }, '', '/index/assets/cetak-emas-03');
+    } else if (caseName.startsWith('s2')) {
+      history.replaceState(null, '', '/index/assets/cetak-emas-02');
+    } else {
+      history.replaceState(null, '', '/index/assets/cetak-emas-01');
+    }
+    await import('/src/main.jsx');
+
+    if (caseName === 's1-back') {
+      /* Tombol back step 1 harus langsung ke Beranda (bukan history.back). */
+      const backBtn = await waitFor(() => document.querySelector('.page-cetak-emas-01 .back-btn'));
+      backBtn?.click();
+      await waitFor(() => window.location.pathname === '/index/home' && document.querySelector('.page-home'), 5000);
+      metrics.pathAfterBack = window.location.pathname;
+      metrics.homeRendered = !!document.querySelector('.page-home');
+      metrics.allPassed =
+        metrics.pathAfterBack === '/index/home' && metrics.homeRendered &&
+        metrics.errors.length === 0;
+    }
+
+    if (caseName.startsWith('s1') && caseName !== 's1-back') {
+      await waitFor(() => document.querySelector('.page-cetak-emas-01 .balance-card'));
+      metrics.skeletonCount = document.querySelectorAll('.page-cetak-emas-01 .skeleton-bar').length;
+      metrics.balanceBarInAmount = !!document.querySelector('.balance-amount .skeleton-bar');
+      metrics.balanceBarInSub = !!document.querySelector('.balance-sub .skeleton-bar');
+      metrics.balanceAmountText = text('.balance-amount');
+      metrics.balanceSubText = text('.balance-sub');
+      metrics.detailValues = texts('.details-card .detail-value');
+      metrics.summaryValues = texts('.summary-card .summary-value');
+      metrics.addressName = text('.address-name');
+      metrics.addressText = text('.address-text');
+      /* Bukti visual bar: ukuran render, gradient tint, dan animasi shimmer
+         diambil dari computed style (bukan sekadar keberadaan di DOM). */
+      const amountBar = document.querySelector('.balance-amount .skeleton-bar');
+      const detailBar = document.querySelector('.details-card .skeleton-bar');
+      if (amountBar) {
+        const cs = getComputedStyle(amountBar);
+        metrics.amountBarSize = Math.round(amountBar.getBoundingClientRect().width) + 'x' + Math.round(amountBar.getBoundingClientRect().height);
+        metrics.amountBarLight = amountBar.classList.contains('skeleton-bar-light');
+        metrics.amountBarGradient = cs.backgroundImage.includes('rgba(255, 249, 242');
+        metrics.amountBarAnimation = cs.animationName;
+      }
+      if (detailBar) {
+        const cs = getComputedStyle(detailBar);
+        metrics.detailBarSize = Math.round(detailBar.getBoundingClientRect().width) + 'x' + Math.round(detailBar.getBoundingClientRect().height);
+        metrics.detailBarGradient = cs.backgroundImage.includes('rgba(26, 20, 16');
+      }
+      if (caseName === 's1-pending') {
+        metrics.allPassed =
+          metrics.skeletonCount === 10 &&
+          metrics.balanceBarInAmount && metrics.balanceBarInSub &&
+          metrics.balanceAmountText === '' && metrics.balanceSubText === '' &&
+          metrics.detailValues[1] === '' && metrics.detailValues[2] === '' &&
+          metrics.summaryValues.every((t) => t === '') &&
+          metrics.addressName === '' && metrics.addressText === '' &&
+          metrics.amountBarSize === '110x20' && metrics.amountBarLight &&
+          metrics.amountBarGradient && metrics.amountBarAnimation === 'cetak-emas-shimmer' &&
+          metrics.detailBarSize === '84x11' && metrics.detailBarGradient &&
+          metrics.errors.length === 0;
+      } else {
+        metrics.allPassed =
+          metrics.skeletonCount === 0 &&
+          metrics.balanceAmountText === '2 gram' &&
+          metrics.balanceSubText === 'Saldo Deposit Rp 500.000' &&
+          metrics.detailValues[0] === '1 gram' && metrics.detailValues[1] === 'Rp 1.250.000' &&
+          metrics.detailValues[2] === 'Rp 25.000' && metrics.detailValues[3] === '30–40 hari kerja' &&
+          metrics.detailValues[4] === 'Disertakan' &&
+          metrics.summaryValues.join('|') === 'Rp 1.250.000|Rp 25.000|Rp 30.000|Rp 55.000' &&
+          metrics.addressName === 'Budi Santoso' &&
+          metrics.addressText === 'Jl. Merdeka No. 1, Jakarta' &&
+          metrics.errors.length === 0;
+      }
+    }
+
+    if (caseName.startsWith('s2')) {
+      await waitFor(() => document.querySelector('.page-cetak-emas-02 .rincian-card'));
+      metrics.skeletonCount = document.querySelectorAll('.page-cetak-emas-02 .skeleton-bar').length;
+      metrics.alamatName = text('.alamat-name');
+      metrics.alamatDetail = text('.alamat-detail');
+      metrics.rincianValues = texts('.rincian-card .value');
+      metrics.rincianTotal = text('.rincian-card .total-value');
+      if (caseName === 's2-pending') {
+        metrics.allPassed =
+          metrics.skeletonCount === 6 &&
+          metrics.alamatName === '' && metrics.alamatDetail === '' &&
+          metrics.rincianValues.every((t) => t === '') && metrics.rincianTotal === '' &&
+          metrics.errors.length === 0;
+      } else {
+        metrics.allPassed =
+          metrics.skeletonCount === 0 &&
+          metrics.alamatName === 'Budi Santoso' &&
+          metrics.alamatDetail === 'Jl. Merdeka No. 1, Jakarta' &&
+          metrics.rincianValues.join('|') === 'Rp 2.500.000|Rp 50.000|Rp 30.000' &&
+          metrics.rincianTotal === 'Rp 80.000' &&
+          metrics.errors.length === 0;
+      }
+    }
+
+    if (caseName.startsWith('s3')) {
+      const card = await waitFor(() => document.querySelector('.page-cetak-emas-03 .order-card'));
+      metrics.orderCardFound = !!card;
+      metrics.skeletonCount = document.querySelectorAll('.page-cetak-emas-03 .skeleton-bar').length;
+      metrics.rowValues = texts('.order-card .row-value');
+      metrics.statusLabel = text('.status-badge span');
+      if (caseName === 's3-pending') {
+        metrics.allPassed =
+          metrics.orderCardFound && metrics.skeletonCount === 4 &&
+          metrics.rowValues.every((t) => t === '') && metrics.statusLabel === '' &&
+          metrics.errors.length === 0;
+      } else {
+        metrics.allPassed =
+          metrics.orderCardFound && metrics.skeletonCount === 0 &&
+          /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/.test(metrics.rowValues[0] || '') &&
+          metrics.rowValues[1] === '2 gram' && metrics.rowValues[2] === 'Rp 80.000' &&
+          metrics.statusLabel === 'Sedang Diproses' &&
+          metrics.errors.length === 0;
+      }
+    }
+
+    document.getElementById('cetakemas-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'CETAKEMAS-DONE ' + JSON.stringify({ case: metrics.case, allPassed: metrics.allPassed });
+  </script>
+</body>
+</html>

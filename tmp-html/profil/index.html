@@ -1,0 +1,185 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Profil probe — skeleton kartu Saldo Kamu</title>
+</head>
+<body>
+<div id="root"></div>
+<pre id="profil-metrics">pending</pre>
+<script type="module">
+  /* Probe Profil (route /index/profil) — kartu "Saldo Kamu":
+     - case=loading : semua request menggantung → 8 skeleton aktif (growth,
+                      saldo utama, 6 nilai grid) & semua teks nilai kosong.
+     - case=loaded  : endpoint sukses → skeleton hilang, angka API tampil
+                      (pertumbuhan, saldo, isi ulang, emas digital, gram, poin
+                      dari GET /api/roulette/points/, penarikan, komisi).
+                      Sumber harga emas publik gagal → konversi gram pakai
+                      FALLBACK_PRICE_PER_GRAM.
+     - case=error   : semua request gagal → skeleton hilang, angka mockup
+                      lama yang tampil (termasuk "Poin Kamu" 1.250 Poin). */
+  const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+  const probeCase = new URLSearchParams(location.search).get('case') || 'loaded';
+
+  const encodeSalted = (obj) => {
+    const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+    return { data: [...(base64 + SALT)].reverse().join('') };
+  };
+  const json = (obj) => Promise.resolve(new Response(JSON.stringify(encodeSalted(obj)), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+  const hang = () => new Promise(() => {});
+  const fail = () => Promise.reject(new Error('probe: network down'));
+
+  const ACCOUNT = { balance: '1500000', balance_deposit: '250000', balance_hold: '2500000' };
+  const ALL_TIME = { total_withdraw_completed: '1750000' };
+  /* "Poin Kamu" = saldo tiket roulette dari GET /api/roulette/points/. */
+  const POINTS = {
+    tickets: 4321,
+    total_earned: 5000,
+    total_spent: 679,
+    earned_breakdown: { level1_purchase: 3000, self_deposit: 2000, admin_adjust: 0 },
+    spent_breakdown: { spin: 179, redeem: 500, admin_adjust: 0 },
+    ticket_cost: 1,
+    spins_available: 10,
+    total_spins: 3,
+    total_redeems: 1,
+  };
+  const YESTERDAY = { total_income: '5000' };
+  const TODAY = { total_income: '10000' };
+  const DOWNLINE = {
+    levels: [
+      { level: 1, profit_commission_amount: '40000', purchase_commission_amount: '5000' },
+      { level: 2, profit_commission_amount: '30000', purchase_commission_amount: '2000' },
+      { level: 4, profit_commission_amount: '999999', purchase_commission_amount: '0' },
+    ],
+  };
+
+  window.fetch = (input) => {
+    const url = typeof input === 'string' ? input : (input?.url ?? String(input));
+    const gate = () => (probeCase === 'error' ? fail() : probeCase === 'loading' ? hang() : null);
+    if (url.includes('/api/auth/account-info/')) {
+      return gate() ?? json(ACCOUNT);
+    }
+    if (url.includes('/api/auth/balance-statistics/')) {
+      const blocked = gate();
+      if (blocked) return blocked;
+      if (url.includes('/all-time/')) return json(ALL_TIME);
+      if (url.includes('/yesterday/')) return json(YESTERDAY);
+      return json(TODAY);
+    }
+    if (url.includes('/api/roulette/points/')) {
+      return gate() ?? json(POINTS);
+    }
+    if (url.includes('/api/auth/downline-stats/')) {
+      return gate() ?? json(DOWNLINE);
+    }
+    if (url.includes('/api/transactions/')) {
+      const blocked = gate();
+      if (blocked) return blocked;
+      return json({ count: 0, next: null, previous: null, results: [] });
+    }
+    if (url.includes('api.coingecko.com') || url.includes('api.gold-api.com') || url.includes('open.er-api.com')) {
+      return fail(); /* pakai FALLBACK_PRICE_PER_GRAM supaya gram deterministik */
+    }
+    return json({});
+  };
+
+  localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+  history.replaceState(null, '', '/index/profil');
+
+  const metrics = { probeCase, steps: [] };
+  const write = () => { document.getElementById('profil-metrics').textContent = JSON.stringify(metrics, null, 2); };
+  const waitFor = async (fn, timeout = 15000, step = 200) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      try { if (fn()) return true; } catch { /* belum siap */ }
+      await new Promise((r) => setTimeout(r, step));
+    }
+    return false;
+  };
+
+  try {
+    await import('/src/main.jsx');
+
+    const snapshot = () => {
+      const card = document.querySelector('.page-profil .balance-card');
+      const growthBox = card?.querySelector('.balance-card-title') ?? null;
+      const amountBox = card?.querySelector('.main-balance .amount') ?? null;
+      const items = [...(card?.querySelectorAll('.balance-item') ?? [])].map((item) => ({
+        label: item.querySelector('.item-label')?.textContent.trim() ?? null,
+        value: item.querySelector('.item-value')?.textContent.trim() ?? null,
+        skeleton: !!item.querySelector('.item-value .skeleton-bar'),
+      }));
+      return {
+        pagePresent: !!document.querySelector('.page-profil'),
+        cardPresent: !!card,
+        skeletonCount: document.querySelectorAll('.page-profil .skeleton-bar').length,
+        titleText: growthBox?.textContent.trim() ?? null,
+        growthSkeleton: !!growthBox?.querySelector('.skeleton-bar'),
+        growthText: growthBox?.querySelector('.text-green, .text-red')?.textContent ?? null,
+        growthClass: growthBox?.querySelector('.text-red') ? 'red' : growthBox?.querySelector('.text-green') ? 'green' : null,
+        amountSkeleton: !!amountBox?.querySelector('.skeleton-bar'),
+        amountText: amountBox?.textContent.trim() ?? null,
+        items,
+      };
+    };
+    const valueOf = (snap, label) => snap.items.find((entry) => entry.label === label)?.value ?? null;
+    const allItemsSkeleton = (snap) => snap.items.length === 6 && snap.items.every((entry) => entry.skeleton && entry.value === '');
+    const allItemsPlain = (snap) => snap.items.length === 6 && snap.items.every((entry) => !entry.skeleton);
+
+    const pageReady = await waitFor(() => snapshot().cardPresent);
+    metrics.steps.push(['kartu saldo tampil', pageReady]);
+
+    if (probeCase === 'loading') {
+      const snap = snapshot();
+      metrics.rendered = snap;
+      metrics.allPassed = pageReady &&
+        snap.pagePresent && snap.skeletonCount === 8 &&
+        snap.growthSkeleton && snap.growthText === null &&
+        snap.titleText === 'Saldo Tersedia' &&
+        snap.amountSkeleton && snap.amountText === '' &&
+        allItemsSkeleton(snap);
+    } else if (probeCase === 'loaded') {
+      const valuesSet = await waitFor(() => snapshot().amountText === 'Rp1.500.000' && snapshot().skeletonCount === 0);
+      metrics.steps.push(['angka API terpasang & skeleton hilang', valuesSet]);
+      const snap = snapshot();
+      metrics.rendered = snap;
+      metrics.allPassed = pageReady && valuesSet &&
+        snap.growthSkeleton === false &&
+        snap.growthText === '(100,00% bertumbuh sejak kemarin)' && snap.growthClass === 'green' &&
+        snap.amountText === 'Rp1.500.000' &&
+        allItemsPlain(snap) &&
+        valueOf(snap, 'Saldo Isi Ulang') === 'Rp250.000' &&
+        valueOf(snap, 'Saldo Emas Digital') === 'Rp2.500.000' &&
+        valueOf(snap, 'Berat Emas') === '0,973 gram' &&
+        valueOf(snap, 'Poin Kamu') === '4.321 Poin' &&
+        valueOf(snap, 'Total Penarikan') === 'Rp1.750.000' &&
+        valueOf(snap, 'Total Komisi') === 'Rp77.000';
+    } else {
+      await new Promise((r) => setTimeout(r, 1500)); /* beri waktu semua fetch settle */
+      const snap = snapshot();
+      metrics.rendered = snap;
+      metrics.allPassed = pageReady &&
+        snap.skeletonCount === 0 &&
+        snap.growthSkeleton === false &&
+        snap.growthText === '(1,01% bertumbuh sejak kemarin)' && snap.growthClass === 'green' &&
+        snap.amountText === 'Rp 70.934' &&
+        allItemsPlain(snap) &&
+        valueOf(snap, 'Saldo Isi Ulang') === 'Rp 70.934' &&
+        valueOf(snap, 'Saldo Emas Digital') === 'Rp 3.512.870' &&
+        valueOf(snap, 'Berat Emas') === '1,367 gram' &&
+        valueOf(snap, 'Poin Kamu') === '1.250 Poin' &&
+        valueOf(snap, 'Total Penarikan') === 'Rp 1.850.000' &&
+        valueOf(snap, 'Total Komisi') === 'Rp 85.000';
+    }
+  } catch (error) {
+    metrics.error = String(error);
+    metrics.allPassed = false;
+  }
+
+  write();
+</script>
+</body>
+</html>

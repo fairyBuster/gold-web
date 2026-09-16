@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ASETSAYA-PROFIT-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="as-metrics">pending</pre>
+  <script type="module">
+    /* E2E probe for the AsetSaya "Pembagian / Periode" row:
+       - Random plans (profit_type 'random') must show the configured min–max
+         range ("Rp6.250 – Rp10.350 / hari"), never the sampled daily_profit.
+       - Fixed plans keep the single "RpX / hari" figure.
+       Fixtures mirror the live records (flat array — the pagination envelope
+       is not produced by this endpoint). */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const RANDOM_PLAN = {
+      id: 1346,
+      product_name: 'Logam 24K',
+      product_price: '50000.00',
+      product_golongan: 'Simpanan',
+      product_specification: '24K',
+      product_description: '-',
+      transaction_id: 'PO-20260915185821-674EA1',
+      daily_profit: '9932.10',
+      total_potential_profit: '348121.60',
+      remaining_profit: '353836.00',
+      next_claim_time_calculated: '2026-09-16T18:58:21.993233',
+      quantity: 1,
+      total_amount: '50000.00',
+      profit_type: 'random',
+      profit_rate: '0.00',
+      profit_random_min: '6250.00',
+      profit_random_max: '10350.00',
+      profit_method: 'hold',
+      claim_reset_mode: 'after_purchase',
+      claim_reset_hours: 0,
+      duration_days: 40,
+      remaining_days: 40,
+      total_claimed_profit: '0.00',
+      claims_count: 0,
+      claims_remaining: 40,
+      status: 'ACTIVE',
+      created_at: '2026-09-15 18:58:21',
+    };
+
+    const FIXED_PLAN = {
+      ...RANDOM_PLAN,
+      id: 1345,
+      transaction_id: 'PO-20260915185802-C78E5C',
+      daily_profit: '5000.00',
+      total_potential_profit: '200000.00',
+      profit_type: 'fixed',
+      profit_rate: '5000.00',
+      profit_random_min: '0.00',
+      profit_random_max: '0.00',
+    };
+
+    const json = (data, status = 200) => new Response(JSON.stringify(data), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    window.fetch = (url) => {
+      const target = String(url);
+      if (target.includes('/api/investments/')) return Promise.resolve(json([RANDOM_PLAN, FIXED_PLAN]));
+      return Promise.resolve(json({}, 404));
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (selector, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+
+    history.replaceState(null, '', '/index/assets/aset-saya-01');
+    await import('/src/main.jsx');
+
+    await waitFor('.page-aset-saya-01 .product-card');
+    await sleep(300);
+
+    /* Each card's info rows as label -> value (cards are newest-first). */
+    metrics.state.cards = [...document.querySelectorAll('.page-aset-saya-01 .product-card')].map((card) => {
+      const rows = {};
+      card.querySelectorAll('.info-row').forEach((row) => {
+        rows[row.querySelector('.info-label').textContent.trim()] = row.querySelector('.info-value').textContent.trim();
+      });
+      return rows;
+    });
+
+    const passed = metrics.state.cards.length === 2
+      && metrics.state.cards[0]['Pembagian / Periode'] === 'Rp6.250 – Rp10.350 / hari'
+      && metrics.state.cards[1]['Pembagian / Periode'] === 'Rp5.000 / hari'
+      && !JSON.stringify(metrics.state.cards).includes('9.932')
+      && metrics.errors.length === 0;
+
+    metrics.allPassed = passed;
+    document.getElementById('as-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'ASETSAYA-PROFIT-DONE';
+  </script>
+</body>
+</html>

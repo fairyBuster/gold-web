@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import NotifCard from '../../../components/NotifCard.jsx';
+import { useShowNotif } from '../../../lib/useShowNotif.js';
 import img_1 from '../../../assets/images/41_1038.svg';
 /* Shipping address — GET/POST /api/auth/address/ (list + create). */
 import { createAddress, listAddresses } from '../../../lib/addressApi.js';
@@ -222,13 +222,6 @@ const styles = `
     opacity: 0.7;
     cursor: default;
   }
-  .page-alamat-pengiriman .error-text {
-    color: #e24c4c;
-    font-size: 12px;
-    font-weight: 600;
-    margin: 0 0 10px 0;
-    text-align: center;
-  }
 `;
 
 /* The form's "+62" prefix is a fixed element; strip it from saved numbers. */
@@ -251,10 +244,8 @@ export default function AlamatPengiriman() {
   const [kodepos, setKodepos] = useState('');
   const [label, setLabel] = useState('Rumah');
   const [isPrimary, setIsPrimary] = useState(true);
-  const [error, setError] = useState('');
-  /* API save failures render via the shared NotifCard; client validation stays inline. */
-  const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const showNotif = useShowNotif();
 
   /* Prefill from the saved address (backend returns the primary one first)
      so "Ubah" edits the existing address instead of starting blank. */
@@ -282,12 +273,10 @@ export default function AlamatPengiriman() {
     if (submitting) return;
 
     const digits = localPhone(phone);
-    if (!nama.trim()) { setError('Masukkan nama penerima.'); return; }
-    if (digits.length < 9) { setError('Nomor ponsel minimal 9 digit.'); return; }
-    if (!alamat.trim()) { setError('Masukkan alamat lengkap.'); return; }
+    if (!nama.trim()) { showNotif({ title: 'Lengkapi Data', description: 'Masukkan nama penerima.' }); return; }
+    if (digits.length < 9) { showNotif({ title: 'Lengkapi Data', description: 'Nomor ponsel minimal 9 digit.' }); return; }
+    if (!alamat.trim()) { showNotif({ title: 'Lengkapi Data', description: 'Masukkan alamat lengkap.' }); return; }
 
-    setError('');
-    setSubmitError('');
     setSubmitting(true);
     try {
       /* Provinsi/kota/kecamatan/kode pos tidak punya kolom sendiri di API —
@@ -303,9 +292,12 @@ export default function AlamatPengiriman() {
         houseNumber: '',
         isPrimary,
       });
-      navigate('/assets/cetak-emas-01');
+      navigate('/index/assets/cetak-emas-01');
     } catch (err) {
-      setSubmitError(err?.message || 'Gagal menyimpan alamat. Silakan coba lagi.');
+      showNotif({
+        title: 'Gagal Menyimpan Alamat',
+        description: err?.message || 'Gagal menyimpan alamat. Silakan coba lagi.',
+      });
       setSubmitting(false);
     }
   };
@@ -378,10 +370,6 @@ export default function AlamatPengiriman() {
                       </label>
                     </div>
                     <div className="submit-container">
-                      {error ? <p className="error-text">{error}</p> : null}
-                      {submitError ? (
-                        <NotifCard variant="error" title="Gagal Menyimpan Alamat" description={submitError} onClose={() => setSubmitError('')} />
-                      ) : null}
                       <button type="submit" className="submit-btn" disabled={submitting}>
                         {submitting ? 'Menyimpan...' : 'Simpan Alamat'}
                       </button>

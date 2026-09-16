@@ -262,7 +262,7 @@ export default function DetailBerita() {
                   <button className="icon-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
                     <img src={img_1} alt="" />
                   </button>
-                  <button className="icon-btn" aria-label="Buka menu Tim Afiliasi" onClick={(e) => { e.preventDefault(); navigate('/affiliate/tim-afiliasi'); }}>
+                  <button className="icon-btn" aria-label="Buka menu Tim Afiliasi" onClick={(e) => { e.preventDefault(); navigate('/index/affiliate/tim-afiliasi'); }}>
                     <img src={img_2} alt="" />
                   </button>
                 </header>

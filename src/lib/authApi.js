@@ -43,6 +43,19 @@ export function changePasswordOtp({ phone, oldPassword, newPassword, newPassword
   });
 }
 
+/* POST /api/auth/change-password/ — change the password with old-password
+   verification, no OTP. Used by the Setelan page; `phone` comes from
+   GET /api/auth/account-info/ in its stored format (same value the register
+   and change-password-otp payloads use). */
+export function changePassword({ phone, oldPassword, newPassword, newPasswordConfirm }) {
+  return request('POST', '/api/auth/change-password/', {
+    phone,
+    old_password: oldPassword,
+    new_password: newPassword,
+    new_password_confirm: newPasswordConfirm,
+  });
+}
+
 /* GET /api/auth/account-info/ — current user account information (profile,
    balances, rank, referral). Requires the Bearer token; used by the Home
    header greeting. */
@@ -51,8 +64,9 @@ export function getAccountInfo() {
 }
 
 /* PUT /api/auth/profile-update/ — update the current user's profile (partial).
-   Payload fields: full_name, username, telegram, email, date_of_birth
-   (YYYY-MM-DD, tidak boleh masa depan), gender ('male' | 'female'). */
+   Payload fields: full_name, username, telegram, date_of_birth (YYYY-MM-DD,
+   tidak boleh masa depan), gender ('male' | 'female'). Email read-only di
+   backend — hanya tampil di response, jadi tidak pernah dikirim. */
 export function updateProfile(payload) {
   return request('PUT', '/api/auth/profile-update/', payload);
 }
@@ -74,7 +88,8 @@ export function getBalanceStatistics(period = 'all-time') {
 }
 
 /* GET /api/auth/balance-cashback/ — saldo poin cashback deposit user
-   (1 poin = 1 Rupiah). Sumber nilai "Poin Kamu" di halaman Profil. */
+   (1 poin = 1 Rupiah). Bukan lagi sumber "Poin Kamu" di Profil — nilai itu
+   memakai GET /api/roulette/points/. */
 export function getBalanceCashback() {
   return request('GET', '/api/auth/balance-cashback/');
 }
@@ -86,4 +101,13 @@ export async function getRankLevels() {
   const data = await request('GET', '/api/auth/rank-levels/');
   if (Array.isArray(data)) return data;
   return Array.isArray(data?.results) ? data.results : [];
+}
+
+/* GET /api/auth/rank-status/ — status rank user saat ini (current_rank +
+   current_title = rank yang sudah terpenuhi) plus info rank berikutnya:
+   total progress tiap dimensi, syarat rank berikutnya (next_required_*), dan
+   progress_basis (dimensi evaluasi yang aktif). Endpoint juga mengevaluasi
+   ulang dan menyimpan rank user. Dipakai hero halaman VIP. */
+export function getRankStatus() {
+  return request('GET', '/api/auth/rank-status/');
 }

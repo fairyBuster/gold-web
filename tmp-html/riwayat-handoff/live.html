@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RIWAYAT-HANDOFF-LIVE-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="rh-live-metrics">pending</pre>
+  <script type="module">
+    /* Live probe (TANPA stub fetch): alur asli pengguna terhadap API asli.
+       1. Buka /index/rewards/riwayat-lainnya dengan token JWT asli.
+       2. Tekan baris SWAP (Tukar Emas / Biaya Tukar Emas) yang membawa
+          gold_order_id dari feed transaksi.
+       3. Harus mendarat di /index/assets/cetak-emas-03 dan menampilkan data
+          ASLI hasil GET /api/gold/orders/<id>/ — badge, tanggal, gram, total,
+          timeline resi — dibandingkan dengan respons endpoint yang sama yang
+          diambil probe lewat klien app (independen dari render). */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const session = await (await fetch('/e2e-token.json')).json();
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: session.access }));
+    window.sessionStorage.clear();
+    metrics.state.tokenUser = session.user;
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (selector, timeout = 15000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+    const waitUntil = async (predicate, timeout = 15000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        if (predicate()) return true;
+        await sleep(50);
+      }
+      return false;
+    };
+    const text = (sel) => document.querySelector(sel)?.textContent.trim() ?? null;
+    const texts = (sel) => [...document.querySelectorAll(sel)].map((el) => el.textContent.trim());
+
+    history.replaceState(null, '', '/index/rewards/riwayat-lainnya');
+    await import('/src/main.jsx');
+
+    /* ---- Riwayat Lainnya: daftar asli ---- */
+    await waitFor('.page-riwayat-lainnya .history-card');
+    await sleep(400);
+
+    const cards = [...document.querySelectorAll('.page-riwayat-lainnya .history-card')];
+    metrics.state.titles = cards.map((el) => el.querySelector('.card-title')?.textContent.trim() ?? null);
+    metrics.state.linkHrefs = cards.map((el) => (el.tagName === 'A' ? el.getAttribute('href') : null));
+
+    /* Baris SWAP = kartu <a> menuju layar step 3 cetak emas. */
+    const swapCard = cards.find((el) => el.tagName === 'A' && el.getAttribute('href') === '/index/assets/cetak-emas-03');
+    metrics.state.swapCardTitle = swapCard?.querySelector('.card-title')?.textContent.trim() ?? null;
+    metrics.swapCardFound = Boolean(swapCard);
+
+    /* Ekspektasi independen: feed SWAP asli lewat klien app + detail order. */
+    const { listTransactions } = await import('/src/lib/transactionsApi.js');
+    const feed = await listTransactions({ type: 'SWAP', page: 1 });
+    const swapRows = (feed.results || []).filter((row) => row.gold_order_id != null);
+    metrics.state.swapFeedRows = swapRows.map((row) => ({
+      id: row.id, trx_id: row.trx_id, wallet_type: row.wallet_type,
+      status: row.status, gold_order_id: row.gold_order_id,
+    }));
+    const orderId = swapRows[0]?.gold_order_id ?? null;
+
+    const { getGoldOrder } = await import('/src/lib/goldApi.js');
+    const order = orderId != null ? await getGoldOrder(orderId) : null;
+    const { parseDate, formatTime } = await import('/src/lib/transactionFormat.js');
+    const STATUS_LABELS = {
+      PENDING: 'Menunggu Diproses', PROCESSING: 'Sedang Diproses',
+      SHIPPED: 'Dikirim', COMPLETED: 'Selesai', CANCELLED: 'Dibatalkan',
+    };
+    const expected = order ? {
+      orderId,
+      status: order.status,
+      badge: STATUS_LABELS[order.status] ?? null,
+      grams: `${String(Number(order.gram)).replace('.', ',')} gram`,
+      total: `Rp ${Math.round(Number(order.total_fee)).toLocaleString('id-ID')}`,
+      date: `${parseDate(order.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${formatTime(order.created_at)}`,
+      resi: order.tracking_number ? `No. resi ${order.tracking_number}` : 'Estimasi tiba setelah pesanan dikirim',
+    } : null;
+    metrics.state.expected = expected;
+
+    /* ---- Tekan kartu SWAP -> layar step 3 harus memuat detail asli ---- */
+    swapCard?.click();
+    await waitUntil(() => window.location.pathname === '/index/assets/cetak-emas-03');
+    await waitFor('.page-cetak-emas-03 .order-card');
+    await waitUntil(() => (text('.page-cetak-emas-03 .status-badge span') || '').length > 0);
+
+    metrics.path = window.location.pathname;
+    metrics.skeletons = document.querySelectorAll('.page-cetak-emas-03 .skeleton-bar').length;
+    metrics.orderVals = texts('.page-cetak-emas-03 .order-row .row-value');
+    metrics.badge = text('.page-cetak-emas-03 .status-badge span');
+    metrics.badgeClass = document.querySelector('.page-cetak-emas-03 .status-badge')?.className ?? null;
+    metrics.timelineDescs = texts('.page-cetak-emas-03 .timeline-item .item-desc');
+    metrics.orderPayloadSource = [...document.querySelectorAll('.page-cetak-emas-03 .order-row')].length;
+
+    const passed = metrics.swapCardFound
+      && swapRows.length > 0
+      && expected != null
+      && metrics.path === '/index/assets/cetak-emas-03'
+      && metrics.skeletons === 0
+      && metrics.badge === expected.badge
+      && metrics.orderVals[0] === expected.date
+      && metrics.orderVals[1] === expected.grams
+      && metrics.orderVals[2] === expected.total
+      && metrics.timelineDescs[2] === expected.resi
+      && metrics.errors.length === 0;
+
+    metrics.allPassed = passed;
+    document.getElementById('rh-live-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'RIWAYAT-HANDOFF-LIVE-DONE';
+  </script>
+</body>
+</html>

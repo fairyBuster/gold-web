@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DETAILTIM-RUNNING</title>
+  <style>#dt-metrics { display: none; }</style>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="dt-metrics">pending</pre>
+  <script type="module">
+    /* E2E probe for LihatDetailTim level tabs ↔ info banner:
+       - default (no tab selected): dark card = Level 1 and the info banner
+         explains Level 1;
+       - pressing a stat card switches the selected card AND the banner copy;
+       - pressing the selected card again deselects (all levels) and the
+         banner falls back to Level 1;
+       - member list filtering still follows the selected level. */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    /* One member per level so each stat card reads "1 aktif / 0 belum". */
+    const member = (id, name) => ({
+      id,
+      username: name.toLowerCase().replace(/\s+/g, ''),
+      full_name: name,
+      phone: `+62895000000${id}`,
+      registration_date: `2026-07-1${id} 10:00:00`,
+      is_active: true,
+      total_investment_amount: `${1000000 * id}.00`,
+    });
+    const LEVELS = {
+      1: [member(1, 'Ahmad Satu')],
+      2: [member(2, 'Budi Dua')],
+      3: [member(3, 'Cici Tiga')],
+    };
+
+    const json = (data, status = 200) => new Response(JSON.stringify(data), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    window.fetch = (url) => {
+      const target = String(url);
+      if (target.includes('/api/auth/downline-list/')) {
+        const match = target.match(/level=(\d)/);
+        const list = match ? LEVELS[match[1]] || [] : [];
+        return Promise.resolve(json({ total_members: list.length, total_commission: '0.00', members: list }));
+      }
+      return Promise.resolve(json({}, 404));
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const writeMetrics = (passed) => {
+      metrics.allPassed = passed;
+      document.getElementById('dt-metrics').textContent = JSON.stringify(metrics, null, 2);
+      document.title = 'DETAILTIM-DONE';
+    };
+    const waitFor = async (selector, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+
+    history.replaceState(null, '', '/index/affiliate/detail-tim');
+    await import('/src/main.jsx');
+
+    await waitFor('.page-lihat-detail-tim .stat-card');
+    await sleep(300);
+
+    const infoText = () => document.querySelector('.page-lihat-detail-tim .info-text')?.textContent.trim() || '';
+    const memberNames = () => [...document.querySelectorAll('.page-lihat-detail-tim .member-name')].map((el) => el.textContent.trim());
+    const darkLevel = () => document.querySelector('.page-lihat-detail-tim .stat-card.dark')
+      ?.querySelector('.stat-label')?.textContent.trim() || '';
+    const press = (level) => {
+      const card = [...document.querySelectorAll('.page-lihat-detail-tim .stat-card')]
+        .find((el) => el.querySelector('.stat-label')?.textContent.trim() === `Level ${level}`);
+      card?.click();
+    };
+
+    metrics.state.defaultInfo = infoText();
+    metrics.state.defaultDark = darkLevel();
+    metrics.state.defaultMembers = memberNames();
+
+    press(2);
+    await sleep(200);
+    metrics.state.level2Info = infoText();
+    metrics.state.level2Dark = darkLevel();
+    metrics.state.level2Members = memberNames();
+
+    press(3);
+    await sleep(200);
+    metrics.state.level3Info = infoText();
+    metrics.state.level3Members = memberNames();
+
+    press(3); /* press the selected card again → deselect, back to all levels */
+    await sleep(200);
+    metrics.state.deselectInfo = infoText();
+    metrics.state.deselectDark = darkLevel();
+    metrics.state.deselectMembers = memberNames();
+
+    press(1);
+    await sleep(200);
+    metrics.state.level1Info = infoText();
+
+    const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    const INFO_1 = 'Level 1 — teman yang kamu ajak langsung menggunakan kode referral kamu.';
+    const passed =
+      metrics.state.defaultInfo === INFO_1
+      && metrics.state.defaultDark === 'Level 1'
+      && eq(metrics.state.defaultMembers, ['Ahmad Satu', 'Budi Dua', 'Cici Tiga'])
+      && metrics.state.level2Info === 'Level 2 — teman yang diajak oleh anggota Level 1 kamu.'
+      && metrics.state.level2Dark === 'Level 2'
+      && eq(metrics.state.level2Members, ['Budi Dua'])
+      && metrics.state.level3Info === 'Level 3 — teman yang diajak oleh anggota Level 2 kamu.'
+      && eq(metrics.state.level3Members, ['Cici Tiga'])
+      && metrics.state.deselectInfo === INFO_1
+      && metrics.state.deselectDark === 'Level 1'
+      && eq(metrics.state.deselectMembers, ['Ahmad Satu', 'Budi Dua', 'Cici Tiga'])
+      && metrics.state.level1Info === INFO_1
+      && metrics.errors.length === 0;
+    writeMetrics(passed);
+
+    /* Leave Level 2 selected so a --screenshot run captures the switched
+       banner next to the highlighted card. */
+    press(2);
+  </script>
+</body>
+</html>

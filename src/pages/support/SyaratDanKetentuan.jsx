@@ -9,7 +9,9 @@ const styles = `
   font-family: 'Inter', sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f5f5f5;
+  /* Opaque canvas on the root so it stays full-bleed on desktop; every
+     section below keeps its own transparent canvas. */
+  background-image: linear-gradient(#fff9f2, #fff9f2);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -24,7 +26,6 @@ const styles = `
 .page-syarat-dan-ketentuan .app-container {
   width: 100%;
   max-width: 100%;
-  background-color: #fff9f2;
 }
 
 /* ---- inline section styles ---- */
@@ -419,11 +420,8 @@ export default function SyaratDanKetentuan() {
                       <h2>20. Kontak</h2>
                     </div>
                     <div className="term-text">
-                      <p>Pertanyaan, pengaduan, atau permintaan terkait layanan dan Syarat dan Ketentuan ini dapat disampaikan melalui kanal resmi Jelajah Emas:
-                        Jelajah Emas
-                        Email: [alamat email]
-                        Layanan Pelanggan: [nomor/kanal layanan]
-                        Alamat: [alamat badan usaha]</p>
+                      <p>Pertanyaan, pengaduan, atau permintaan terkait layanan dan Syarat dan Ketentuan ini dapat disampaikan melalui kanal resmi Jelajah Emas.</p>
+                      <p>Email: cs@jelajahemas.com</p>
                     </div>
                   </div>
                 </div>

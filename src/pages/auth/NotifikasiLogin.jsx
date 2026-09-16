@@ -10,6 +10,9 @@ const styles = `
   margin: 0;
   padding: 0;
   background-color: #f0f0f0;
+  /* Full-bleed page canvas — the opaque base is applied as a background-image
+     layer so it survives the global transparent-root rule. */
+  background-image: linear-gradient(#fff9f2, #fff9f2);
   display: flex;
   justify-content: center;
   min-height: 100vh;
@@ -29,7 +32,6 @@ const styles = `
 .page-notifikasi-login .screen-container {
   width: 100%;
   max-width: 100%;
-  background-color: #fff9f2;
   padding: 20px;
   box-sizing: border-box;
   box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);

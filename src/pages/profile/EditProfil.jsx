@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 /* GET /api/auth/account-info/ untuk prefill form, PUT /api/auth/profile-update/
-   untuk menyimpan perubahan (full_name, username, telegram, email,
-   date_of_birth, gender), POST /api/auth/profile-photo/ untuk ganti foto. */
+   untuk menyimpan perubahan (full_name, username, telegram, date_of_birth,
+   gender — email hanya tampil di response, tidak bisa diubah), POST
+   /api/auth/profile-photo/ untuk ganti foto. */
 import { getAccountInfo, updateProfile, uploadProfilePhoto } from '../../lib/authApi.js';
-/* API notifications (success/error) use the shared NotifCard component. */
-import NotifCard from '../../components/NotifCard.jsx';
+/* Notifikasi (validasi lokal + hasil API) tampil lewat halaman /notif. */
+import { useShowNotif } from '../../lib/useShowNotif.js';
 import img_1 from '../../assets/images/166_376.svg';
 import img_2 from '../../assets/images/165_16.svg';
 
@@ -264,18 +265,6 @@ const styles = `
   opacity: 0.6;
   cursor: default;
 }
-
-.page-edit-profil .photo-notice-wrapper {
-  width: 100%;
-  padding: 0 20px 14px;
-  box-sizing: border-box;
-}
-
-.page-edit-profil .form-error {
-  color: #e24c4c;
-  font-size: 12px;
-  margin: 0 0 10px;
-}
 `;
 
 /* "+62 812-3456-7890" dari nomor telepon lokal/E.164 yang disimpan backend. */
@@ -295,17 +284,15 @@ export default function EditProfil() {
   const [telegram, setTelegram] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [gender, setGender] = useState('');
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState(null);
   const [saving, setSaving] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [photoNotice, setPhotoNotice] = useState(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+  const showNotif = useShowNotif();
 
   /* Prefill form dari GET /api/auth/account-info/ (full_name, username, phone,
-     email, telegram, avatar). Tanggal lahir & gender tidak dikembalikan API mana pun,
-     jadi keduanya mulai kosong dan hanya ikut terkirim kalau diisi user. */
+     email, telegram, date_of_birth, gender, avatar). Email & nomor telepon
+     read-only — tidak bisa diubah dari halaman ini. */
   useEffect(() => {
     let active = true;
     (async () => {
@@ -317,6 +304,8 @@ export default function EditProfil() {
         setPhone(formatPhone(data.phone));
         setEmail(data.email || '');
         setTelegram(data.telegram || '');
+        setDateOfBirth(data.date_of_birth || '');
+        setGender(data.gender || '');
         setAvatarUrl(data.avatar || '');
       } catch { /* biarin form kosong */ }
     })();
@@ -324,47 +313,35 @@ export default function EditProfil() {
   }, []);
 
   /* Simpan: PUT /api/auth/profile-update/ — partial, field kosong dilewati.
-     Error lokal (nama kosong dll) tampil inline di atas tombol; hasil API
-     sukses/gagal tampil lewat shared NotifCard. */
+     Email tidak ikut terkirim (read-only di backend). Error lokal (nama kosong
+     dll) dan hasil API sukses/gagal sama-sama tampil lewat halaman /notif. */
   const handleSave = async (e) => {
     e.preventDefault();
     if (saving) return;
 
     const name = fullName.trim();
     if (!name) {
-      setNotice(null);
-      setError('Nama lengkap wajib diisi.');
+      showNotif({ title: 'Lengkapi Data', description: 'Nama lengkap wajib diisi.' });
       return;
     }
-    const mail = email.trim();
-    if (mail && !mail.includes('@')) {
-      setNotice(null);
-      setError('Masukkan alamat email yang valid.');
-      return;
-    }
-
     const payload = { full_name: name };
     const uname = username.trim();
     const tele = telegram.trim();
     if (uname) payload.username = uname;
-    if (mail) payload.email = mail;
     if (tele) payload.telegram = tele;
     if (dateOfBirth) payload.date_of_birth = dateOfBirth;
     if (gender) payload.gender = gender;
 
-    setError('');
-    setNotice(null);
     setSaving(true);
     try {
       await updateProfile(payload);
-      setNotice({
+      showNotif({
         variant: 'success',
         title: 'Profil Berhasil Diperbarui',
         description: 'Perubahan data profil kamu sudah tersimpan.',
       });
     } catch (err) {
-      setNotice({
-        variant: 'error',
+      showNotif({
         title: 'Gagal Menyimpan Profil',
         description: err?.message || 'Perubahan profil gagal disimpan. Silakan coba lagi.',
       });
@@ -382,26 +359,25 @@ export default function EditProfil() {
     if (!file || uploading) return;
 
     if (!['image/jpeg', 'image/png'].includes(String(file.type).toLowerCase())) {
-      setPhotoNotice({ variant: 'error', title: 'Upload Foto Gagal', description: 'Format foto harus JPG, JPEG, atau PNG.' });
+      showNotif({ title: 'Upload Foto Gagal', description: 'Format foto harus JPG, JPEG, atau PNG.' });
       return;
     }
     if (file.size > 1024 * 1024) {
-      setPhotoNotice({ variant: 'error', title: 'Upload Foto Gagal', description: 'Ukuran foto maksimal 1MB.' });
+      showNotif({ title: 'Upload Foto Gagal', description: 'Ukuran foto maksimal 1MB.' });
       return;
     }
 
-    setPhotoNotice(null);
     setUploading(true);
     try {
       const data = await uploadProfilePhoto(file);
       if (data?.avatar) setAvatarUrl(data.avatar);
-      setPhotoNotice({
+      showNotif({
         variant: 'success',
         title: 'Foto Profil Diupload',
-        description: data?.message || 'Foto profil berhasil diupload.',
+        description: 'Foto profil berhasil diupload.',
       });
     } catch (err) {
-      setPhotoNotice({
+      showNotif({
         variant: 'error',
         title: 'Upload Foto Gagal',
         description: err?.message || 'Foto profil gagal diupload. Silakan coba lagi.',
@@ -436,24 +412,14 @@ export default function EditProfil() {
                 </div>
                 <p className="avatar-hint">{uploading ? 'Mengunggah foto...' : 'Ketuk ikon buat ganti foto profil'}</p>
               </section>
-              {photoNotice && (
-                <div className="photo-notice-wrapper">
-                  <NotifCard
-                    variant={photoNotice.variant}
-                    title={photoNotice.title}
-                    description={photoNotice.description}
-                    onClose={() => setPhotoNotice(null)}
-                  />
-                </div>
-              )}
               <section id="section-form" className="form-section">
                 <div className="form-group">
                   <label className="form-label">Nama Lengkap</label>
-                  <input type="text" className="form-input" value={fullName} onChange={(e) => { setFullName(e.target.value); setError(''); }} />
+                  <input type="text" className="form-input" value={fullName} onChange={(e) => setFullName(e.target.value.replace(/[^0-9A-Za-z\s]/g, ''))} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Username</label>
-                  <input type="text" className="form-input" autoComplete="off" value={username} onChange={(e) => { setUsername(e.target.value); setError(''); }} />
+                  <input type="text" className="form-input" autoComplete="off" value={username} onChange={(e) => setUsername(e.target.value.replace(/[^0-9A-Za-z]/g, ''))} />
                 </div>
                 <div className="form-group">
                   <div className="label-row">
@@ -464,34 +430,25 @@ export default function EditProfil() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Email</label>
-                  <input type="email" className="form-input" value={email} onChange={(e) => { setEmail(e.target.value); setError(''); }} />
+                  <input type="email" className="form-input muted" value={email} readOnly />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Telegram</label>
-                  <input type="text" className="form-input" autoComplete="off" placeholder="@username (opsional)" value={telegram} onChange={(e) => { setTelegram(e.target.value); setError(''); }} />
+                  <input type="text" className="form-input" autoComplete="off" placeholder="@username (opsional)" value={telegram} onChange={(e) => setTelegram(e.target.value.replace(/[^0-9A-Za-z]/g, ''))} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Tanggal Lahir</label>
-                  <input type="date" className="form-input" max={todayISO} value={dateOfBirth} onChange={(e) => { setDateOfBirth(e.target.value); setError(''); }} />
+                  <input type="date" className="form-input" max={todayISO} value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Jenis Kelamin</label>
                   <div className="gender-options">
-                    <button type="button" className={`gender-btn${gender === 'male' ? ' active' : ''}`} onClick={(e) => { e.preventDefault(); setGender('male'); setError(''); setNotice(null); }}>Laki-laki</button>
-                    <button type="button" className={`gender-btn${gender === 'female' ? ' active' : ''}`} onClick={(e) => { e.preventDefault(); setGender('female'); setError(''); setNotice(null); }}>Perempuan</button>
+                    <button type="button" className={`gender-btn${gender === 'male' ? ' active' : ''}`} onClick={(e) => { e.preventDefault(); setGender('male'); }}>Laki-laki</button>
+                    <button type="button" className={`gender-btn${gender === 'female' ? ' active' : ''}`} onClick={(e) => { e.preventDefault(); setGender('female'); }}>Perempuan</button>
                   </div>
                 </div>
-                {notice && (
-                  <NotifCard
-                    variant={notice.variant}
-                    title={notice.title}
-                    description={notice.description}
-                    onClose={() => setNotice(null)}
-                  />
-                )}
               </section>
               <footer id="section-footer" className="footer-section">
-                {error && <p className="form-error">{error}</p>}
                 <button className="save-btn" disabled={saving} onClick={handleSave}>
                   {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </button>

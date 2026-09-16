@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <title>progressive-audit</title>
+    <style>
+      html { background: #f0e9df; }
+      #progressive-metrics { font: 12px/1.5 monospace; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <pre id="progressive-metrics"></pre>
+    <script type="module">
+      /* E2E harness: proves list pages render the first batch while later
+         requests are still in flight. Installs a fetch stub with staggered
+         per-page delays, mounts the real app (main.jsx) on a protected route
+         with a fake session, then records WHEN each batch of data lands.
+         Run with ?route=/index/transactions/riwayat-penarikan (feed) or
+         ?route=/index/affiliate/detail-tim (team levels). */
+      const params = new URLSearchParams(window.location.search);
+      const route = params.get('route') || '/index/transactions/riwayat-penarikan';
+      const isTeam = route.includes('detail-tim');
+
+      window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-fake', refresh: 'e2e-fake' }));
+      window.history.replaceState(null, '', route);
+
+      const json = (body) =>
+        new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+      /* Transaction feed: 3 pages x 10 rows, staggered 300 / 1200 / 2400 ms. */
+      const TX_DELAYS = { 1: 300, 2: 1200, 3: 2400 };
+      const TX_PER_PAGE = 10;
+      const TX_TOTAL = 30;
+      const txRows = (page) => {
+        const rows = [];
+        for (let i = 1; i <= TX_PER_PAGE; i += 1) {
+          const index = (page - 1) * TX_PER_PAGE + i;
+          rows.push({
+            id: 9000 + index,
+            type: 'WITHDRAW',
+            status: index % 3 === 0 ? 'COMPLETED' : index % 3 === 1 ? 'PENDING' : 'FAILED',
+            amount: 100000 + index * 1000,
+            created_at: `2026-09-${String(13 - (index % 9)).padStart(2, '0')} 10:00:00`,
+            bank_name: 'BCA',
+            bank_account_number: `12345678${i}`,
+            withdrawal_fee: 5000,
+            withdrawal_net_amount: 95000 + index * 1000,
+          });
+        }
+        return rows;
+      };
+
+      /* Downline levels: 3 levels, staggered 400 / 1000 / 1800 ms. */
+      const LEVEL_DELAYS = { 1: 400, 2: 1000, 3: 1800 };
+      const LEVEL_COUNTS = { 1: 6, 2: 4, 3: 2 };
+      const levelMembers = (level) => {
+        const rows = [];
+        for (let i = 1; i <= LEVEL_COUNTS[level]; i += 1) {
+          rows.push({
+            id: level * 100 + i,
+            full_name: `Anggota L${level}-${i}`,
+            username: `anggota_${level}_${i}`,
+            phone: `628951234${level}${i}`,
+            is_active: i % 2 === 0,
+            registration_date: `2026-08-${String(10 + i).padStart(2, '0')} 09:30:00`,
+            total_investment_amount: 500000 * i,
+          });
+        }
+        return rows;
+      };
+
+      const realFetch = window.fetch.bind(window);
+      window.fetch = async (input, init = {}) => {
+        const url = typeof input === 'string' ? input : input?.url || '';
+        if (url.includes('/api/transactions/')) {
+          const page = Number(new URL(url, window.location.origin).searchParams.get('page')) || 1;
+          const delay = TX_DELAYS[page];
+          if (!delay) return json({ count: TX_TOTAL, next: null, previous: null, results: [] });
+          await sleep(delay);
+          return json({
+            count: TX_TOTAL,
+            next: page < 3 ? `http://stub/api/transactions/?page=${page + 1}` : null,
+            previous: null,
+            results: txRows(page),
+          });
+        }
+        if (url.includes('/api/auth/downline-list/')) {
+          const level = Number(new URL(url, window.location.origin).searchParams.get('level')) || 1;
+          if (LEVEL_DELAYS[level]) await sleep(LEVEL_DELAYS[level]);
+          return json({ total_members: 12, total_commission: 0, members: levelMembers(level) });
+        }
+        if (url.includes('/api/')) return json({});
+        try {
+          return await realFetch(input, init);
+        } catch {
+          return json({});
+        }
+      };
+
+      /* Metrics: first time each data milestone is visible in the DOM. */
+      const t0 = performance.now();
+      const metrics = {};
+      const at = (key, when) => {
+        if (metrics[key] === undefined) metrics[key] = Math.round(when - t0);
+      };
+
+      const scan = () => {
+        const root = document.getElementById('root');
+        if (!root) return;
+        const text = root.textContent || '';
+        if (text.includes('Memuat riwayat')) at('feedSkeleton', performance.now());
+        if (document.querySelector('.transaction-card')) at('feedFirstCard', performance.now());
+        if (text.includes('dari 10 transaksi')) at('feedTotal10', performance.now());
+        if (text.includes('dari 20 transaksi')) at('feedTotal20', performance.now());
+        if (text.includes('dari 30 transaksi')) at('feedTotal30', performance.now());
+
+        if (text.includes('Memuat data tim')) at('teamSkeleton', performance.now());
+        if (document.querySelector('.member-card')) at('teamFirstCard', performance.now());
+        if (text.includes('dari 10 anggota')) at('teamTotal10', performance.now());
+        if (text.includes('dari 12 anggota')) at('teamTotal12', performance.now());
+      };
+
+      window.addEventListener('error', (e) => {
+        at('error', performance.now());
+        metrics.errorMessage = String((e && (e.message || e.error)) || '').slice(0, 200);
+      });
+      window.addEventListener('unhandledrejection', (e) => {
+        at('rejection', performance.now());
+        metrics.rejectionMessage = String((e && (e.reason && (e.reason.message || e.reason))) || '').slice(0, 200);
+      });
+
+      const observer = new MutationObserver(scan);
+      observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+
+      const report = document.getElementById('progressive-metrics');
+      const timer = setInterval(() => {
+        scan();
+        report.textContent = `METRICS ${isTeam ? 'team' : 'feed'} ${JSON.stringify(metrics)}`;
+        if (performance.now() - t0 > 6000) {
+          clearInterval(timer);
+          observer.disconnect();
+          document.title = `PROGRESSIVE-DONE ${isTeam ? 'team' : 'feed'} ${JSON.stringify(metrics)}`;
+        }
+      }, 50);
+
+      await import('/src/main.jsx');
+    </script>
+  </body>
+</html>

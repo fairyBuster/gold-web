@@ -1,0 +1,727 @@
+﻿<!DOCTYPE html>
+<html lang="id"><head>
+  <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+  <script type="module" src="/@vite/client"></script>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VIP-RANK-LIVEAPI-DONE</title>
+<style type="text/css" data-vite-dev-id="D:/webbaru/src/index.css">/* ============================================================
+
+   App shell styles shared by all converted pages.
+
+   Global resets below match the originals found in every
+
+   global.css, so individual page CSS files only need to carry
+
+   their page-specific (already scoped) rules.
+
+   ============================================================ */
+
+
+
+* {
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0;
+
+  -webkit-tap-highlight-color: transparent;
+
+}
+
+
+
+html,
+
+body,
+
+#root {
+
+  width: 100%;
+
+  min-height: 100vh;
+
+  margin: 0;
+
+  padding: 0;
+
+}
+
+
+
+/* Each converted page renders a single wrapper div below its page root
+
+   (e.g. #root > .page-x > div). The original mobile mockups sized that
+
+   wrapper by its content, which produced narrow centered columns on
+
+   desktop; force it to span the full width so pages have no side gaps. */
+
+#root > div > div {
+
+  width: 100%;
+
+}
+
+
+
+body {
+
+  font-family: 'Inter', sans-serif;
+
+  background-color: #f0e9df;
+
+  /* App-wide background image ΓÇö every page shows it through the
+
+     transparency rule below. */
+
+  background-image: url('/src/assets/images/background.jpg');
+
+  background-size: cover;
+
+  background-position: center top;
+
+  background-repeat: no-repeat;
+
+  background-attachment: fixed;
+
+  color: #1a1410;
+
+  min-height: 100vh;
+
+}
+
+
+
+/* Page wrappers paint their own opaque canvas; make them transparent so
+
+   the shared background image is visible on all pages. */
+
+#root > [class^="page-"] {
+
+  background-color: transparent;
+
+}
+
+
+
+a {
+
+  text-decoration: none;
+
+  color: inherit;
+
+}
+
+
+
+button {
+
+  border: none;
+
+  background: none;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+}
+
+
+
+input,
+
+textarea,
+
+select {
+
+  font-family: inherit;
+
+}
+
+
+
+/* ============================================================
+
+   Screen directory (route "/")
+
+   ============================================================ */
+
+
+
+.screen-index {
+
+  max-width: 1080px;
+
+  margin: 0 auto;
+
+  padding: 48px 24px 80px;
+
+}
+
+
+
+.screen-index__header {
+
+  text-align: center;
+
+  margin-bottom: 36px;
+
+}
+
+
+
+.screen-index__title {
+
+  font-size: 32px;
+
+  font-weight: 700;
+
+  color: #1a1410;
+
+  margin-bottom: 8px;
+
+}
+
+
+
+.screen-index__title span {
+
+  color: #e8790c;
+
+}
+
+
+
+.screen-index__subtitle {
+
+  font-size: 14px;
+
+  color: #8a7d6d;
+
+  margin-bottom: 24px;
+
+}
+
+
+
+.screen-index__search {
+
+  width: 100%;
+
+  max-width: 420px;
+
+  padding: 13px 18px;
+
+  font-size: 14px;
+
+  border: 1px solid #e2d8c8;
+
+  border-radius: 12px;
+
+  background-color: #fffbf4;
+
+  color: #1a1410;
+
+  outline: none;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__search:focus {
+
+  border-color: #e8790c;
+
+  box-shadow: 0 0 0 3px rgba(232, 121, 12, 0.15);
+
+}
+
+
+
+.screen-index__grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+
+  gap: 12px;
+
+}
+
+
+
+.screen-index__card {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  padding: 16px 18px;
+
+  background-color: #fffbf4;
+
+  border: 1px solid #e9dfd1;
+
+  border-radius: 14px;
+
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__card:hover {
+
+  border-color: #e8790c;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 10px 24px rgba(26, 20, 16, 0.08);
+
+}
+
+
+
+.screen-index__card-label {
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  color: #1a1410;
+
+}
+
+
+
+.screen-index__card-path {
+
+  font-size: 12px;
+
+  color: #b3a795;
+
+  font-family: 'SFMono-Regular', Consolas, monospace;
+
+}
+
+
+
+.screen-index__empty {
+
+  grid-column: 1 / -1;
+
+  text-align: center;
+
+  padding: 40px 0;
+
+  color: #b3a795;
+
+  font-size: 14px;
+
+}
+
+
+
+.screen-index__group {
+
+  margin-bottom: 32px;
+
+}
+
+
+
+.screen-index__group-title {
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  color: #8a7d6d;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+
+  margin-bottom: 12px;
+
+}
+
+
+
+/* ============================================================
+
+   Desktop layout (ΓëÑ768px) for all app screens.
+
+   Below 768px every page keeps its original mobile layout as-is.
+
+   From 768px up the page content renders as a centered app column
+
+   while backgrounds stay full-bleed on the page root, so no
+
+   phone-frame edges or side gaps appear. The landing page has its
+
+   own desktop layout (see LandingPagePerusahaan.jsx).
+
+   ============================================================ */
+
+
+
+@media (min-width: 768px) {
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > div,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > main,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > section {
+
+    max-width: 480px;
+
+    margin-left: auto;
+
+    margin-right: auto;
+
+    box-shadow: none;
+
+  }
+
+}
+
+
+
+/* Inner full-page containers keep a mobile drop shadow; drop it on desktop
+
+   too (they sit below the capped element, so the rule above does not reach
+
+   them). Selectors carry the #root prefix so they outrank the per-page
+
+   \3c style> blocks injected later in the document. */
+
+@media (min-width: 768px) {
+
+  #root .page-register-01 .app-container,
+
+  #root .page-register-04 .mobile-container,
+
+  #root .page-notifikasi-login .screen-container,
+
+  #root .page-notif-screen .screen-container,
+
+  #root .page-kartu-bank .mobile-app-container,
+
+  #root .page-beri-rating section:first-of-type,
+
+  #root .page-beri-rating section:last-of-type,
+
+  #root .page-livechat .input-container {
+
+    box-shadow: none;
+
+  }
+
+}
+
+</style></head>
+<body>
+  <div id="root"><div class="page-vip"><style>
+/* Scoped styles for Vip ΓÇö converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-vip to isolate this page. */
+
+.page-vip {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #fffbf4;
+  background-image: 
+    radial-gradient(circle at 80% -10%, rgba(255, 201, 60, 0.2) 0%, transparent 40%),
+    radial-gradient(circle at 20% 110%, rgba(255, 159, 28, 0.1) 0%, transparent 40%);
+  background-attachment: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-vip, .page-vip * {
+  box-sizing: border-box;
+}
+
+.page-vip section {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Header */
+.page-vip .vip-header {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    gap: 14px;
+  }
+  
+  .page-vip .back-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 36px;
+    height: 36px;
+    background-color: #f6f1e9;
+    border-radius: 11px;
+    text-decoration: none;
+  }
+  
+  .page-vip .back-button img {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .page-vip .header-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1410;
+    margin: 0;
+  }
+
+/* CSS for section section:Hero */
+.page-vip .hero-container {
+    padding: 0 20px 20px 20px;
+  }
+  
+  .page-vip .hero-card {
+    position: relative;
+    background: radial-gradient(circle at 40% 50%, #241c16 0%, #1a1410 55%, #120d09 100%);
+    border-radius: 20px;
+    padding: 20px;
+    min-height: 133px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  .page-vip .hero-bg-graphic {
+    position: absolute;
+    right: -40px;
+    top: -45px;
+    width: 227px;
+    height: 227px;
+    object-fit: contain;
+    z-index: 0;
+    pointer-events: none;
+  }
+  
+  .page-vip .hero-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: space-between;
+  }
+  
+  .page-vip .member-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .page-vip .status-icon {
+    width: 49px;
+    height: 49px;
+  }
+  
+  .page-vip .status-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff9f2;
+    margin: 0;
+  }
+  
+  .page-vip .progress-area {
+    margin-top: 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .page-vip .progress-text-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  
+  .page-vip .progress-label {
+    font-size: 12px;
+    color: rgba(255, 249, 242, 0.6);
+  }
+  
+  .page-vip .progress-amount {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.6);
+  }
+  
+  .page-vip .progress-bar-container {
+    width: 100%;
+    height: 7px;
+    background-color: rgba(255, 249, 242, 0.12);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .page-vip .progress-bar-fill {
+    height: 100%;
+    width: 35%; /* Approx based on design */
+    background: linear-gradient(90deg, #ffc93c 0%, #e8790c 100%);
+    border-radius: 4px;
+  }
+
+/* CSS for section section:Tiers */
+.page-vip .tiers-container {
+    padding: 0 20px 40px 20px;
+  }
+  
+  .page-vip .tiers-header {
+    margin-bottom: 14px;
+  }
+  
+  .page-vip .tiers-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1410;
+    margin: 0 0 4px 0;
+  }
+  
+  .page-vip .tiers-description {
+    font-size: 12px;
+    color: #a79c8f;
+    margin: 0;
+    line-height: 1.4;
+  }
+  
+  .page-vip .tiers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .page-vip .tier-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
+    background-color: #ffffff;
+    border: 1px solid #efe7dc;
+    border-radius: 14px;
+  }
+  
+  .page-vip .tier-card.active {
+    background-color: rgba(255, 159, 28, 0.06);
+    border-color: #e8790c;
+  }
+  
+  .page-vip .tier-card.locked {
+    opacity: 0.55;
+  }
+  
+  .page-vip .tier-icon {
+    width: 49px;
+    height: 49px;
+    flex-shrink: 0;
+  }
+  
+  .page-vip .tier-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  
+  .page-vip .tier-name-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .page-vip .tier-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1410;
+    margin: 0;
+  }
+  
+  .page-vip .current-level-badge {
+    background-color: rgba(255, 159, 28, 0.16);
+    color: #e8790c;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 6px;
+  }
+  
+  .page-vip .tier-requirement {
+    font-size: 12px;
+    color: #a79c8f;
+    margin: 0;
+  }
+</style><div><section id="section-header"><header class="vip-header"><a href="#" class="back-button" aria-label="Go back"><img src="data:image/svg+xml,%3csvg%20width='16'%20height='16'%20viewBox='0%200%2016%2016'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M10%203.33325L5.33337%207.99992L10%2012.6666'%20stroke='%231A1410'%20stroke-width='1.33333'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt=""></a><h1 class="header-title">VIP JelajahEmas</h1></header></section><section id="section-hero"><div class="hero-container"><div class="hero-card"><img src="/src/assets/images/915ddfcd2308a67f93cb52100b8c074abaa5928b.png" alt="" class="hero-bg-graphic"><div class="hero-content"><div class="member-status"><img src="/src/assets/images/97d547b383343261074c45a251276c6f944091c3.png" alt="Gold Tier Icon" class="status-icon"><h2 class="status-title">Non VIP</h2></div><div class="progress-area"><div class="progress-text-row"><span class="progress-label">Menuju Bronze</span><span class="progress-amount">Rp0 / Rp50.000</span></div><div class="progress-bar-container"><div class="progress-bar-fill" style="width: 0%;"></div></div></div></div></div></div></section><section id="section-tiers"><div class="tiers-container"><div class="tiers-header"><h2 class="tiers-title">Semua Tingkatan VIP</h2><p class="tiers-description">Penuhi syarat di tiap tingkatan untuk naik ke tingkat berikutnya.</p></div><div class="tiers-list"><div class="tier-card active"><img src="/src/assets/images/97d547b383343261074c45a251276c6f944091c3.png" alt="Non VIP Icon" class="tier-icon"><div class="tier-info"><div class="tier-name-wrapper"><h3 class="tier-name">Non VIP</h3><span class="current-level-badge">Level Kamu</span></div><p class="tier-requirement">Total aset isi ulang Rp 0</p></div></div><div class="tier-card locked"><img src="/src/assets/images/97d547b383343261074c45a251276c6f944091c3.png" alt="Bronze Icon" class="tier-icon"><div class="tier-info"><div class="tier-name-wrapper"><h3 class="tier-name">Bronze</h3></div><p class="tier-requirement">Total aset isi ulang Rp 50.000</p></div></div><div class="tier-card locked"><img src="/src/assets/images/97d547b383343261074c45a251276c6f944091c3.png" alt="Silver Icon" class="tier-icon"><div class="tier-info"><div class="tier-name-wrapper"><h3 class="tier-name">Silver</h3></div><p class="tier-requirement">Total aset isi ulang Rp 350.000</p></div></div><div class="tier-card locked"><img src="/src/assets/images/97d547b383343261074c45a251276c6f944091c3.png" alt="Gold Icon" class="tier-icon"><div class="tier-info"><div class="tier-name-wrapper"><h3 class="tier-name">Gold</h3></div><p class="tier-requirement">Total aset isi ulang Rp 1.400.000</p></div></div><div class="tier-card locked"><img src="/src/assets/images/97d547b383343261074c45a251276c6f944091c3.png" alt="Platinum Icon" class="tier-icon"><div class="tier-info"><div class="tier-name-wrapper"><h3 class="tier-name">Platinum</h3></div><p class="tier-requirement">Total aset isi ulang Rp 2.500.000</p></div></div><div class="tier-card locked"><img src="/src/assets/images/97d547b383343261074c45a251276c6f944091c3.png" alt="Diamond Icon" class="tier-icon"><div class="tier-info"><div class="tier-name-wrapper"><h3 class="tier-name">Diamond</h3></div><p class="tier-requirement">Total aset isi ulang Rp 5.000.000</p></div></div><div class="tier-card locked"><img src="/src/assets/images/97d547b383343261074c45a251276c6f944091c3.png" alt="Emerald Icon" class="tier-icon"><div class="tier-info"><div class="tier-name-wrapper"><h3 class="tier-name">Emerald</h3></div><p class="tier-requirement">Total aset isi ulang Rp 15.000.000</p></div></div><div class="tier-card locked"><img src="/src/assets/images/97d547b383343261074c45a251276c6f944091c3.png" alt="Sapphire Icon" class="tier-icon"><div class="tier-info"><div class="tier-name-wrapper"><h3 class="tier-name">Sapphire</h3></div><p class="tier-requirement">Total aset isi ulang Rp 20.000.000</p></div></div><div class="tier-card locked"><img src="/src/assets/images/97d547b383343261074c45a251276c6f944091c3.png" alt="Ruby Icon" class="tier-icon"><div class="tier-info"><div class="tier-name-wrapper"><h3 class="tier-name">Ruby</h3></div><p class="tier-requirement">Total aset isi ulang Rp 25.000.000</p></div></div><div class="tier-card locked"><img src="/src/assets/images/97d547b383343261074c45a251276c6f944091c3.png" alt="Master Icon" class="tier-icon"><div class="tier-info"><div class="tier-name-wrapper"><h3 class="tier-name">Master</h3></div><p class="tier-requirement">Total aset isi ulang Rp 50.000.000</p></div></div><div class="tier-card locked"><img src="/src/assets/images/97d547b383343261074c45a251276c6f944091c3.png" alt="Grandmaster Icon" class="tier-icon"><div class="tier-info"><div class="tier-name-wrapper"><h3 class="tier-name">Grandmaster</h3></div><p class="tier-requirement">Total aset isi ulang Rp 70.000.000</p></div></div></div></div></section></div></div></div>
+  <pre id="vip-live-metrics">{
+  "errors": [],
+  "state": {
+    "tokenUser": "1019:+6289954545454",
+    "liveStatus": {
+      "current_rank": 1,
+      "current_title": "Non VIP",
+      "completed_missions": 0,
+      "downlines_total": 0,
+      "downlines_active": 0,
+      "deposit_self_total": "0",
+      "team_deposit_level_1_total": "0",
+      "next_rank": 2,
+      "next_title": "Bronze",
+      "next_required_missions": 0,
+      "next_required_downlines_total": 0,
+      "next_required_downlines_active": 0,
+      "next_required_deposit_self_total": "50000.00",
+      "next_required_team_deposit_level_1_total": "0.00",
+      "progress_basis": "deposit_self_total"
+    },
+    "heroTitle": "Non VIP",
+    "progressLabel": "Menuju Bronze",
+    "progressAmount": "Rp0 / Rp50.000",
+    "progressWidth": "0%",
+    "tierCount": 11,
+    "lockedCount": 10,
+    "badgeTitles": [
+      "Non VIP"
+    ],
+    "mockupLeftovers": [],
+    "expected": {
+      "hero": "Non VIP",
+      "label": "Menuju Bronze",
+      "amount": "Rp0 / Rp50.000",
+      "width": "0%",
+      "badgeTitle": "Non VIP",
+      "tierCount": 11,
+      "lockedCount": 10
+    }
+  },
+  "allPassed": true
+}</pre>
+  <script type="module" src="/tmp-html/vip-rank/live.html?html-proxy&amp;index=0.js"></script>
+
+
+</body></html>

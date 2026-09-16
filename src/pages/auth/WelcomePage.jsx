@@ -183,8 +183,8 @@ export default function WelcomePage() {
                   <p className="subtitle">Saatnya memulai perjalanan emasmu,<br />peluang dan inspirasi dalam satu tempat.</p>
                   <img className="character" src={img_2} alt="Mascot Character" />
                   <div className="button-group">
-                    <button className="btn btn-primary" onClick={(e) => { e.preventDefault(); navigate('/auth/login'); }}>Masuk</button>
-                    <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/auth/register-01'); }}>Buat Akun</button>
+                    <button className="btn btn-primary" onClick={(e) => { e.preventDefault(); navigate('/index/auth/login'); }}>Masuk</button>
+                    <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/index/auth/register-01'); }}>Buat Akun</button>
                   </div>
                 </div>
               </section>
@@ -195,11 +195,11 @@ export default function WelcomePage() {
                     <img src={img_4} alt="Partner Logo 2" />
                   </div>
                   <div className="footer-links">
-                    <Link to="/support/kebijakan-privasi">Legal</Link>
+                    <Link to="/index/support/kebijakan-privasi">Legal</Link>
                     <span className="separator">•</span>
-                    <Link to="/support/tentang-kami">Tentang Kami</Link>
+                    <Link to="/index/landing">Tentang Kami</Link>
                     <span className="separator">•</span>
-                    <Link to="/landing">Website Resmi</Link>
+                    <Link to="/index/landing">Website Resmi</Link>
                   </div>
                   <p className="copyright">
                     JelajahEmas dikelola oleh PT JELAJAH EMAS DIGITAL INDONESIA<br />

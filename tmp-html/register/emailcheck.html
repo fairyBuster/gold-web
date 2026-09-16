@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EMAILCHECK-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="emailcheck-metrics">pending</pre>
+  <script type="module">
+    /* Focused probe: register-01 submit with valid name + invalid email
+       ("notanemail"). Records a fine-grained timeline of the notification
+       overlay and the current path to see exactly what happens. */
+    const metrics = { errors: [], timeline: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+    window.fetch = async () => new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const writeMetrics = () => {
+      document.getElementById('emailcheck-metrics').textContent = JSON.stringify(metrics, null, 2);
+      document.title = 'EMAILCHECK-DONE';
+    };
+    const waitFor = async (selector, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+    const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    const feed = async (input, raw) => {
+      nativeSet.call(input, raw);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      await sleep(120);
+    };
+    const snap = (label) => {
+      const card = document.querySelector('.notif-overlay .notif-card');
+      metrics.timeline.push({
+        label,
+        t: Math.round(performance.now()),
+        path: location.pathname,
+        overlay: !!document.querySelector('.notif-overlay'),
+        title: card?.querySelector('.notification-title')?.textContent || '',
+        desc: card?.querySelector('.notification-desc')?.textContent || '',
+      });
+    };
+
+    history.replaceState(null, '', '/index/auth/register-01');
+    await import('/src/main.jsx');
+
+    const name = await waitFor('.page-register-01 input[placeholder="Contoh: Budi Santoso"]');
+    const email = await waitFor('.page-register-01 input[placeholder="contoh@email.com"]');
+    const submit = await waitFor('.page-register-01 .submit-btn');
+    metrics.state.rendered = !!(name && email && submit);
+    snap('after-load');
+
+    await feed(name, 'Budi Santoso');
+    await feed(email, 'notanemail');
+    metrics.state.nameValue = name.value;
+    metrics.state.emailValue = email.value;
+    snap('before-submit');
+
+    submit.click();
+    for (let i = 0; i < 10; i += 1) {
+      await sleep(200);
+      snap('after-submit+' + (i + 1) * 200 + 'ms');
+    }
+    metrics.state.finalPath = location.pathname;
+    writeMetrics();
+  </script>
+</body>
+</html>

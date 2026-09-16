@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KONFIRMASI-FLOW-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="kf-metrics">pending</pre>
+  <script type="module">
+    /* E2E probe for the Konfirmasi purchase flow:
+       - rejection copies: limit / rank / balance get dedicated frontend copy,
+         every other 400 keeps the generic fallback (asserted on the modal
+         NotifCard, plus raw backend text must not be rendered);
+       - one-shot entry guard: only the "Aktivasi Paket Ini" push from the
+         product detail page opens the page — back/forward and direct URL
+         entries bounce to /assets/asset-02;
+       - success replaces the history entry so back never returns here.
+       ?case=limit|rank|balance|other|nav|direct|success */
+    const metrics = { errors: [], case: null };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const selectedCase = new URLSearchParams(location.search).get('case') || 'limit';
+    metrics.case = selectedCase;
+
+    const product = {
+      id: 134,
+      name: 'Logam 24K',
+      golongan: 'Simpanan',
+      description: '-',
+      price: '50000.00',
+      status: 1,
+      stock: 4999,
+      stock_enabled: true,
+      profit_type: 'random',
+      profit_rate: '0.00',
+      profit_random_min: '6250.00',
+      profit_random_max: '10350.00',
+      profit_method: 'hold',
+      duration: 40,
+      balance_source: 'balance_deposit',
+      claim_reset_mode: 'after_purchase',
+      claim_reset_hours: 0,
+    };
+    const rejections = {
+      /* Serializer validation errors ship under "product_id"; the view's own
+         checks use "error" — mirrors the real backend payloads. */
+      limit: { product_id: ['Batas pembelian tercapai. Anda hanya bisa membeli produk ini 10 kali. Saat ini sudah 10 kali.'] },
+      rank: { product_id: ['Produk ini hanya bisa dibeli oleh user dengan rank minimal 7. Rank Anda: -'] },
+      balance: { error: 'Insufficient Balance Deposit. Required: Rp 50.000,00' },
+      other: { quantity: ['Stok tidak mencukupi. Tersedia: 1'] },
+    };
+
+    const json = (data, status = 200) => new Response(JSON.stringify(data), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    window.fetch = (url) => {
+      const target = String(url);
+      if (target.includes('/api/products/purchase/')) {
+        if (selectedCase === 'success') return Promise.resolve(json({ id: 999, status: 'ACTIVE' }, 201));
+        return Promise.resolve(json(rejections[selectedCase] ?? rejections.other, 400));
+      }
+      if (target.includes('/api/products/134/')) return Promise.resolve(json(product));
+      if (target.includes('/api/products/')) return Promise.resolve(json({ count: 1, results: [product] }));
+      if (target.includes('/api/investments/')) return Promise.resolve(json({ count: 0, results: [] }));
+      return Promise.resolve(json({}, 404));
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+    window.sessionStorage.setItem('je_asset_product_id', '134');
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (selector, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+    const waitUntil = async (predicate, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        if (predicate()) return true;
+        await sleep(50);
+      }
+      return false;
+    };
+    const path = () => location.pathname;
+    const hasModal = () => !!document.querySelector('.modal-konfirmasi');
+    const clickDetailButton = async () => {
+      const btn = await waitFor('.page-asset-02 #action .primary-btn');
+      if (btn) btn.click();
+      return !!btn;
+    };
+
+    /* "direct" cold-loads straight on /assets/konfirmasi; every other case
+       starts on the product detail page like a real visit. */
+    history.replaceState(null, '', selectedCase === 'direct' ? '/assets/konfirmasi' : '/assets/asset-02');
+    await import('/src/main.jsx');
+
+    let passed = false;
+    if (selectedCase === 'direct') {
+      await waitUntil(() => path() === '/assets/asset-02');
+      const bounced = path() === '/assets/asset-02' && !hasModal();
+      await clickDetailButton();
+      const reopened = !!(await waitFor('.modal-konfirmasi .btn-activate'));
+      metrics.bounced = bounced;
+      metrics.reopened = reopened;
+      passed = bounced && reopened;
+    } else if (selectedCase === 'nav') {
+      await clickDetailButton();
+      const opened = !!(await waitFor('.modal-konfirmasi .btn-activate'));
+      history.back();
+      await waitUntil(() => path() === '/assets/asset-02' && !hasModal());
+      history.forward();
+      await sleep(1200); /* let the POP entry settle — it must redirect out */
+      const blocked = path() === '/assets/asset-02' && !hasModal();
+      await clickDetailButton();
+      const reopened = !!(await waitFor('.modal-konfirmasi .btn-activate'));
+      metrics.opened = opened;
+      metrics.blocked = blocked;
+      metrics.reopened = reopened;
+      passed = opened && blocked && reopened;
+    } else if (selectedCase === 'success') {
+      await clickDetailButton();
+      const activate = await waitFor('.modal-konfirmasi .btn-activate');
+      if (activate) activate.click();
+      await waitUntil(() => path() === '/assets/aset-saya-01');
+      metrics.pathAfterSuccess = path();
+      history.back();
+      await waitUntil(() => path() === '/assets/asset-02');
+      const backOk = path() === '/assets/asset-02' && !hasModal();
+      metrics.pathAfterBack = path();
+      passed = metrics.pathAfterSuccess === '/assets/aset-saya-01' && backOk;
+    } else {
+      await clickDetailButton();
+      const activate = await waitFor('.modal-konfirmasi .btn-activate');
+      if (activate) activate.click();
+      await waitFor('.notif-card.error');
+      metrics.notifTitle = document.querySelector('.notif-card.error .notification-title')?.textContent.trim() ?? null;
+      metrics.notifDesc = document.querySelector('.notif-card.error .notification-desc')?.textContent.trim() ?? null;
+      metrics.pageText = document.body.textContent;
+      const expected = {
+        limit: 'Batas pembelian produk ini sudah tercapai. Silakan pilih rencana lain.',
+        rank: 'Emas ini belum tersedia untuk anda',
+        balance: 'Saldo tidak mencukupi. Silakan isi ulang.',
+        other: 'Aktivasi gagal. Coba lagi.',
+      }[selectedCase];
+      const forbidden = {
+        limit: 'Saat ini sudah',
+        rank: 'Rank Anda',
+        balance: 'Insufficient',
+        other: 'Tersedia: 1',
+      }[selectedCase];
+      passed = metrics.notifTitle === 'Aktivasi Gagal'
+        && metrics.notifDesc === expected
+        && !metrics.pageText.includes(forbidden);
+    }
+
+    metrics.finalPath = path();
+    metrics.allPassed = passed && metrics.errors.length === 0;
+    document.getElementById('kf-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'KONFIRMASI-FLOW-DONE';
+  </script>
+</body>
+</html>

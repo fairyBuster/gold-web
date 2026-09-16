@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ISIULANG-NAMES-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="isiulang-metrics">pending</pre>
+  <script type="module">
+    /* Verifikasi nama channel di halaman Isi Ulang: QRIS 01-04 sekarang
+       tampil sebagai Lpay / quenpay / mgmpay / ffpay (urutan dipertahankan),
+       dan label lama "QRIS 0x" tidak lagi muncul di mana pun. */
+    const metrics = { errors: [] };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    /* Halaman hanya butuh account-info (saldo); 404 aman — saldo tampil "—". */
+    window.fetch = () => Promise.resolve(new Response('{}', {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, timeout = 8000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const value = fn();
+        if (value) return value;
+        await sleep(50);
+      }
+      return null;
+    };
+
+    history.replaceState(null, '', '/index/transactions/isi-ulang');
+    await import('/src/main.jsx');
+
+    await waitFor(() => document.querySelectorAll('.page-isi-ulang .payment-card').length >= 6);
+    const names = [...document.querySelectorAll('.page-isi-ulang .method-name')].map((el) => el.textContent.trim());
+    metrics.methodNames = names;
+    metrics.oldNamesGone = !document.body.textContent.includes('QRIS 0');
+    const EXPECTED = ['VA BRI', 'VA Permata', 'Lpay', 'quenpay', 'mgmpay', 'ffpay'];
+    metrics.expected = EXPECTED;
+    metrics.allPassed =
+      names.length === EXPECTED.length &&
+      EXPECTED.every((name, i) => names[i] === name) &&
+      metrics.oldNamesGone &&
+      metrics.errors.length === 0;
+    document.getElementById('isiulang-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'ISIULANG-NAMES-DONE ' + JSON.stringify({ allPassed: metrics.allPassed });
+  </script>
+</body>
+</html>

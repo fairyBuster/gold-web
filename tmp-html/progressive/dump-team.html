@@ -1,0 +1,759 @@
+﻿<!DOCTYPE html>
+<html lang="id"><head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+    <script type="module" src="/@vite/client"></script>
+
+    <meta charset="UTF-8">
+    <title>PROGRESSIVE-DONE team {"teamSkeleton":38,"teamFirstCard":438,"teamTotal10":1038,"teamTotal12":1838}</title>
+    <style>
+      html { background: #f0e9df; }
+      #progressive-metrics { font: 12px/1.5 monospace; white-space: pre-wrap; }
+    </style>
+  <style type="text/css" data-vite-dev-id="D:/webbaru/src/index.css">/* ============================================================
+
+   App shell styles shared by all converted pages.
+
+   Global resets below match the originals found in every
+
+   global.css, so individual page CSS files only need to carry
+
+   their page-specific (already scoped) rules.
+
+   ============================================================ */
+
+
+
+* {
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0;
+
+  -webkit-tap-highlight-color: transparent;
+
+}
+
+
+
+html,
+
+body,
+
+#root {
+
+  width: 100%;
+
+  min-height: 100vh;
+
+  margin: 0;
+
+  padding: 0;
+
+}
+
+
+
+/* Each converted page renders a single wrapper div below its page root
+
+   (e.g. #root > .page-x > div). The original mobile mockups sized that
+
+   wrapper by its content, which produced narrow centered columns on
+
+   desktop; force it to span the full width so pages have no side gaps. */
+
+#root > div > div {
+
+  width: 100%;
+
+}
+
+
+
+body {
+
+  font-family: 'Inter', sans-serif;
+
+  background-color: #f0e9df;
+
+  /* App-wide background image ΓÇö every page shows it through the
+
+     transparency rule below. */
+
+  background-image: url('/src/assets/images/background.jpg');
+
+  background-size: cover;
+
+  background-position: center top;
+
+  background-repeat: no-repeat;
+
+  background-attachment: fixed;
+
+  color: #1a1410;
+
+  min-height: 100vh;
+
+}
+
+
+
+/* Page wrappers paint their own opaque canvas; make them transparent so
+
+   the shared background image is visible on all pages. */
+
+#root > [class^="page-"] {
+
+  background-color: transparent;
+
+}
+
+
+
+a {
+
+  text-decoration: none;
+
+  color: inherit;
+
+}
+
+
+
+button {
+
+  border: none;
+
+  background: none;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+}
+
+
+
+input,
+
+textarea,
+
+select {
+
+  font-family: inherit;
+
+}
+
+
+
+/* ============================================================
+
+   Screen directory (route "/")
+
+   ============================================================ */
+
+
+
+.screen-index {
+
+  max-width: 1080px;
+
+  margin: 0 auto;
+
+  padding: 48px 24px 80px;
+
+}
+
+
+
+.screen-index__header {
+
+  text-align: center;
+
+  margin-bottom: 36px;
+
+}
+
+
+
+.screen-index__title {
+
+  font-size: 32px;
+
+  font-weight: 700;
+
+  color: #1a1410;
+
+  margin-bottom: 8px;
+
+}
+
+
+
+.screen-index__title span {
+
+  color: #e8790c;
+
+}
+
+
+
+.screen-index__subtitle {
+
+  font-size: 14px;
+
+  color: #8a7d6d;
+
+  margin-bottom: 24px;
+
+}
+
+
+
+.screen-index__search {
+
+  width: 100%;
+
+  max-width: 420px;
+
+  padding: 13px 18px;
+
+  font-size: 14px;
+
+  border: 1px solid #e2d8c8;
+
+  border-radius: 12px;
+
+  background-color: #fffbf4;
+
+  color: #1a1410;
+
+  outline: none;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__search:focus {
+
+  border-color: #e8790c;
+
+  box-shadow: 0 0 0 3px rgba(232, 121, 12, 0.15);
+
+}
+
+
+
+.screen-index__grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+
+  gap: 12px;
+
+}
+
+
+
+.screen-index__card {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  padding: 16px 18px;
+
+  background-color: #fffbf4;
+
+  border: 1px solid #e9dfd1;
+
+  border-radius: 14px;
+
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__card:hover {
+
+  border-color: #e8790c;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 10px 24px rgba(26, 20, 16, 0.08);
+
+}
+
+
+
+.screen-index__card-label {
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  color: #1a1410;
+
+}
+
+
+
+.screen-index__card-path {
+
+  font-size: 12px;
+
+  color: #b3a795;
+
+  font-family: 'SFMono-Regular', Consolas, monospace;
+
+}
+
+
+
+.screen-index__empty {
+
+  grid-column: 1 / -1;
+
+  text-align: center;
+
+  padding: 40px 0;
+
+  color: #b3a795;
+
+  font-size: 14px;
+
+}
+
+
+
+.screen-index__group {
+
+  margin-bottom: 32px;
+
+}
+
+
+
+.screen-index__group-title {
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  color: #8a7d6d;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+
+  margin-bottom: 12px;
+
+}
+
+
+
+/* ============================================================
+
+   Desktop layout (ΓëÑ768px) for all app screens.
+
+   Below 768px every page keeps its original mobile layout as-is.
+
+   From 768px up the page content renders as a centered app column
+
+   while backgrounds stay full-bleed on the page root, so no
+
+   phone-frame edges or side gaps appear. The landing page has its
+
+   own desktop layout (see LandingPagePerusahaan.jsx).
+
+   ============================================================ */
+
+
+
+@media (min-width: 768px) {
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > div,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > main,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > section {
+
+    max-width: 480px;
+
+    margin-left: auto;
+
+    margin-right: auto;
+
+    box-shadow: none;
+
+  }
+
+}
+
+
+
+/* Inner full-page containers keep a mobile drop shadow; drop it on desktop
+
+   too (they sit below the capped element, so the rule above does not reach
+
+   them). Selectors carry the #root prefix so they outrank the per-page
+
+   \3c style> blocks injected later in the document. */
+
+@media (min-width: 768px) {
+
+  #root .page-register-01 .app-container,
+
+  #root .page-register-04 .mobile-container,
+
+  #root .page-notifikasi-login .screen-container,
+
+  #root .page-notif-screen .screen-container,
+
+  #root .page-kartu-bank .mobile-app-container,
+
+  #root .page-beri-rating section:first-of-type,
+
+  #root .page-beri-rating section:last-of-type,
+
+  #root .page-livechat .input-container {
+
+    box-shadow: none;
+
+  }
+
+}
+
+</style></head>
+  <body>
+    <div id="root"><div class="page-lihat-detail-tim"><style>
+/* Scoped styles for LihatDetailTim ΓÇö converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-lihat-detail-tim to isolate this page. */
+
+.page-lihat-detail-tim {
+  font-family: 'Inter', sans-serif;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 100%;
+  background-color: #fffbf4;
+  background-image: 
+    radial-gradient(circle at top right, rgba(255, 201, 60, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at top left, rgba(255, 159, 28, 0.1) 0%, transparent 50%);
+  min-height: 100vh;
+  color: #1a1410;
+  box-sizing: border-box;
+  box-shadow: 0px 0px 20px rgba(0,0,0,0.05);
+  width: 100%;
+}
+
+.page-lihat-detail-tim, .page-lihat-detail-tim * {
+  box-sizing: inherit;
+}
+
+.page-lihat-detail-tim p,.page-lihat-detail-tim  h1,.page-lihat-detail-tim  h2,.page-lihat-detail-tim  h3,.page-lihat-detail-tim  h4,.page-lihat-detail-tim  h5,.page-lihat-detail-tim  h6 {
+  margin: 0;
+}
+
+.page-lihat-detail-tim button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.page-lihat-detail-tim input {
+  font-family: inherit;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Header */
+.page-lihat-detail-tim .header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 20px 4px;
+}
+.page-lihat-detail-tim .back-btn {
+  width: 36px;
+  height: 36px;
+  background-color: #f6f1e9;
+  border-radius: 11px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.2s;
+}
+.page-lihat-detail-tim .back-btn:active {
+  opacity: 0.7;
+}
+.page-lihat-detail-tim .page-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1410;
+}
+
+/* CSS for section section:Intro */
+.page-lihat-detail-tim .intro {
+  padding: 14px 20px 16px;
+}
+.page-lihat-detail-tim .intro p {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #a79c8f;
+}
+
+/* CSS for section section:Stats */
+.page-lihat-detail-tim .stats-container {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 16px;
+}
+.page-lihat-detail-tim .stat-card {
+  flex: 1;
+  border-radius: 12px;
+  padding: 10px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+  transition: box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.page-lihat-detail-tim .stat-card.selected {
+  box-shadow: 0 0 0 2px #ff9f1c;
+}
+.page-lihat-detail-tim .stat-card:active {
+  opacity: 0.85;
+}
+.page-lihat-detail-tim .stat-card.dark {
+  background-color: #1a1410;
+}
+.page-lihat-detail-tim .stat-card.light {
+  background-color: #f6f1e9;
+}
+.page-lihat-detail-tim .stat-card.dark .stat-value {
+  color: #fff9f2;
+}
+.page-lihat-detail-tim .stat-card.dark .stat-label {
+  color: rgba(255, 249, 242, 0.6);
+}
+.page-lihat-detail-tim .stat-card.light .stat-value {
+  color: #514840;
+}
+.page-lihat-detail-tim .stat-card.light .stat-label {
+  color: #a79c8f;
+}
+.page-lihat-detail-tim .stat-value {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.page-lihat-detail-tim .stat-label {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* CSS for section section:InfoBanner */
+.page-lihat-detail-tim .info-wrapper {
+  padding: 0 20px 12px;
+}
+.page-lihat-detail-tim .info-banner {
+  background-color: rgba(255, 159, 28, 0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.page-lihat-detail-tim .info-icon {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.page-lihat-detail-tim .info-text {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #514840;
+}
+.page-lihat-detail-tim .info-text strong {
+  color: #1a1410;
+  font-weight: 600;
+}
+
+/* CSS for section section:SearchFilters */
+.page-lihat-detail-tim .search-wrapper {
+  padding: 0 20px 14px;
+}
+.page-lihat-detail-tim .search-bar {
+  background-color: #f6f1e9;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.page-lihat-detail-tim .search-icon {
+  flex-shrink: 0;
+}
+.page-lihat-detail-tim .search-input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-size: 14px;
+  color: #1a1410;
+  outline: none;
+}
+.page-lihat-detail-tim .search-input::placeholder {
+  color: #a79c8f;
+}
+.page-lihat-detail-tim .filters-wrapper {
+  padding: 0 20px 14px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+}
+.page-lihat-detail-tim .filters-wrapper::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+.page-lihat-detail-tim .filter-btn {
+  background-color: #f6f1e9;
+  color: #514840;
+  border-radius: 20px;
+  padding: 7px 13px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.page-lihat-detail-tim .filter-btn.active {
+  background-color: rgba(255, 159, 28, 0.14);
+  color: #e8790c;
+}
+
+/* CSS for section section:MemberList */
+.page-lihat-detail-tim .members-list {
+  padding: 0 20px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.page-lihat-detail-tim .member-card {
+  background-color: #ffffff;
+  border: 1px solid #efe7dc;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  gap: 12px;
+}
+.page-lihat-detail-tim .member-avatar {
+  width: 31px;
+  height: 31px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.page-lihat-detail-tim .member-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.page-lihat-detail-tim .member-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.page-lihat-detail-tim .member-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1410;
+}
+.page-lihat-detail-tim .status-badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 9px;
+  border-radius: 8px;
+}
+.page-lihat-detail-tim .status-badge.active {
+  background-color: rgba(63, 166, 107, 0.14);
+  color: #3fa66b;
+}
+.page-lihat-detail-tim .status-badge.pending {
+  background-color: rgba(255, 159, 28, 0.14);
+  color: #e8790c;
+}
+.page-lihat-detail-tim .member-details {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #a79c8f;
+}
+.page-lihat-detail-tim .member-ownership {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+}
+.page-lihat-detail-tim .ownership-label {
+  font-size: 12px;
+  color: #514840;
+}
+.page-lihat-detail-tim .ownership-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1410;
+}
+.page-lihat-detail-tim .status-text {
+  color: #a79c8f;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  padding: 20px 0;
+}
+
+/* CSS for section section:Footer */
+.page-lihat-detail-tim .footer-wrapper {
+  padding: 14px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.page-lihat-detail-tim .load-more-btn {
+  border: 1px solid #efe7dc;
+  border-radius: 20px;
+  padding: 9px 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #514840;
+  background-color: transparent;
+  transition: background-color 0.2s;
+}
+.page-lihat-detail-tim .load-more-btn:active {
+  background-color: rgba(0,0,0,0.02);
+}
+.page-lihat-detail-tim .footer-text {
+  font-size: 12px;
+  color: #a79c8f;
+}
+</style><div><section id="section-header"><header class="header"><button class="back-btn" aria-label="Kembali"><img src="data:image/svg+xml,%3csvg%20width='16'%20height='16'%20viewBox='0%200%2016%2016'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M9.99992%203.33337L5.33325%208.00004L9.99992%2012.6667'%20stroke='%231A1410'%20stroke-width='1.33333'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt=""></button><h1 class="page-title">Detail Tim</h1></header></section><section id="section-intro"><div class="intro"><p>Ini adalah jaringan komunitas kamu berdasarkan siapa yang mengundang siapa, hingga 3 tingkat kedalaman.</p></div></section><section id="section-stats"><div class="stats-container"><button type="button" class="stat-card dark" aria-pressed="false"><div class="stat-value">3 aktif<br>3 belum</div><div class="stat-label">Level 1</div></button><button type="button" class="stat-card light" aria-pressed="false"><div class="stat-value">2 aktif<br>2 belum</div><div class="stat-label">Level 2</div></button><button type="button" class="stat-card light" aria-pressed="false"><div class="stat-value">1 aktif<br>1 belum</div><div class="stat-label">Level 3</div></button></div></section><section id="section-info"><div class="info-wrapper"><div class="info-banner"><img src="data:image/svg+xml,%3csvg%20width='16'%20height='16'%20viewBox='0%200%2016%2016'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M8%2014C11.3137%2014%2014%2011.3137%2014%208C14%204.68629%2011.3137%202%208%202C4.68629%202%202%204.68629%202%208C2%2011.3137%204.68629%2014%208%2014Z'%20stroke='%23E8790C'%20stroke-width='1.2'/%3e%3cpath%20d='M8%205.33337V8.66671'%20stroke='%23E8790C'%20stroke-width='1.2'%20stroke-linecap='round'/%3e%3cpath%20d='M7.99992%2011.3333C8.36811%2011.3333%208.66659%2011.0349%208.66659%2010.6667C8.66659%2010.2985%208.36811%2010%207.99992%2010C7.63173%2010%207.33325%2010.2985%207.33325%2010.6667C7.33325%2011.0349%207.63173%2011.3333%207.99992%2011.3333Z'%20fill='%23E8790C'/%3e%3c/svg%3e" alt="Info" class="info-icon"><p class="info-text"><strong>Level 1</strong> ΓÇö teman yang kamu ajak langsung menggunakan kode referral kamu.</p></div></div></section><section id="section-search-filters"><div class="search-wrapper"><div class="search-bar"><img src="data:image/svg+xml,%3csvg%20width='16'%20height='16'%20viewBox='0%200%2016%2016'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M7.33342%2012C9.91074%2012%2012.0001%209.91062%2012.0001%207.33329C12.0001%204.75596%209.91074%202.66663%207.33342%202.66663C4.75609%202.66663%202.66675%204.75596%202.66675%207.33329C2.66675%209.91062%204.75609%2012%207.33342%2012Z'%20stroke='%23A79C8F'%20stroke-width='1.2'/%3e%3cpath%20d='M13.3334%2013.3333L10.6667%2010.6666'%20stroke='%23A79C8F'%20stroke-width='1.2'%20stroke-linecap='round'/%3e%3c/svg%3e" alt="Search" class="search-icon"><input type="text" placeholder="Cari nama anggota" class="search-input" value=""></div></div><div class="filters-wrapper"><button class="filter-btn active">Semua</button><button class="filter-btn">Aktif</button><button class="filter-btn">Tidak aktif</button></div></section><section id="section-members"><div class="members-list"><article class="member-card"><img src="/src/assets/images/402d907c628503f9f6fc98788c4a2ed737081803.png" alt="Avatar" class="member-avatar"><div class="member-info"><div class="member-header"><h3 class="member-name">Anggota L1-6</h3><span class="status-badge active">Aktif</span></div><p class="member-details">+62 895-1234-16<br>Bergabung 16 Agu 2026</p><div class="member-ownership"><img src="data:image/svg+xml,%3csvg%20width='12'%20height='12'%20viewBox='0%200%2012%2012'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M9.25%204.5H2.75C2.33579%204.5%202%204.83579%202%205.25V8.75C2%209.16421%202.33579%209.5%202.75%209.5H9.25C9.66421%209.5%2010%209.16421%2010%208.75V5.25C10%204.83579%209.66421%204.5%209.25%204.5Z'%20stroke='%23514840'%20stroke-width='0.8'/%3e%3cpath%20d='M2%204.5L3.5%202.5H8.5L10%204.5'%20stroke='%23514840'%20stroke-width='0.8'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt=""><span class="ownership-label">Total investasi:</span><span class="ownership-value">Rp3.000.000</span></div></div></article><article class="member-card"><img src="/src/assets/images/402d907c628503f9f6fc98788c4a2ed737081803.png" alt="Avatar" class="member-avatar"><div class="member-info"><div class="member-header"><h3 class="member-name">Anggota L1-5</h3><span class="status-badge pending">Tidak aktif</span></div><p class="member-details">+62 895-1234-15<br>Bergabung 15 Agu 2026</p><div class="member-ownership"><img src="data:image/svg+xml,%3csvg%20width='12'%20height='12'%20viewBox='0%200%2012%2012'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M9.25%204.5H2.75C2.33579%204.5%202%204.83579%202%205.25V8.75C2%209.16421%202.33579%209.5%202.75%209.5H9.25C9.66421%209.5%2010%209.16421%2010%208.75V5.25C10%204.83579%209.66421%204.5%209.25%204.5Z'%20stroke='%23514840'%20stroke-width='0.8'/%3e%3cpath%20d='M2%204.5L3.5%202.5H8.5L10%204.5'%20stroke='%23514840'%20stroke-width='0.8'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt=""><span class="ownership-label">Total investasi:</span><span class="ownership-value">Rp2.500.000</span></div></div></article><article class="member-card"><img src="/src/assets/images/402d907c628503f9f6fc98788c4a2ed737081803.png" alt="Avatar" class="member-avatar"><div class="member-info"><div class="member-header"><h3 class="member-name">Anggota L1-4</h3><span class="status-badge active">Aktif</span></div><p class="member-details">+62 895-1234-14<br>Bergabung 14 Agu 2026</p><div class="member-ownership"><img src="data:image/svg+xml,%3csvg%20width='12'%20height='12'%20viewBox='0%200%2012%2012'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M9.25%204.5H2.75C2.33579%204.5%202%204.83579%202%205.25V8.75C2%209.16421%202.33579%209.5%202.75%209.5H9.25C9.66421%209.5%2010%209.16421%2010%208.75V5.25C10%204.83579%209.66421%204.5%209.25%204.5Z'%20stroke='%23514840'%20stroke-width='0.8'/%3e%3cpath%20d='M2%204.5L3.5%202.5H8.5L10%204.5'%20stroke='%23514840'%20stroke-width='0.8'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt=""><span class="ownership-label">Total investasi:</span><span class="ownership-value">Rp2.000.000</span></div></div></article><article class="member-card"><img src="/src/assets/images/402d907c628503f9f6fc98788c4a2ed737081803.png" alt="Avatar" class="member-avatar"><div class="member-info"><div class="member-header"><h3 class="member-name">Anggota L1-3</h3><span class="status-badge pending">Tidak aktif</span></div><p class="member-details">+62 895-1234-13<br>Bergabung 13 Agu 2026</p><div class="member-ownership"><img src="data:image/svg+xml,%3csvg%20width='12'%20height='12'%20viewBox='0%200%2012%2012'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M9.25%204.5H2.75C2.33579%204.5%202%204.83579%202%205.25V8.75C2%209.16421%202.33579%209.5%202.75%209.5H9.25C9.66421%209.5%2010%209.16421%2010%208.75V5.25C10%204.83579%209.66421%204.5%209.25%204.5Z'%20stroke='%23514840'%20stroke-width='0.8'/%3e%3cpath%20d='M2%204.5L3.5%202.5H8.5L10%204.5'%20stroke='%23514840'%20stroke-width='0.8'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt=""><span class="ownership-label">Total investasi:</span><span class="ownership-value">Rp1.500.000</span></div></div></article><article class="member-card"><img src="/src/assets/images/402d907c628503f9f6fc98788c4a2ed737081803.png" alt="Avatar" class="member-avatar"><div class="member-info"><div class="member-header"><h3 class="member-name">Anggota L1-2</h3><span class="status-badge active">Aktif</span></div><p class="member-details">+62 895-1234-12<br>Bergabung 12 Agu 2026</p><div class="member-ownership"><img src="data:image/svg+xml,%3csvg%20width='12'%20height='12'%20viewBox='0%200%2012%2012'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M9.25%204.5H2.75C2.33579%204.5%202%204.83579%202%205.25V8.75C2%209.16421%202.33579%209.5%202.75%209.5H9.25C9.66421%209.5%2010%209.16421%2010%208.75V5.25C10%204.83579%209.66421%204.5%209.25%204.5Z'%20stroke='%23514840'%20stroke-width='0.8'/%3e%3cpath%20d='M2%204.5L3.5%202.5H8.5L10%204.5'%20stroke='%23514840'%20stroke-width='0.8'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt=""><span class="ownership-label">Total investasi:</span><span class="ownership-value">Rp1.000.000</span></div></div></article><article class="member-card"><img src="/src/assets/images/402d907c628503f9f6fc98788c4a2ed737081803.png" alt="Avatar" class="member-avatar"><div class="member-info"><div class="member-header"><h3 class="member-name">Anggota L1-1</h3><span class="status-badge pending">Tidak aktif</span></div><p class="member-details">+62 895-1234-11<br>Bergabung 11 Agu 2026</p><div class="member-ownership"><img src="data:image/svg+xml,%3csvg%20width='12'%20height='12'%20viewBox='0%200%2012%2012'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M9.25%204.5H2.75C2.33579%204.5%202%204.83579%202%205.25V8.75C2%209.16421%202.33579%209.5%202.75%209.5H9.25C9.66421%209.5%2010%209.16421%2010%208.75V5.25C10%204.83579%209.66421%204.5%209.25%204.5Z'%20stroke='%23514840'%20stroke-width='0.8'/%3e%3cpath%20d='M2%204.5L3.5%202.5H8.5L10%204.5'%20stroke='%23514840'%20stroke-width='0.8'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt=""><span class="ownership-label">Total investasi:</span><span class="ownership-value">Rp500.000</span></div></div></article><article class="member-card"><img src="/src/assets/images/402d907c628503f9f6fc98788c4a2ed737081803.png" alt="Avatar" class="member-avatar"><div class="member-info"><div class="member-header"><h3 class="member-name">Anggota L2-4</h3><span class="status-badge active">Aktif</span></div><p class="member-details">+62 895-1234-24<br>Bergabung 14 Agu 2026</p><div class="member-ownership"><img src="data:image/svg+xml,%3csvg%20width='12'%20height='12'%20viewBox='0%200%2012%2012'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M9.25%204.5H2.75C2.33579%204.5%202%204.83579%202%205.25V8.75C2%209.16421%202.33579%209.5%202.75%209.5H9.25C9.66421%209.5%2010%209.16421%2010%208.75V5.25C10%204.83579%209.66421%204.5%209.25%204.5Z'%20stroke='%23514840'%20stroke-width='0.8'/%3e%3cpath%20d='M2%204.5L3.5%202.5H8.5L10%204.5'%20stroke='%23514840'%20stroke-width='0.8'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt=""><span class="ownership-label">Total investasi:</span><span class="ownership-value">Rp2.000.000</span></div></div></article><article class="member-card"><img src="/src/assets/images/402d907c628503f9f6fc98788c4a2ed737081803.png" alt="Avatar" class="member-avatar"><div class="member-info"><div class="member-header"><h3 class="member-name">Anggota L2-3</h3><span class="status-badge pending">Tidak aktif</span></div><p class="member-details">+62 895-1234-23<br>Bergabung 13 Agu 2026</p><div class="member-ownership"><img src="data:image/svg+xml,%3csvg%20width='12'%20height='12'%20viewBox='0%200%2012%2012'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M9.25%204.5H2.75C2.33579%204.5%202%204.83579%202%205.25V8.75C2%209.16421%202.33579%209.5%202.75%209.5H9.25C9.66421%209.5%2010%209.16421%2010%208.75V5.25C10%204.83579%209.66421%204.5%209.25%204.5Z'%20stroke='%23514840'%20stroke-width='0.8'/%3e%3cpath%20d='M2%204.5L3.5%202.5H8.5L10%204.5'%20stroke='%23514840'%20stroke-width='0.8'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt=""><span class="ownership-label">Total investasi:</span><span class="ownership-value">Rp1.500.000</span></div></div></article></div></section><section id="section-footer"><div class="footer-wrapper"><button class="load-more-btn">Muat Lebih Banyak<img src="data:image/svg+xml,%3csvg%20width='12'%20height='12'%20viewBox='0%200%2012%2012'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M3%204.5L6%207.5L9%204.5'%20stroke='%23514840'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt=""></button><p class="footer-text">Menampilkan 8 dari 12 anggota</p></div></section></div></div></div>
+    <pre id="progressive-metrics">METRICS team {"teamSkeleton":38,"teamFirstCard":438,"teamTotal10":1038,"teamTotal12":1838}</pre>
+    <script type="module" src="/tmp-html/progressive/index.html?html-proxy&amp;index=0.js"></script>
+  
+
+</body></html>

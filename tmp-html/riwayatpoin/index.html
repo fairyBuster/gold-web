@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>RiwayatPoin probe — kartu ringkasan dari /api/roulette/points/</title>
+</head>
+<body>
+<div id="root"></div>
+<pre id="riwayatpoin-metrics">pending</pre>
+<script type="module">
+  /* Probe Riwayat Poin (route /index/rewards/riwayat-poin) — kartu ringkasan:
+     - case=loaded : GET /api/roulette/points/ sukses → "Poin Didapat" = 120
+                     (total_earned) dan "Poin Ditukar" = -45 (total_spent).
+                     Daftar REDEEM sengaja berjumlah 50 di bulan ini supaya
+                     angka lama (hitung bulanan dari daftar) tidak lolos.
+     - case=fail   : ringkasan poin gagal (500) → dua baris tetap "—",
+                     daftar REDEEM di bawah tetap tampil normal. */
+  const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+  const probeCase = new URLSearchParams(location.search).get('case') || 'loaded';
+
+  const encodeSalted = (obj) => {
+    const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+    return { data: [...(base64 + SALT)].reverse().join('') };
+  };
+  const json = (obj) => Promise.resolve(new Response(JSON.stringify(encodeSalted(obj)), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+  const fail500 = () => Promise.resolve(new Response(JSON.stringify({ detail: 'probe 500' }), {
+    status: 500,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+
+  const POINTS = {
+    tickets: 12,
+    total_earned: 120,
+    total_spent: 45,
+    earned_breakdown: { level1_purchase: 20, self_deposit: 100, admin_adjust: 0 },
+    spent_breakdown: { spin: 5, redeem: 40, admin_adjust: 0 },
+    ticket_cost: 1,
+    spins_available: 12,
+    total_spins: 5,
+    total_redeems: 2,
+  };
+  /* Dua penukaran bulan ini (30 + 20 = 50) — beda dari total_spent 45. */
+  const REDEEMS = [
+    { id: 21, type: 'REDEEM', status: 'COMPLETED', created_at: '2026-09-10 09:30:00', redeem_prize_name: 'Voucher Belanja', redeem_points_spent: 30 },
+    { id: 20, type: 'REDEEM', status: 'COMPLETED', created_at: '2026-09-02 14:10:00', redeem_prize_name: 'Saldo Deposit 50K', redeem_points_spent: 20 },
+  ];
+
+  const fetches = [];
+  window.fetch = (input) => {
+    const url = typeof input === 'string' ? input : (input?.url ?? String(input));
+    fetches.push(url.replace(/^https?:\/\/[^/]+/, ''));
+    if (url.includes('/api/roulette/points/')) {
+      return probeCase === 'fail' ? fail500() : json(POINTS);
+    }
+    if (url.includes('/api/transactions/')) {
+      return json({ count: REDEEMS.length, next: null, previous: null, results: REDEEMS });
+    }
+    return json({});
+  };
+
+  localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+  history.replaceState(null, '', '/index/rewards/riwayat-poin');
+
+  const metrics = { probeCase, errors: [], steps: [] };
+  window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+  window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+  const write = () => { document.getElementById('riwayatpoin-metrics').textContent = JSON.stringify(metrics, null, 2); };
+  const waitFor = async (fn, timeout = 15000, step = 100) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      try { if (fn()) return true; } catch { /* belum siap */ }
+      await new Promise((r) => setTimeout(r, step));
+    }
+    return false;
+  };
+
+  try {
+    await import('/src/main.jsx');
+
+    const labels = () => [...document.querySelectorAll('.page-riwayat-poin .summary-label')].map((el) => el.textContent.trim());
+    const values = () => [...document.querySelectorAll('.page-riwayat-poin .summary-value')].map((el) => el.textContent.trim());
+    const cardCount = () => document.querySelectorAll('.page-riwayat-poin .history-card').length;
+
+    const pageReady = await waitFor(() => document.querySelector('.page-riwayat-poin .summary-card'));
+    metrics.steps.push(['kartu ringkasan tampil', pageReady]);
+
+    if (probeCase === 'loaded') {
+      const filled = await waitFor(() => values()[0] && values()[0] !== '—');
+      metrics.steps.push(['ringkasan terisi', filled]);
+    } else {
+      /* Tunggu request ringkasan benar-benar selesai (500), lalu pastikan "—". */
+      await waitFor(() => fetches.some((p) => p.includes('/api/roulette/points/')));
+      await new Promise((r) => setTimeout(r, 400));
+      metrics.steps.push(['ringkasan usai (gagal)', true]);
+    }
+    const cardsReady = await waitFor(() => cardCount() === 2);
+    metrics.steps.push(['daftar REDEEM tampil (2 kartu)', cardsReady]);
+
+    metrics.rendered = { labels: labels(), values: values(), historyCards: cardCount() };
+    metrics.calls = fetches.filter((path) => path.includes('/api/roulette/') || path.includes('/api/transactions/'));
+
+    const expectValues = probeCase === 'fail' ? ['—', '—'] : ['120', '-45'];
+    metrics.allPassed = Boolean(pageReady && cardsReady) &&
+      metrics.errors.length === 0 &&
+      fetches.some((path) => path.includes('/api/roulette/points/')) &&
+      fetches.some((path) => path.includes('/api/transactions/')) &&
+      metrics.rendered.labels.join('|') === 'Poin Didapat|Poin Ditukar' &&
+      metrics.rendered.values.join('|') === expectValues.join('|') &&
+      metrics.rendered.historyCards === 2;
+  } catch (error) {
+    metrics.error = String(error);
+    metrics.allPassed = false;
+  }
+
+  write();
+</script>
+</body>
+</html>

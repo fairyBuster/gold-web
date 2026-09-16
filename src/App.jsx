@@ -56,8 +56,20 @@ import SyaratDanKetentuan from './pages/support/SyaratDanKetentuan.jsx';
 import TentangKami from './pages/support/TentangKami.jsx';
 import LandingPagePerusahaan from './pages/landing/LandingPagePerusahaan.jsx';
 import RequireAuth from './components/RequireAuth.jsx';
+import NotifOverlay from './components/NotifOverlay.jsx';
 
 const labelByPath = Object.fromEntries(pages.map((page) => [page.path, page.label]));
+
+/* Pre-migration paths no longer exist as routes. A tab or bookmark still
+   running the old JS (stale module cache, e.g. via the Cloudflare tunnel)
+   navigates to e.g. /auth/register-02; without this it would miss every
+   route and fall into the catch-all that bounces to Welcome. */
+const LEGACY_ROOTS = ['auth', 'home', 'assets', 'rewards', 'transactions', 'profil', 'affiliate', 'berita', 'support', 'landing', 'sitemap'];
+
+function LegacyPathRedirect() {
+  const { pathname, search } = useLocation();
+  return <Navigate to={`/index${pathname}${search}`} replace />;
+}
 
 function AppEffects() {
   const { pathname } = useLocation();
@@ -75,8 +87,8 @@ function AppEffects() {
      leave the form alone. */
   useEffect(() => {
     const onUnauthorized = () => {
-      if (window.location.pathname === '/auth/login') return;
-      navigate('/auth/login', {
+      if (window.location.pathname === '/index/auth/login') return;
+      navigate('/index/auth/login', {
         replace: true,
         state: { from: `${window.location.pathname}${window.location.search}` },
       });
@@ -92,89 +104,101 @@ export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AppEffects />
+      {/* Floating notif host — outside <Routes> so it survives route changes. */}
+      <NotifOverlay />
       <Routes>
         {/* ---- Public routes (no login required) ---- */}
-        <Route path="/" element={<Navigate to="/auth/welcome" replace />} />
-        <Route path="/sitemap" element={<ScreenIndex />} />
-        <Route path="/auth/welcome" element={<WelcomePage />} />
-        <Route path="/auth/popup-awal" element={<PopupAwal />} />
-        <Route path="/auth/login" element={<Login />} />
-        <Route path="/auth/register-01" element={<Register step={1} />} />
-        <Route path="/auth/register-02" element={<Register step={2} />} />
-        <Route path="/auth/register-03" element={<Register step={3} />} />
-        <Route path="/auth/register-04" element={<Register step={4} />} />
-        <Route path="/auth/lupa-password" element={<LupaPassword step={1} />} />
-        <Route path="/auth/lupa-password-02" element={<LupaPassword step={2} />} />
-        <Route path="/auth/lupa-password-03" element={<LupaPassword step={3} />} />
-        <Route path="/auth/lupa-password-04" element={<LupaPassword step={4} />} />
-        <Route path="/landing" element={<LandingPagePerusahaan />} />
-        <Route path="/support/syarat-dan-ketentuan" element={<SyaratDanKetentuan />} />
-        <Route path="/support/kebijakan-privasi" element={<KebijakanPrivasi />} />
-        <Route path="/support/tentang-kami" element={<TentangKami />} />
+        <Route path="/" element={<Navigate to="/index/auth/welcome" replace />} />
+        <Route path="/index" element={<Navigate to="/index/auth/welcome" replace />} />
+
+        {/* ---- Legacy paths (pre-/index namespace): compatibility redirects
+             so stale tabs, old bookmarks and old referral links still land
+             on the right /index page instead of the Welcome catch-all ---- */}
+        {LEGACY_ROOTS.flatMap((root) => [
+          <Route key={root} path={`/${root}`} element={<LegacyPathRedirect />} />,
+          <Route key={`${root}-sub`} path={`/${root}/*`} element={<LegacyPathRedirect />} />,
+        ])}
+
+        <Route path="/index/sitemap" element={<ScreenIndex />} />
+        <Route path="/index/auth/welcome" element={<WelcomePage />} />
+        <Route path="/index/auth/popup-awal" element={<PopupAwal />} />
+        <Route path="/index/auth/login" element={<Login />} />
+        <Route path="/index/auth/register-01" element={<Register step={1} />} />
+        <Route path="/index/auth/register-02" element={<Register step={2} />} />
+        <Route path="/index/auth/register-03" element={<Register step={3} />} />
+        <Route path="/index/auth/register-04" element={<Register step={4} />} />
+        <Route path="/index/auth/lupa-password" element={<LupaPassword step={1} />} />
+        <Route path="/index/auth/lupa-password-02" element={<LupaPassword step={2} />} />
+        <Route path="/index/auth/lupa-password-03" element={<LupaPassword step={3} />} />
+        <Route path="/index/auth/lupa-password-04" element={<LupaPassword step={4} />} />
+        <Route path="/index/landing" element={<LandingPagePerusahaan />} />
+        <Route path="/index/support/syarat-dan-ketentuan" element={<SyaratDanKetentuan />} />
+        <Route path="/index/support/kebijakan-privasi" element={<KebijakanPrivasi />} />
+        <Route path="/index/support/tentang-kami" element={<TentangKami />} />
 
         {/* ---- Protected routes (login required) ---- */}
         <Route element={<RequireAuth />}>
-          <Route path="/auth/notifikasi-login" element={<NotifikasiLogin />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/assets/alamat-pengiriman" element={<AlamatPengiriman />} />
-          <Route path="/assets/aset-03" element={<Aset03 />} />
-          <Route path="/assets/aset-saya-01" element={<AsetSaya step={1} />} />
-          <Route path="/assets/aset-saya-02" element={<AsetSaya step={2} />} />
-          <Route path="/assets/asset-01" element={<Asset step={1} />} />
-          <Route path="/assets/asset-02" element={<Asset step={2} />} />
-          <Route path="/assets/cetak-emas-01" element={<CetakEmas step={1} />} />
-          <Route path="/assets/cetak-emas-02" element={<CetakEmas step={2} />} />
-          <Route path="/assets/cetak-emas-03" element={<CetakEmas step={3} />} />
-          <Route path="/assets/emas-digital" element={<EmasDigital />} />
-          <Route path="/assets/konfirmasi" element={<Konfirmasi />} />
-          <Route path="/profil/beri-rating" element={<BeriRating step={1} />} />
-          <Route path="/profil/beri-rating-02" element={<BeriRating step={2} />} />
-          <Route path="/transactions/detail-penarikan" element={<DetailPenarikan step={1} />} />
-          <Route path="/transactions/detail-penarikan-02" element={<DetailPenarikan step={2} />} />
-          <Route path="/transactions/detail-penarikan-03" element={<DetailPenarikan step={3} />} />
-          <Route path="/rewards/detail-riwayat-poin" element={<DetailRiwayatPoin />} />
-          <Route path="/transactions/isi-ulang" element={<IsiUlang />} />
-          <Route path="/transactions/loading-penarikan" element={<LoadingPenarikan />} />
-          <Route path="/profil/pilih-bank" element={<PilihBank />} />
-          <Route path="/transactions/qris" element={<Qris />} />
-          <Route path="/assets/riwayat-aset-saya" element={<RiwayatAsetSaya />} />
-          <Route path="/affiliate/riwayat-detail-komisi" element={<RiwayatDetailKomisi />} />
-          <Route path="/transactions/riwayat-isi-ulang" element={<RiwayatIsiUlang />} />
-          <Route path="/affiliate/riwayat-komisi" element={<RiwayatKomisi />} />
-          <Route path="/rewards/riwayat-lainnya" element={<RiwayatLainnya />} />
-          <Route path="/transactions/riwayat-penarikan" element={<RiwayatPenarikan />} />
-          <Route path="/rewards/riwayat-poin" element={<RiwayatPoin />} />
-          <Route path="/transactions/riwayat-transaksi" element={<RiwayatTransaksi />} />
-          <Route path="/transactions/tarik-dana-01" element={<TarikDana step={1} />} />
-          <Route path="/transactions/tarik-dana-02" element={<TarikDana step={2} />} />
-          <Route path="/transactions/tarik-dana-03" element={<TarikDana step={3} />} />
-          <Route path="/transactions/tarik-dana-04" element={<TarikDana step={4} />} />
-          <Route path="/transactions/virtual-account" element={<VirtualAccount />} />
-          <Route path="/rewards/absen-harian" element={<AbsenHarian />} />
-          <Route path="/rewards/misi" element={<Misi />} />
-          <Route path="/rewards/poin-mall-01" element={<PoinMall step={1} />} />
-          <Route path="/rewards/poin-mall-02" element={<PoinMall step={2} />} />
-          <Route path="/rewards/poin-mall-03" element={<PoinMall step={3} />} />
-          <Route path="/rewards/redeem-kode" element={<RedeemKode />} />
-          <Route path="/rewards/vip" element={<Vip />} />
-          <Route path="/rewards/vip-redeem-kode" element={<VipRedeemKode />} />
-          <Route path="/profil/edit" element={<EditProfil />} />
-          <Route path="/profil/kartu-bank" element={<KartuBank step={1} />} />
-          <Route path="/profil/kartu-bank-02" element={<KartuBank step={2} />} />
-          <Route path="/profil/kartu-bank-03" element={<KartuBank step={3} />} />
-          <Route path="/profil/notifikasi" element={<MenuNotifikasi />} />
-          <Route path="/profil" element={<Profil />} />
-          <Route path="/profil/setelan" element={<Setelan />} />
-          <Route path="/affiliate/detail-tim" element={<LihatDetailTim />} />
-          <Route path="/affiliate/tim-afiliasi" element={<TimAfiliasi />} />
-          <Route path="/berita" element={<Berita />} />
-          <Route path="/berita/detail" element={<DetailBerita />} />
-          <Route path="/support/hubungi-cs" element={<HubungiCs />} />
-          <Route path="/support/livechat" element={<Livechat />} />
-          <Route path="/support/pertanyaan-umum" element={<PertanyaanUmum />} />
+          <Route path="/index/auth/notifikasi-login" element={<NotifikasiLogin />} />
+          <Route path="/index/home" element={<Home />} />
+          <Route path="/index/assets/alamat-pengiriman" element={<AlamatPengiriman />} />
+          <Route path="/index/assets/aset-03" element={<Aset03 />} />
+          <Route path="/index/assets/aset-saya-01" element={<AsetSaya step={1} />} />
+          <Route path="/index/assets/aset-saya-02" element={<AsetSaya step={2} />} />
+          <Route path="/index/assets/asset-01" element={<Asset step={1} />} />
+          <Route path="/index/assets/asset-02" element={<Asset step={2} />} />
+          <Route path="/index/assets/cetak-emas-01" element={<CetakEmas step={1} />} />
+          <Route path="/index/assets/cetak-emas-02" element={<CetakEmas step={2} />} />
+          <Route path="/index/assets/cetak-emas-03" element={<CetakEmas step={3} />} />
+          <Route path="/index/assets/emas-digital" element={<EmasDigital />} />
+          <Route path="/index/assets/konfirmasi" element={<Konfirmasi />} />
+          <Route path="/index/profil/beri-rating" element={<BeriRating step={1} />} />
+          <Route path="/index/profil/beri-rating-02" element={<BeriRating step={2} />} />
+          <Route path="/index/transactions/detail-penarikan" element={<DetailPenarikan step={1} />} />
+          <Route path="/index/transactions/detail-penarikan-02" element={<DetailPenarikan step={2} />} />
+          <Route path="/index/transactions/detail-penarikan-03" element={<DetailPenarikan step={3} />} />
+          <Route path="/index/rewards/detail-riwayat-poin" element={<DetailRiwayatPoin />} />
+          <Route path="/index/transactions/isi-ulang" element={<IsiUlang />} />
+          <Route path="/index/transactions/loading-penarikan" element={<LoadingPenarikan />} />
+          <Route path="/index/profil/pilih-bank" element={<PilihBank />} />
+          <Route path="/index/transactions/qris" element={<Qris />} />
+          <Route path="/index/assets/riwayat-aset-saya" element={<RiwayatAsetSaya />} />
+          <Route path="/index/affiliate/riwayat-detail-komisi" element={<RiwayatDetailKomisi />} />
+          <Route path="/index/transactions/riwayat-isi-ulang" element={<RiwayatIsiUlang />} />
+          <Route path="/index/affiliate/riwayat-komisi" element={<RiwayatKomisi />} />
+          <Route path="/index/rewards/riwayat-lainnya" element={<RiwayatLainnya />} />
+          <Route path="/index/transactions/riwayat-penarikan" element={<RiwayatPenarikan />} />
+          <Route path="/index/rewards/riwayat-poin" element={<RiwayatPoin />} />
+          <Route path="/index/transactions/riwayat-transaksi" element={<RiwayatTransaksi />} />
+          <Route path="/index/transactions/tarik-dana-01" element={<TarikDana step={1} />} />
+          <Route path="/index/transactions/tarik-dana-02" element={<TarikDana step={2} />} />
+          <Route path="/index/transactions/tarik-dana-03" element={<TarikDana step={3} />} />
+          <Route path="/index/transactions/tarik-dana-04" element={<TarikDana step={4} />} />
+          <Route path="/index/transactions/virtual-account" element={<VirtualAccount />} />
+          <Route path="/index/rewards/absen-harian" element={<AbsenHarian />} />
+          <Route path="/index/rewards/misi" element={<Misi />} />
+          <Route path="/index/rewards/poin-mall-01" element={<PoinMall step={1} />} />
+          <Route path="/index/rewards/poin-mall-02" element={<PoinMall step={2} />} />
+          <Route path="/index/rewards/poin-mall-03" element={<PoinMall step={3} />} />
+          <Route path="/index/rewards/redeem-kode" element={<RedeemKode />} />
+          <Route path="/index/rewards/vip" element={<Vip />} />
+          <Route path="/index/rewards/vip-redeem-kode" element={<VipRedeemKode />} />
+          <Route path="/index/profil/edit" element={<EditProfil />} />
+          <Route path="/index/profil/kartu-bank" element={<KartuBank step={1} />} />
+          <Route path="/index/profil/kartu-bank-02" element={<KartuBank step={2} />} />
+          <Route path="/index/profil/kartu-bank-03" element={<KartuBank step={3} />} />
+          <Route path="/index/profil/notifikasi" element={<MenuNotifikasi />} />
+          <Route path="/index/profil" element={<Profil />} />
+          <Route path="/index/profil/setelan" element={<Setelan />} />
+          <Route path="/index/affiliate/detail-tim" element={<LihatDetailTim />} />
+          <Route path="/index/affiliate/tim-afiliasi" element={<TimAfiliasi />} />
+          <Route path="/index/berita" element={<Berita />} />
+          <Route path="/index/berita/detail" element={<DetailBerita />} />
+          <Route path="/index/support/hubungi-cs" element={<HubungiCs />} />
+          <Route path="/index/support/livechat" element={<Livechat />} />
+          <Route path="/index/support/pertanyaan-umum" element={<PertanyaanUmum />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/auth/welcome" replace />} />
+        <Route path="*" element={<Navigate to="/index/auth/welcome" replace />} />
       </Routes>
     </BrowserRouter>
   );

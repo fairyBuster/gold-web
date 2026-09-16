@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ASSET-BG-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="asset-bg-metrics">pending</pre>
+  <script type="module">
+    /* Verifikasi latar Asset.jsx tanpa artwork: root page harus pakai warna
+       polos #fff9f2 (rgb(255, 249, 242)) dan background-image: none.
+       Jalankan per step: probe.html?step=1 (asset-01) / ?step=2 (asset-02). */
+    const step = new URLSearchParams(location.search).get('step') || '1';
+    const rootSel = step === '2' ? '.page-asset-02' : '.page-asset-01';
+    const route = step === '2' ? '/index/assets/asset-02' : '/index/assets/asset-01';
+    const metrics = { step, route, errors: [] };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    window.fetch = () => Promise.resolve(new Response('{}', {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, timeout = 8000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const value = fn();
+        if (value) return value;
+        await sleep(50);
+      }
+      return null;
+    };
+
+    history.replaceState(null, '', route);
+    await import('/src/main.jsx');
+
+    const el = await waitFor(() => document.querySelector(rootSel));
+    if (el) {
+      const cs = getComputedStyle(el);
+      metrics.bgColor = cs.backgroundColor;
+      metrics.bgImage = cs.backgroundImage;
+      metrics.bgSize = cs.backgroundSize;
+      metrics.bgRepeat = cs.backgroundRepeat;
+      metrics.inlineStyleAttr = el.getAttribute('style') || '(none)';
+      metrics.inlineColor = el.style.backgroundColor;
+    }
+    metrics.expectedColor = 'rgb(255, 249, 242)';
+    metrics.allPassed =
+      !!el &&
+      metrics.bgColor === 'rgb(255, 249, 242)' &&
+      metrics.bgImage === 'none' &&
+      metrics.inlineColor === 'rgb(255, 249, 242)' &&
+      metrics.errors.length === 0;
+    document.getElementById('asset-bg-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'ASSET-BG-DONE ' + JSON.stringify({ allPassed: metrics.allPassed });
+  </script>
+</body>
+</html>

@@ -1,0 +1,246 @@
+import { useNavigate } from 'react-router-dom';
+import NotifCard from './NotifCard.jsx';
+
+/* Styles are kept inline in this file so the component is a single-file import. */
+const styles = `
+.modal-konfirmasi .modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(26, 20, 16, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  z-index: 1000;
+}
+
+.modal-konfirmasi .modal-container {
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 340px;
+  border-radius: 20px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
+}
+
+.modal-konfirmasi .modal-header {
+  border-bottom: 1px solid #efe7dc;
+  padding-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.modal-konfirmasi .modal-title {
+  color: #1a1410;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.modal-konfirmasi .modal-subtitle {
+  color: #a79c8f;
+  font-size: 12px;
+  font-weight: 400;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.modal-konfirmasi .modal-body {
+  display: flex;
+  flex-direction: column;
+  padding-top: 23px;
+}
+
+.modal-konfirmasi .detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+}
+
+.modal-konfirmasi .detail-row:first-child {
+  padding-top: 0;
+}
+
+.modal-konfirmasi .detail-row:last-child {
+  padding-bottom: 13px;
+}
+
+.modal-konfirmasi .detail-label {
+  color: #514840;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.modal-konfirmasi .detail-value {
+  color: #1a1410;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.modal-konfirmasi .modal-total {
+  border-top: 1px solid #efe7dc;
+  padding-top: 12px;
+  padding-bottom: 7px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-konfirmasi .total-label {
+  color: #1a1410;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.modal-konfirmasi .total-value {
+  color: #e8790c;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.modal-konfirmasi .modal-disclaimer {
+  padding-top: 13px;
+  padding-bottom: 18px;
+}
+
+.modal-konfirmasi .modal-disclaimer p {
+  color: #a79c8f;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.modal-konfirmasi .modal-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 18px;
+}
+
+.modal-konfirmasi .btn {
+  flex: 1;
+  padding: 13px 4px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  font-family: inherit;
+  transition: opacity 0.2s ease;
+}
+
+.modal-konfirmasi .btn:not(:disabled):hover {
+  opacity: 0.9;
+}
+
+.modal-konfirmasi .btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.modal-konfirmasi .btn-cancel {
+  background-color: #f6f1e9;
+  color: #514840;
+}
+
+.modal-konfirmasi .btn-activate {
+  background-color: #f1b04a;
+  color: #1a1410;
+}
+`;
+
+const DEFAULT_ROWS = [
+  { label: 'Jenis', value: 'Nama Produk' },
+  { label: 'Pembagian manfaat', value: 'Rp2.000' },
+  // { label: 'Frekuensi', value: 'Siklus' },
+  { label: 'Sumber Dana', value: 'Saldo JelajahEmas' },
+];
+
+/**
+ * Shared confirmation modal — dark overlay + summary card with Cancel/Confirm actions.
+ * Usage: <ModalKonfirmasi rows={[...]} onConfirm={...} onCancel={...} busy error />
+ * onCancel defaults to going back in history; onConfirm defaults to the asset list.
+ * Set `busy` while the API call runs (disables both buttons); `error` shows a
+ * NotifCard above the actions with the backend message.
+ */
+export default function ModalKonfirmasi({
+  title = 'Konfirmasi Aktivasi',
+  subtitle = 'Periksa kembali sebelum melanjutkan',
+  rows = DEFAULT_ROWS,
+  totalLabel = 'Estimasi Biaya',
+  totalValue = 'Rp392.300',
+  disclaimer = 'Dengan menekan aktifkan, Anda menyetujui partisipasi rencana ini secara sadar sesuai dengan ketentuan yang berlaku',
+  cancelLabel = 'Batal',
+  confirmLabel = 'Aktifkan',
+  busy = false,
+  error = '',
+  onCancel,
+  onConfirm,
+}) {
+  const navigate = useNavigate();
+
+  const handleCancel = (e) => {
+    e.preventDefault();
+    if (busy) return;
+    if (onCancel) onCancel();
+    else window.history.back();
+  };
+
+  const handleConfirm = (e) => {
+    e.preventDefault();
+    if (busy) return;
+    if (onConfirm) onConfirm();
+    else navigate('/assets/aset-saya-01');
+  };
+
+  return (
+    <>
+      <style>{styles}</style>
+      <div className="modal-konfirmasi">
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <div className="modal-header">
+              <h2 className="modal-title">{title}</h2>
+              <p className="modal-subtitle">{subtitle}</p>
+            </div>
+            <div className="modal-body">
+              {rows.map((row) => (
+                <div className="detail-row" key={row.label}>
+                  <span className="detail-label">{row.label}</span>
+                  <span className="detail-value">{row.value}</span>
+                </div>
+              ))}
+            </div>
+            <div className="modal-total">
+              <span className="total-label">{totalLabel}</span>
+              <span className="total-value">{totalValue}</span>
+            </div>
+            <div className="modal-disclaimer">
+              <p>{disclaimer}</p>
+            </div>
+            {error && (
+              <NotifCard variant="error" title="Aktivasi Gagal" description={error} showClose={false} />
+            )}
+            <div className="modal-actions">
+              <button type="button" className="btn btn-cancel" onClick={handleCancel} disabled={busy}>
+                {cancelLabel}
+              </button>
+              <button type="button" className="btn btn-activate" onClick={handleConfirm} disabled={busy}>
+                {confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

@@ -1,0 +1,170 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>AsetSaya probe — Total Aset Emas dari balance_hold ÷ harga emas</title>
+</head>
+<body>
+<div id="root"></div>
+<pre id="asetsaya-metrics">pending</pre>
+<script type="module">
+  /* Probe AsetSaya (route /index/assets/aset-saya-01 & -02):
+     - kartu "Total Aset Emas Kamu" bersumber GET /api/gold/info/:
+       gram = balance_hold ÷ price_per_gram, rupiah = ≈ formatRupiah(balance_hold);
+     - selama gold info dimuat: 2 bar shimmer (asset-metric-skeleton);
+     - gold info gagal: "—" (bukan angka dummy), skeleton hilang;
+     - kartu terikat ke gold info saja — investments yang masih loading
+       tidak menahan nilai kartu (case goldonly);
+     - urutan daftar: plans Aktif di atas (terbaru dulu), begitu selesai
+       (COMPLETED/EXPIRED/CANCELLED) kartunya pindah ke paling bawah, badge
+       tetap menampilkan "Selesai"/"Kedaluwarsa"/"Dibatalkan" (case order);
+     - step 2 memakai perlakuan yang sama (total-asset-card). */
+  const CASE = new URLSearchParams(location.search).get('case') || 'loading';
+
+  const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+  const encodeSalted = (obj) => {
+    const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+    return { data: [...(base64 + SALT)].reverse().join('') };
+  };
+  const json = (obj, status = 200) => Promise.resolve(new Response(JSON.stringify(encodeSalted(obj)), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+
+  /* balance_hold 3.750.000 ÷ harga 2.500.000/gram = 1,5 gram. */
+  const GOLD_INFO = { balance_hold: '3750000', price_per_gram: '2500000' };
+  const INVESTMENTS = [
+    {
+      id: 2, product_name: 'Paket Emas Aktif', product_golongan: 'Simpanan', product_specification: '1,5 gram',
+      status: 'ACTIVE', quantity: 1.5, duration_days: 120, created_at: '2026-09-01T08:00:00+07:00',
+      daily_profit: 20000, total_claimed_profit: 100000, next_claim_time_calculated: '2026-09-17T08:00:00+07:00',
+    },
+    {
+      id: 1, product_name: 'Paket Emas Selesai', status: 'COMPLETED', quantity: 0.5, duration_days: 90,
+      created_at: '2026-01-01T08:00:00+07:00', daily_profit: 10000, total_claimed_profit: 50000,
+    },
+  ];
+
+  /* Fixture urutan: id sengaja tidak berurutan + status campuran. Harapan:
+     Plan 3 & Plan 1 (Aktif, terbaru dulu) di atas, lalu Plan 7, Plan 6,
+     Plan 5 (selesai, terbaru dulu) di bawah. */
+  const ORDER_INVESTMENTS = [
+    { id: 3, product_name: 'Plan 3', status: 'ACTIVE', quantity: 1, duration_days: 40, created_at: '2026-09-10T08:00:00+07:00', daily_profit: 10000, total_claimed_profit: 0 },
+    { id: 5, product_name: 'Plan 5', status: 'COMPLETED', quantity: 1, duration_days: 40, created_at: '2026-09-05T08:00:00+07:00', daily_profit: 10000, total_claimed_profit: 50000 },
+    { id: 1, product_name: 'Plan 1', status: 'ACTIVE', quantity: 1, duration_days: 40, created_at: '2026-09-01T08:00:00+07:00', daily_profit: 10000, total_claimed_profit: 0 },
+    { id: 7, product_name: 'Plan 7', status: 'EXPIRED', quantity: 1, duration_days: 40, created_at: '2026-08-01T08:00:00+07:00', daily_profit: 10000, total_claimed_profit: 20000 },
+    { id: 6, product_name: 'Plan 6', status: 'CANCELLED', quantity: 1, duration_days: 40, created_at: '2026-08-10T08:00:00+07:00', daily_profit: 10000, total_claimed_profit: 10000 },
+  ];
+
+  const resolveInvestments = CASE === 'loaded' || CASE === 'step02loaded' || CASE === 'order';
+  const resolveGoldInfo = resolveInvestments || CASE === 'goldonly';
+
+  window.fetch = (input) => {
+    const url = typeof input === 'string' ? input : (input?.url ?? String(input));
+    if (url.includes('/api/gold/info/')) {
+      if (resolveGoldInfo) return json(GOLD_INFO);
+      if (CASE === 'error') return json({ detail: 'boom' }, 400);
+      return new Promise(() => {}); /* hang — kartu tetap skeleton */
+    }
+    if (url.includes('/api/investments/')) {
+      if (resolveInvestments) return json(CASE === 'order' ? ORDER_INVESTMENTS : INVESTMENTS);
+      if (CASE === 'error') return json({ detail: 'boom' }, 400);
+      return new Promise(() => {}); /* hang — daftar tetap memuat */
+    }
+    if (url.includes('coingecko') || url.includes('gold-api') || url.includes('er-api')) {
+      return Promise.resolve(new Response('', { status: 500 })); /* pakai cache lokal saja */
+    }
+    return json({});
+  };
+
+  /* Cache harga emas publik untuk kartu "Harga Emas Hari Ini" saja. */
+  localStorage.setItem('je_gold_price', JSON.stringify({ ts: Date.now(), pricePerGram: 2500000, changePercent: 0.5 }));
+  localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+  history.replaceState(null, '', CASE.startsWith('step02') ? '/index/assets/aset-saya-02' : '/index/assets/aset-saya-01');
+
+  const metrics = { case: CASE, steps: [] };
+  const write = () => { document.getElementById('asetsaya-metrics').textContent = JSON.stringify(metrics, null, 2); };
+  const waitFor = async (fn, timeout = 15000, step = 200) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      try { if (fn()) return true; } catch { /* belum siap */ }
+      await new Promise((r) => setTimeout(r, step));
+    }
+    return false;
+  };
+
+  const pageClass = CASE.startsWith('step02') ? '.page-aset-saya-02' : '.page-aset-saya-01';
+  const cardSelector = CASE.startsWith('step02') ? '.total-asset-card' : '.asset-summary';
+  const card = () => document.querySelector(`${pageClass} ${cardSelector}`);
+  const skeletonCount = () => document.querySelectorAll(`${pageClass} ${cardSelector} .asset-metric-skeleton`).length;
+  const valueText = () => card()?.querySelector('.asset-value')?.textContent.trim() ?? null;
+  const fiatText = () => card()?.querySelector('.asset-fiat')?.textContent.trim() ?? null;
+
+  try {
+    await import('/src/main.jsx');
+    const ready = await waitFor(() => card());
+    metrics.steps.push(['kartu Total Aset dirender', Boolean(ready)]);
+
+    if (CASE === 'loading' || CASE === 'step02loading') {
+      const twoBars = await waitFor(() => skeletonCount() === 2);
+      metrics.steps.push(['2 bar skeleton tampil selagi gold info dimuat', twoBars]);
+      metrics.steps.push(['teks nilai belum tampil (skeleton saja)', valueText() === '' && fiatText() === '']);
+
+      metrics.rendered = { skeletons: skeletonCount(), valueText: valueText(), fiatText: fiatText() };
+      metrics.allPassed = Boolean(ready) && twoBars && valueText() === '' && fiatText() === '';
+    } else if (CASE === 'loaded' || CASE === 'step02loaded') {
+      const shown = await waitFor(() => valueText() === '1,5 gram');
+      metrics.steps.push(['gram = balance_hold ÷ harga (1,5 gram)', shown]);
+      const fiat = fiatText();
+      metrics.steps.push(['rupiah = ≈ balance_hold', fiat === '≈ Rp3.750.000']);
+      metrics.steps.push(['skeleton hilang setelah gold info tiba', skeletonCount() === 0]);
+
+      if (CASE === 'loaded') {
+        metrics.steps.push(['2 kartu rencana dirender', document.querySelectorAll('.product-card').length === 2]);
+      }
+      metrics.rendered = { valueText: valueText(), fiatText: fiat, skeletons: skeletonCount() };
+      metrics.allPassed = shown && fiat === '≈ Rp3.750.000' && skeletonCount() === 0;
+    } else if (CASE === 'order') {
+      const fiveCards = await waitFor(() => document.querySelectorAll('.product-card').length === 5);
+      metrics.steps.push(['5 kartu rencana dirender', fiveCards]);
+
+      const names = [...document.querySelectorAll('.product-card .product-name')].map((el) => el.textContent.trim());
+      const expected = ['Plan 3', 'Plan 1', 'Plan 7', 'Plan 6', 'Plan 5'];
+      metrics.steps.push(['Aktif di atas (terbaru dulu), selesai di paling bawah', names.join('|') === expected.join('|')]);
+
+      const completedCard = [...document.querySelectorAll('.product-card')].find(
+        (el) => el.querySelector('.product-name')?.textContent.trim() === 'Plan 5',
+      );
+      const badge = completedCard?.querySelector('.status-badge')?.textContent.trim() ?? null;
+      metrics.steps.push(['badge kartu selesai = "Selesai"', badge === 'Selesai']);
+
+      metrics.rendered = { names, badge };
+      metrics.allPassed = names.join('|') === expected.join('|') && badge === 'Selesai';
+    } else if (CASE === 'goldonly') {
+      /* Investments masih hang, gold info sudah tiba → nilai kartu tampil. */
+      const shown = await waitFor(() => valueText() === '1,5 gram');
+      metrics.steps.push(['nilai kartu tampil walau investments masih loading', shown]);
+      metrics.steps.push(['skeleton kartu hilang', skeletonCount() === 0]);
+      metrics.steps.push(['daftar rencana masih memuat', (document.body.textContent || '').includes('Memuat rencana investasi')]);
+
+      metrics.rendered = { valueText: valueText(), fiatText: fiatText(), skeletons: skeletonCount() };
+      metrics.allPassed = shown && skeletonCount() === 0;
+    } else if (CASE === 'error') {
+      const errorShown = await waitFor(() => (document.body.textContent || '').includes('Gagal Memuat Rencana Investasi'));
+      metrics.steps.push(['kartu error tampil', errorShown]);
+      const cleared = await waitFor(() => skeletonCount() === 0);
+      metrics.steps.push(['skeleton tidak nyangkut saat gagal', cleared]);
+      metrics.steps.push(['fallback "—" di kedua baris', valueText() === '—' && fiatText() === '—']);
+
+      metrics.rendered = { valueText: valueText(), fiatText: fiatText(), skeletons: skeletonCount() };
+      metrics.allPassed = errorShown && cleared && valueText() === '—' && fiatText() === '—';
+    }
+  } catch (error) {
+    metrics.error = String(error);
+    metrics.allPassed = false;
+  }
+
+  write();
+</script>
+</body>
+</html>

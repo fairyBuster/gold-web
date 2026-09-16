@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>BeriRating probe — 10 ulasan terbaru + angka ulasan live</title>
+</head>
+<body>
+<div id="root"></div>
+<pre id="berirating-metrics">pending</pre>
+<script type="module">
+  /* Probe BeriRating step 1 (route /index/profil/beri-rating):
+     - daftar ulasan dari GET /api/reviews/ tanpa pagination;
+     - hanya 10 ulasan terbaru yang dirender (API mengirim terbaru dulu);
+     - kartu overall: angka ulasan bertambah sendiri +1 tiap 10 detik. */
+  const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+
+  const encodeSalted = (obj) => {
+    const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+    return { data: [...(base64 + SALT)].reverse().join('') };
+  };
+  const json = (obj) => Promise.resolve(new Response(JSON.stringify(encodeSalted(obj)), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+
+  /* 12 ulasan, terbaru dulu (id 12 = paling baru). Dua yang tertua harus
+     tidak dirender karena batas 10 ulasan terbaru. */
+  const REVIEWS = Array.from({ length: 12 }, (_, i) => {
+    const id = 12 - i;
+    return {
+      id,
+      user_display_name: `User ${id}`,
+      text: `Ulasan ke-${id}`,
+      created_at: new Date(Date.now() - (i + 1) * 86400000).toISOString(),
+      images: [],
+    };
+  });
+
+  window.fetch = (input) => {
+    const url = typeof input === 'string' ? input : (input?.url ?? String(input));
+    if (url.includes('/api/reviews/')) return json(REVIEWS);
+    return json({});
+  };
+
+  localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+  history.replaceState(null, '', '/index/profil/beri-rating');
+
+  const metrics = { steps: [] };
+  const write = () => { document.getElementById('berirating-metrics').textContent = JSON.stringify(metrics, null, 2); };
+  const waitFor = async (fn, timeout = 15000, step = 200) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      try { if (fn()) return true; } catch { /* belum siap */ }
+      await new Promise((r) => setTimeout(r, step));
+    }
+    return false;
+  };
+
+  const userNames = () => [...document.querySelectorAll('.review-card .user-name')].map((el) => el.textContent.trim());
+  const countValue = () => {
+    const el = document.querySelector('.page-beri-rating .rating-count');
+    return el ? parseInt(el.textContent.replace(/\D/g, ''), 10) : NaN;
+  };
+
+  try {
+    await import('/src/main.jsx');
+
+    const loaded = await waitFor(() => document.querySelectorAll('.review-card').length === 10);
+    metrics.steps.push(['10 kartu ulasan dirender', loaded]);
+
+    const names = userNames();
+    const expected = REVIEWS.slice(0, 10).map((review) => review.user_display_name);
+    const orderOk = names.length === 10 && names.every((name, i) => name === expected[i]);
+    metrics.steps.push(['urutan terbaru dulu, sisa >10 tidak dirender', orderOk]);
+
+    /* Angka ulasan + tick live: tunggu nilainya naik sendiri. */
+    const countBefore = countValue();
+    const ticked = await waitFor(() => countValue() > countBefore, 25000);
+    metrics.steps.push(['angka ulasan bertambah sendiri', ticked]);
+
+    metrics.rendered = {
+      names,
+      countBefore,
+      countAfter: countValue(),
+      countText: document.querySelector('.page-beri-rating .rating-count')?.textContent.trim() ?? null,
+    };
+
+    metrics.allPassed = loaded && orderOk && ticked && names.length === 10;
+  } catch (error) {
+    metrics.error = String(error);
+    metrics.allPassed = false;
+  }
+
+  write();
+</script>
+</body>
+</html>

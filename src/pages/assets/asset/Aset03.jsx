@@ -226,8 +226,8 @@ export default function Aset03() {
                 </div>
               </section>
               <section id="section-actions">
-                <button className="btn btn-primary" onClick={(e) => { e.preventDefault(); navigate('/assets/asset-01'); }}>Lihat Rencana Investasi</button>
-                <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/home'); }}>Kembali ke Beranda</button>
+                <button className="btn btn-primary" onClick={(e) => { e.preventDefault(); navigate('/index/assets/asset-01'); }}>Lihat Rencana Investasi</button>
+                <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/index/home'); }}>Kembali ke Beranda</button>
               </section>
             </div>
 

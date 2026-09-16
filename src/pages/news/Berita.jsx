@@ -289,7 +289,7 @@ export default function Berita() {
                     <Fragment key={item.id}>
                       {index > 0 && <hr className="news-divider" />}
                       <Link
-                        to="/berita/detail"
+                        to="/index/berita/detail"
                         state={{ newsId: item.id }}
                         className="news-item"
                         onClick={() => sessionStorage.setItem('je_news_id', String(item.id))}

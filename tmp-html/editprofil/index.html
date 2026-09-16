@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>EditProfil probe — filter input Nama Lengkap, Username & Telegram</title>
+</head>
+<body>
+<div id="root"></div>
+<pre id="editprofil-metrics">pending</pre>
+<script type="module">
+  /* Probe EditProfil (route /index/profil/edit) — input "Nama Lengkap",
+     "Username" & "Telegram": prefill dari account-info tetap utuh; mengetik
+     simbol (@ # ! emoji dll) langsung disaring — Nama Lengkap menyisakan
+     huruf, angka, dan spasi (aturan full_name backend), Username & Telegram
+     hanya huruf & angka. */
+  const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+
+  const encodeSalted = (obj) => {
+    const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+    return { data: [...(base64 + SALT)].reverse().join('') };
+  };
+  const json = (obj) => Promise.resolve(new Response(JSON.stringify(encodeSalted(obj)), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+
+  const ACCOUNT = {
+    full_name: 'Budi Santoso 2',
+    username: 'budi2',
+    phone: '6281234567890',
+    email: 'budi@example.com',
+    telegram: '@budi',
+    date_of_birth: '1995-01-01',
+    gender: 'male',
+    avatar: '',
+  };
+
+  window.fetch = (input) => {
+    const url = typeof input === 'string' ? input : (input?.url ?? String(input));
+    if (url.includes('/api/auth/account-info/')) return json(ACCOUNT);
+    return json({});
+  };
+
+  localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+  history.replaceState(null, '', '/index/profil/edit');
+
+  const metrics = { steps: [] };
+  const write = () => { document.getElementById('editprofil-metrics').textContent = JSON.stringify(metrics, null, 2); };
+  const waitFor = async (fn, timeout = 15000, step = 100) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      try { if (fn()) return true; } catch { /* belum siap */ }
+      await new Promise((r) => setTimeout(r, step));
+    }
+    return false;
+  };
+
+  try {
+    await import('/src/main.jsx');
+
+    const findInput = (labelText) => {
+      const label = [...document.querySelectorAll('.page-edit-profil .form-label')]
+        .find((el) => el.textContent.trim() === labelText);
+      return label?.closest('.form-group')?.querySelector('input') ?? null;
+    };
+    const setNative = (el, value) => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      setter.call(el, value);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+
+    const pageReady = await waitFor(() => !!findInput('Nama Lengkap'));
+    metrics.steps.push(['input Nama Lengkap tampil', pageReady]);
+
+    const input = findInput('Nama Lengkap');
+    const prefilled = await waitFor(() => input.value === 'Budi Santoso 2');
+    metrics.steps.push(['prefill account-info utuh', prefilled]);
+    metrics.prefillValue = input.value;
+
+    /* Simbol + emoji + angka → hanya huruf/angka/spasi yang tersisa. */
+    setNative(input, 'Budi Santoso #1@🔥!');
+    const symbolsStripped = await waitFor(() => input.value === 'Budi Santoso 1');
+    metrics.steps.push(['simbol & emoji disaring saat mengetik', symbolsStripped]);
+
+    /* Isi simbol semua → nilai jadi kosong. */
+    setNative(input, '###@@@');
+    const cleared = await waitFor(() => input.value === '');
+    metrics.steps.push(['input simbol semua → kosong', cleared]);
+
+    /* Huruf/angka/spasi murni lewat tanpa perubahan. */
+    setNative(input, 'Ani 2 Setiawan');
+    const plainKept = await waitFor(() => input.value === 'Ani 2 Setiawan');
+    metrics.steps.push(['huruf/angka/spasi lewat apa adanya', plainKept]);
+
+    /* Telegram: hanya huruf & angka — '@', '_', spasi, simbol & emoji disaring. */
+    const teleInput = findInput('Telegram');
+    const teleFilled = await waitFor(() => teleInput?.value === '@budi');
+    metrics.steps.push(['prefill telegram utuh', teleFilled]);
+
+    setNative(teleInput, '@Ani_2 #🔥!');
+    const teleStripped = await waitFor(() => teleInput.value === 'Ani2');
+    metrics.steps.push(['telegram: simbol/underscore/spasi disaring', teleStripped]);
+
+    setNative(teleInput, '###@@@');
+    const teleCleared = await waitFor(() => teleInput.value === '');
+    metrics.steps.push(['telegram: simbol semua → kosong', teleCleared]);
+
+    /* Username: hanya huruf & angka — sama dengan Telegram. */
+    const userInput = findInput('Username');
+    const userFilled = await waitFor(() => userInput?.value === 'budi2');
+    metrics.steps.push(['prefill username utuh', userFilled]);
+
+    setNative(userInput, 'Ani_Budi 9#');
+    const userStripped = await waitFor(() => userInput.value === 'AniBudi9');
+    metrics.steps.push(['username: simbol/spasi disaring', userStripped]);
+
+    metrics.rendered = { nameValue: input.value, telegramValue: teleInput.value, usernameValue: userInput.value };
+    metrics.allPassed = pageReady && prefilled && symbolsStripped && cleared && plainKept
+      && teleFilled && teleStripped && teleCleared && userFilled && userStripped;
+  } catch (error) {
+    metrics.error = String(error);
+    metrics.allPassed = false;
+  }
+
+  write();
+</script>
+</body>
+</html>

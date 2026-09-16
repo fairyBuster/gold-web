@@ -1,9 +1,13 @@
 import { useState } from 'react';
 /* POST /api/vouchers/claim/ — redeem a voucher code for a balance credit. */
 import { claimVoucher } from '../../lib/vouchersApi.js';
-/* API notifications (success/error) use the shared NotifCard component. */
+/* API notifications (success/error) open the shared /notif screen. */
+import { useShowNotif } from '../../lib/useShowNotif.js';
 import NotifCard from '../../components/NotifCard.jsx';
-import { formatRupiah } from '../../lib/transactionFormat.js';
+import ListState from '../../components/ListState.jsx';
+/* Riwayat Redeem reads the user's VOUCHER transactions (GET /api/transactions/). */
+import { useTransactionFeed } from '../../lib/useTransactionFeed.js';
+import { formatAmountLabel, formatRupiah, parseDate } from '../../lib/transactionFormat.js';
 import img_1 from '../../assets/images/102_2017.svg';
 import img_2 from '../../assets/images/6ea7969d642adfbb038f569e995e7ac2259bb145.png';
 import img_3 from '../../assets/images/102_2039.svg';
@@ -183,14 +187,6 @@ const styles = `
     opacity: 0.6;
     cursor: default;
   }
-  .page-redeem-kode .input-error {
-    color: #e24c4c;
-    font-size: 12px;
-    margin: -14px 0 18px;
-  }
-  .page-redeem-kode .notice-margin {
-    margin-bottom: 32px;
-  }
 
 /* CSS for section section:Info */
 .page-redeem-kode .info-box {
@@ -275,36 +271,47 @@ const WALLET_LABELS = {
   BALANCE_DEPOSIT: 'Saldo Deposit',
 };
 
+/* Riwayat Redeem: transaksi bertipe VOUCHER dari GET /api/transactions/.
+   Konstanta modul supaya identitas array stabil antar-render (dipakai
+   sebagai dependency di useTransactionFeed). */
+const HISTORY_TYPES = ['VOUCHER'];
+
+/* "28 Agu 2026" — tanggal ringkas untuk baris riwayat redeem. */
+function formatShortDate(iso) {
+  const date = parseDate(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 export default function RedeemKode() {
   const [code, setCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState(null);
+  const showNotif = useShowNotif();
+  /* Riwayat redeem termuat saat mount; setelah klaim sukses halaman remount
+     (auto-return dari /notif) sehingga daftar ikut menyegarkan diri. */
+  const { items: historyItems, loading: historyLoading, error: historyError } = useTransactionFeed(HISTORY_TYPES);
 
-  /* Redeem: POST /api/vouchers/claim/. API failures (400/404) surface through
-     the shared NotifCard; an empty code fails locally as inline text. */
+  /* Redeem: POST /api/vouchers/claim/. Both the empty-code check and API
+     failures surface through the /notif screen. */
   const handleRedeem = async () => {
     if (submitting) return;
     const trimmed = code.trim();
     if (!trimmed) {
-      setNotice(null);
-      setError('Masukkan kode redeem terlebih dahulu.');
+      showNotif({ title: 'Lengkapi Data', description: 'Masukkan kode redeem terlebih dahulu.' });
       return;
     }
-    setError('');
-    setNotice(null);
     setSubmitting(true);
     try {
       const data = await claimVoucher({ code: trimmed });
       const walletLabel = WALLET_LABELS[String(data?.wallet_type || '').toUpperCase()] || 'saldo kamu';
-      setNotice({
+      showNotif({
         variant: 'success',
         title: 'Voucher Berhasil Diklaim',
         description: `Kode ${data?.voucher_code || trimmed} berhasil diklaim. ${formatRupiah(data?.amount)} ditambahkan ke ${walletLabel} — saldo terbaru kamu ${formatRupiah(data?.balance)}.`,
       });
       setCode('');
     } catch (err) {
-      setNotice({
+      showNotif({
         variant: 'error',
         title: 'Redeem Gagal',
         description: err?.message || 'Voucher gagal diklaim. Silakan coba lagi.',
@@ -321,10 +328,9 @@ export default function RedeemKode() {
       const text = await navigator.clipboard.readText();
       if (text && text.trim()) {
         setCode(text.trim());
-        setError('');
       }
     } catch {
-      setError('Tidak dapat membaca clipboard. Ketik kodenya secara manual.');
+      showNotif({ variant: 'error', title: 'Gagal Membaca Clipboard', description: 'Tidak dapat membaca clipboard. Ketik kodenya secara manual.' });
     }
   };
 
@@ -357,20 +363,14 @@ export default function RedeemKode() {
                     className="redeem-input"
                     value={code}
                     maxLength={50}
-                    onChange={(e) => { setCode(e.target.value); if (error) setError(''); }}
+                    onChange={(e) => setCode(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleRedeem(); } }}
                   />
                   <button className="paste-btn" onClick={(e) => { e.preventDefault(); handlePaste(); }}>Tempel</button>
                 </div>
-                {error && <p className="input-error">{error}</p>}
                 <button className="redeem-btn" disabled={submitting} onClick={(e) => { e.preventDefault(); handleRedeem(); }}>
                   {submitting ? 'Memproses...' : 'Redeem Sekarang'}
                 </button>
-                {notice && (
-                  <div className="notice-margin">
-                    <NotifCard variant={notice.variant} title={notice.title} description={notice.description} onClose={() => setNotice(null)} />
-                  </div>
-                )}
               </section>
               <section id="section-info" className="px-20">
                 <div className="info-box">
@@ -383,22 +383,26 @@ export default function RedeemKode() {
               <section id="section-history" className="px-20">
                 <h3 className="history-title">Riwayat Redeem</h3>
                 <div className="history-list">
-                  <div className="history-item">
-                    <img src={img_5} alt="Coin" className="history-icon" />
-                    <div className="history-details">
-                      <div className="history-code">WELCOME2026</div>
-                      <div className="history-date">28 Agu 2026</div>
-                    </div>
-                    <div className="history-points">+100 Poin</div>
-                  </div>
-                  <div className="history-item">
-                    <img src={img_5} alt="Coin" className="history-icon" />
-                    <div className="history-details">
-                      <div className="history-code">GOLDFEST25</div>
-                      <div className="history-date">15 Agu 2026</div>
-                    </div>
-                    <div className="history-points">+50 Poin</div>
-                  </div>
+                  {historyError ? (
+                    <NotifCard variant="error" title="Gagal Memuat Riwayat" description={historyError} />
+                  ) : historyLoading ? (
+                    <ListState text="Memuat riwayat…" />
+                  ) : historyItems.length === 0 ? (
+                    <ListState text="Belum ada voucher yang ditukar." />
+                  ) : (
+                    /* Detail: kode voucher ditampilkan langsung (Riwayat Lainnya
+                       hanya menampilkan judul generik "Menukarkan Kode"). */
+                    historyItems.map((trx) => (
+                      <div className="history-item" key={trx.id ?? `${trx.voucher_code}-${trx.created_at}`}>
+                        <img src={img_5} alt="Voucher" className="history-icon" />
+                        <div className="history-details">
+                          <div className="history-code">{trx.voucher_code || 'Voucher'}</div>
+                          <div className="history-date">{formatShortDate(trx.created_at)}</div>
+                        </div>
+                        <div className="history-points">{formatAmountLabel(trx.amount, trx.currency_code)}</div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </section>
             </div>

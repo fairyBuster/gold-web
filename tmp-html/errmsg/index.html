@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ERRMSG-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="errmsg-metrics">pending</pre>
+  <script type="module">
+    /* E2E: verifies API error notifications NEVER leak backend text.
+       The stub returns payloads full of server words ("validation_error",
+       DRF field errors, "Internal server error", DRF detail strings) and the
+       harness asserts the notification shows only frontend-authored copy.
+
+       Suites (?suite=):
+         lupa  (default) — POST request-otp-registered: 400 / 500 / network
+         login           — POST identifier-login: 401 */
+    const suite = new URLSearchParams(location.search).get('suite') || 'lupa';
+    const metrics = { suite, errors: [], scenarios: {}, fetchUrls: [] };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    /* Stub fetch BEFORE the app loads. `responder` is swapped per scenario;
+       it also records the raw backend body as evidence. */
+    let responder = () => new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    window.fetch = async (url, init = {}) => {
+      metrics.fetchUrls.push(String(url));
+      return responder(String(url), init);
+    };
+    const jsonResponse = (status, body) =>
+      new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const writeMetrics = () => {
+      document.getElementById('errmsg-metrics').textContent = JSON.stringify(metrics, null, 2);
+      document.title = 'ERRMSG-DONE ' + JSON.stringify({ allPassed: metrics.allPassed, errors: metrics.errors.length });
+    };
+    const waitFor = async (selector, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+    const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    const feed = async (input, raw) => {
+      nativeSet.call(input, raw);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      await sleep(80);
+    };
+    const waitEnabled = async (btn) => {
+      for (let i = 0; i < 40 && btn.disabled; i += 1) await sleep(50);
+    };
+
+    /* Read the currently visible overlay notification. */
+    const readNotif = () => {
+      const card = document.querySelector('.notif-overlay .notif-card');
+      if (!card) return null;
+      return {
+        variant: card.classList.contains('error') ? 'error' : 'success',
+        title: card.querySelector('.notification-title')?.textContent || '',
+        desc: card.querySelector('.notification-desc')?.textContent || '',
+        raw: card.textContent,
+      };
+    };
+    const dismiss = async () => {
+      document.querySelector('.notif-overlay .close-button')?.click();
+      await sleep(150);
+    };
+
+    /* Backend phrases that must never reach the user. */
+    const BACKEND_PHRASES = [/validation_error/i, /Enter a valid/i, /Internal server error/i, /No active account/i, /\bdetail\b/i];
+
+    const record = (name, expectDesc, backendBody, notif) => {
+      const leaked = notif ? BACKEND_PHRASES.filter((re) => re.test(notif.raw)).map(String) : [];
+      metrics.scenarios[name] = {
+        backendBody,
+        shownTitle: notif?.title ?? null,
+        shownDesc: notif?.desc ?? null,
+        variant: notif?.variant ?? null,
+        expectedDesc: expectDesc,
+        descMatches: !!notif && notif.desc === expectDesc,
+        leakedBackendPhrases: leaked,
+        passed: !!notif && notif.desc === expectDesc && leaked.length === 0,
+      };
+    };
+
+    localStorage.setItem('je_auth_session', JSON.stringify({ access: 'fake-access', refresh: 'fake-refresh' }));
+
+    if (suite === 'login') {
+      /* ---------- Suite: login 401 shows the frontend wording ---------- */
+      history.replaceState(null, '', '/index/auth/login');
+      await import('/src/main.jsx');
+
+      const idInput = await waitFor('.page-login input[placeholder="Email atau nomor ponsel"]');
+      const pwInput = await waitFor('.page-login input[placeholder="Password"]');
+      metrics.pageRendered = !!(idInput && pwInput);
+      if (!idInput || !pwInput) { writeMetrics(); throw new Error('login page not rendered'); }
+
+      await feed(idInput, 'user@example.com');
+      await feed(pwInput, 'salah123');
+
+      const backendBody = JSON.stringify({ detail: 'No active account found with the given credentials' });
+      responder = () => jsonResponse(401, { detail: 'No active account found with the given credentials' });
+      const btn = document.querySelector('.page-login .btn-login');
+      await waitEnabled(btn);
+      btn.click();
+      await sleep(800);
+
+      record('login401', 'Email/nomor ponsel atau password salah.', backendBody, readNotif());
+      metrics.pathAfterLogin = location.pathname;
+    } else {
+      /* ---------- Suite: lupa-password step 1 (request-otp-registered) ---------- */
+      history.replaceState(null, '', '/index/auth/lupa-password');
+      await import('/src/main.jsx');
+
+      const input = await waitFor('.page-lupa-password #phone-input');
+      const btn = await waitFor('.page-lupa-password .submit-btn');
+      metrics.pageRendered = !!(input && btn);
+      if (!input || !btn) { writeMetrics(); throw new Error('lupa page not rendered'); }
+      await feed(input, '08123456789');
+
+      /* Scenario 1 — 400 with DRF garbage: literal validation_error + field error.
+         Central layer must suppress it and let the page fallback win. */
+      {
+        const backendBody = JSON.stringify({ error: 'validation_error', phone: ['Enter a valid phone number.'] });
+        responder = () => jsonResponse(400, { error: 'validation_error', phone: ['Enter a valid phone number.'] });
+        await waitEnabled(btn);
+        btn.click();
+        await sleep(800);
+        record('lupa400garbage', 'Kode verifikasi gagal dikirim. Periksa koneksi lalu coba lagi.', backendBody, readNotif());
+        await dismiss();
+      }
+
+      /* Scenario 2 — 500 with a raw DRF detail string. */
+      {
+        const backendBody = JSON.stringify({ detail: 'Internal server error' });
+        responder = () => jsonResponse(500, { detail: 'Internal server error' });
+        await waitEnabled(btn);
+        btn.click();
+        await sleep(800);
+        record('lupa500', 'Server sedang bermasalah. Coba lagi beberapa saat lagi ya.', backendBody, readNotif());
+        await dismiss();
+      }
+
+      /* Scenario 3 — transport failure (fetch rejects). */
+      {
+        const backendBody = 'TypeError: Failed to fetch';
+        responder = () => { throw new TypeError('Failed to fetch'); };
+        await waitEnabled(btn);
+        btn.click();
+        await sleep(800);
+        record('lupaNetwork', 'Tidak dapat terhubung ke server. Periksa koneksi internet kamu.', backendBody, readNotif());
+        await dismiss();
+      }
+
+      metrics.pathAfterLupa = location.pathname;
+    }
+
+    metrics.allPassed = Object.values(metrics.scenarios).every((s) => s.passed);
+    writeMetrics();
+  </script>
+</body>
+</html>

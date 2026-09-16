@@ -1,0 +1,725 @@
+﻿<!DOCTYPE html>
+<html lang="id"><head>
+  <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+  <script type="module" src="/@vite/client"></script>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>REGISTER-DONE {"allPassed":true,"errors":0}</title>
+<style type="text/css" data-vite-dev-id="D:/webbaru/src/index.css">/* ============================================================
+
+   App shell styles shared by all converted pages.
+
+   Global resets below match the originals found in every
+
+   global.css, so individual page CSS files only need to carry
+
+   their page-specific (already scoped) rules.
+
+   ============================================================ */
+
+
+
+* {
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0;
+
+  -webkit-tap-highlight-color: transparent;
+
+}
+
+
+
+html,
+
+body,
+
+#root {
+
+  width: 100%;
+
+  min-height: 100vh;
+
+  margin: 0;
+
+  padding: 0;
+
+}
+
+
+
+/* Each converted page renders a single wrapper div below its page root
+
+   (e.g. #root > .page-x > div). The original mobile mockups sized that
+
+   wrapper by its content, which produced narrow centered columns on
+
+   desktop; force it to span the full width so pages have no side gaps. */
+
+#root > div > div {
+
+  width: 100%;
+
+}
+
+
+
+body {
+
+  font-family: 'Inter', sans-serif;
+
+  background-color: #f0e9df;
+
+  /* App-wide background image ΓÇö every page shows it through the
+
+     transparency rule below. */
+
+  background-image: url('/src/assets/images/background.jpg');
+
+  background-size: cover;
+
+  background-position: center top;
+
+  background-repeat: no-repeat;
+
+  background-attachment: fixed;
+
+  color: #1a1410;
+
+  min-height: 100vh;
+
+}
+
+
+
+/* Page wrappers paint their own opaque canvas; make them transparent so
+
+   the shared background image is visible on all pages. */
+
+#root > [class^="page-"] {
+
+  background-color: transparent;
+
+}
+
+
+
+a {
+
+  text-decoration: none;
+
+  color: inherit;
+
+}
+
+
+
+button {
+
+  border: none;
+
+  background: none;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+}
+
+
+
+input,
+
+textarea,
+
+select {
+
+  font-family: inherit;
+
+}
+
+
+
+/* ============================================================
+
+   Screen directory (route "/")
+
+   ============================================================ */
+
+
+
+.screen-index {
+
+  max-width: 1080px;
+
+  margin: 0 auto;
+
+  padding: 48px 24px 80px;
+
+}
+
+
+
+.screen-index__header {
+
+  text-align: center;
+
+  margin-bottom: 36px;
+
+}
+
+
+
+.screen-index__title {
+
+  font-size: 32px;
+
+  font-weight: 700;
+
+  color: #1a1410;
+
+  margin-bottom: 8px;
+
+}
+
+
+
+.screen-index__title span {
+
+  color: #e8790c;
+
+}
+
+
+
+.screen-index__subtitle {
+
+  font-size: 14px;
+
+  color: #8a7d6d;
+
+  margin-bottom: 24px;
+
+}
+
+
+
+.screen-index__search {
+
+  width: 100%;
+
+  max-width: 420px;
+
+  padding: 13px 18px;
+
+  font-size: 14px;
+
+  border: 1px solid #e2d8c8;
+
+  border-radius: 12px;
+
+  background-color: #fffbf4;
+
+  color: #1a1410;
+
+  outline: none;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__search:focus {
+
+  border-color: #e8790c;
+
+  box-shadow: 0 0 0 3px rgba(232, 121, 12, 0.15);
+
+}
+
+
+
+.screen-index__grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+
+  gap: 12px;
+
+}
+
+
+
+.screen-index__card {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  padding: 16px 18px;
+
+  background-color: #fffbf4;
+
+  border: 1px solid #e9dfd1;
+
+  border-radius: 14px;
+
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__card:hover {
+
+  border-color: #e8790c;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 10px 24px rgba(26, 20, 16, 0.08);
+
+}
+
+
+
+.screen-index__card-label {
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  color: #1a1410;
+
+}
+
+
+
+.screen-index__card-path {
+
+  font-size: 12px;
+
+  color: #b3a795;
+
+  font-family: 'SFMono-Regular', Consolas, monospace;
+
+}
+
+
+
+.screen-index__empty {
+
+  grid-column: 1 / -1;
+
+  text-align: center;
+
+  padding: 40px 0;
+
+  color: #b3a795;
+
+  font-size: 14px;
+
+}
+
+
+
+.screen-index__group {
+
+  margin-bottom: 32px;
+
+}
+
+
+
+.screen-index__group-title {
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  color: #8a7d6d;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+
+  margin-bottom: 12px;
+
+}
+
+
+
+/* ============================================================
+
+   Desktop layout (ΓëÑ768px) for all app screens.
+
+   Below 768px every page keeps its original mobile layout as-is.
+
+   From 768px up the page content renders as a centered app column
+
+   while backgrounds stay full-bleed on the page root, so no
+
+   phone-frame edges or side gaps appear. The landing page has its
+
+   own desktop layout (see LandingPagePerusahaan.jsx).
+
+   ============================================================ */
+
+
+
+@media (min-width: 768px) {
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > div,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > main,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > section {
+
+    max-width: 480px;
+
+    margin-left: auto;
+
+    margin-right: auto;
+
+    box-shadow: none;
+
+  }
+
+}
+
+
+
+/* Inner full-page containers keep a mobile drop shadow; drop it on desktop
+
+   too (they sit below the capped element, so the rule above does not reach
+
+   them). Selectors carry the #root prefix so they outrank the per-page
+
+   \3c style> blocks injected later in the document. */
+
+@media (min-width: 768px) {
+
+  #root .page-register-01 .app-container,
+
+  #root .page-register-04 .mobile-container,
+
+  #root .page-notifikasi-login .screen-container,
+
+  #root .page-notif-screen .screen-container,
+
+  #root .page-kartu-bank .mobile-app-container,
+
+  #root .page-beri-rating section:first-of-type,
+
+  #root .page-beri-rating section:last-of-type,
+
+  #root .page-livechat .input-container {
+
+    box-shadow: none;
+
+  }
+
+}
+
+</style></head>
+<body>
+  <div id="root"><div class="page-register-01"><style>
+/* Scoped styles for Register01 ΓÇö converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-register-01 to isolate this page. */
+
+.page-register-01 {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  width: 100%;
+  /* Full-bleed page canvas ΓÇö glows + opaque base so the artwork survives the
+     global transparent-root rule. */
+  background-image: 
+    radial-gradient(circle at 85% 5%, rgba(255, 201, 60, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 15% 95%, rgba(255, 159, 28, 0.12) 0%, transparent 45%),
+    linear-gradient(#fffbf4, #fffbf4);
+}
+
+.page-register-01, .page-register-01 * {
+  box-sizing: border-box;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Register */
+.page-register-01 #register-section {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 0;
+}
+
+.page-register-01 .app-container {
+  width: 100%;
+  max-width: 100%;
+  box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.page-register-01 .header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 20px 16px;
+}
+
+.page-register-01 .back-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background-color: #f6f1e9;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.page-register-01 .back-btn img {
+  width: 18px;
+  height: 18px;
+}
+
+.page-register-01 .header-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1410;
+  margin: 0;
+}
+
+.page-register-01 .progress-container {
+  display: flex;
+  gap: 6px;
+  padding: 0 20px 20px;
+}
+
+.page-register-01 .progress-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background-color: #efe7dc;
+}
+
+.page-register-01 .progress-bar.active {
+  background: linear-gradient(90deg, #ffc93c 0%, #e8790c 100%);
+}
+
+.page-register-01 .content-container {
+  padding: 4px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.page-register-01 .step-text {
+  color: #e8790c;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.page-register-01 .main-title {
+  color: #1a1410;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.5px;
+}
+
+.page-register-01 .subtitle {
+  color: #514840;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 24px 0;
+}
+
+.page-register-01 .register-form {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.page-register-01 .form-group {
+  margin-bottom: 16px;
+}
+
+.page-register-01 .form-label {
+  display: block;
+  color: #514840;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.page-register-01 .input-wrapper {
+  background-color: #f6f1e9;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+}
+
+.page-register-01 .form-input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  color: #1a1410;
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+}
+
+.page-register-01 .form-input::placeholder {
+  color: #a79c8f;
+}
+
+.page-register-01 .phone-prefix {
+  color: #514840;
+  font-size: 14px;
+  margin-right: 12px;
+  font-weight: 500;
+}
+
+.page-register-01 .captcha-wrapper {
+  background-color: #f6f1e9;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  margin-bottom: 24px;
+}
+
+.page-register-01 .captcha-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.page-register-01 .custom-checkbox {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #a79c8f;
+  border-radius: 6px;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.page-register-01 .custom-checkbox.checked {
+  background-color: #e8790c;
+  border-color: #e8790c;
+  position: relative;
+}
+
+.page-register-01 .custom-checkbox.checked::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 3px;
+  width: 6px;
+  height: 11px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.page-register-01 .input-wrapper.input-wrapper-locked {
+  background-color: #efe7db;
+  border: 1px solid #e3d9cb;
+}
+
+.page-register-01 .captcha-text {
+  color: #514840;
+  font-size: 14px;
+}
+
+.page-register-01 .captcha-logo-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.page-register-01 .captcha-img {
+  width: 35px;
+  height: 35px;
+  object-fit: contain;
+}
+
+.page-register-01 .captcha-brand {
+  font-size: 9px;
+  color: #a79c8f;
+}
+
+.page-register-01 .terms-text {
+  color: #a79c8f;
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0 0 32px 0;
+}
+
+.page-register-01 .terms-link {
+  color: #e8790c;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.page-register-01 .submit-btn {
+  background-color: #1a1410;
+  color: #ffffff;
+  width: 100%;
+  padding: 16px;
+  border-radius: 5px;
+  border: none;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: auto;
+  font-family: inherit;
+}
+</style><section id="register-section"><div class="app-container"><header class="header"><button class="back-btn" aria-label="Kembali"><img src="data:image/svg+xml,%3csvg%20width='18'%20height='18'%20viewBox='0%200%2018%2018'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M11.25%203.75L6%209L11.25%2014.25'%20stroke='%231A1410'%20stroke-width='1.5'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt=""></button><h1 class="header-title">Buat Akun</h1></header><div class="progress-container"><div class="progress-bar active"></div><div class="progress-bar"></div><div class="progress-bar"></div></div><div class="content-container"><div class="step-text">Langkah 1 dari 3</div><h2 class="main-title">Ayo buat akun kamu</h2><p class="subtitle">Masukkan nama pengguna, alamat email, dan nomor ponsel kamu yang aktif untuk melanjutkan pendaftaran.</p><form class="register-form" novalidate=""><div class="form-group"><label class="form-label">Nama Pengguna</label><div class="input-wrapper"><input type="text" class="form-input" placeholder="Contoh: Budi Santoso" value=""></div></div><div class="form-group"><label class="form-label">Email</label><div class="input-wrapper"><input type="email" class="form-input" placeholder="contoh@email.com" value=""></div></div><div class="form-group"><label class="form-label">Nomor Ponsel</label><div class="input-wrapper"><span class="phone-prefix">+62</span><input type="tel" class="form-input" placeholder="Nomor ponsel" value=""></div></div><div class="form-group"><label class="form-label">Kode Promo/Referral</label><div class="input-wrapper"><input type="text" class="form-input" placeholder="Masukkan kode" value=""></div></div><div class="captcha-wrapper"><div class="captcha-checkbox-group" role="checkbox" aria-checked="false" tabindex="0"><div class="custom-checkbox"></div><span class="captcha-text">Saya bukan robot</span></div><div class="captcha-logo-group"><img src="/src/assets/images/d5791be6396b4e511ffea7a63cf23e0ca46b3ccb.png" alt="reCAPTCHA logo" class="captcha-img"><span class="captcha-brand">reCAPTCHA</span></div></div><p class="terms-text">Dengan melanjutkan, saya setuju bahwa aplikasi ini dapat menggunakan data pribadi saya sesuai dengan <a class="terms-link" href="/index/support/kebijakan-privasi">Kebijakan Privasi</a>.</p><button type="submit" class="submit-btn">Lanjut</button></form></div></div></section></div></div>
+  <pre id="register-metrics">{
+  "suite": "guard",
+  "errors": [],
+  "scenarios": {},
+  "fetchCalls": [],
+  "guard": {
+    "landedOnStep1": true,
+    "finalPath": "/index/auth/register-01",
+    "step1Rendered": true
+  },
+  "allPassed": true
+}</pre>
+  <script type="module" src="/tmp-html/register/index.html?html-proxy&amp;index=0.js"></script>
+
+
+</body></html>

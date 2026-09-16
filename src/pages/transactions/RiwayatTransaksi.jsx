@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import img_1 from '../../assets/images/109_2465.svg';
 import img_2 from '../../assets/images/77ee91c8dada95217ef849cd09311a9e69dfd60e.png';
@@ -10,6 +11,7 @@ import img_8 from '../../assets/images/a0f4e57692255e6234cdb5455f19fda6e1a96e82.
 import img_9 from '../../assets/images/109_2590.svg';
 import img_10 from '../../assets/images/3996294870fd174373ab40264b02a36e21eea57f.png';
 import img_11 from '../../assets/images/109_2590.svg';
+import pageBg from '../../assets/images/083535.png';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -23,10 +25,10 @@ const styles = `
     max-width: 100%;
     min-height: 100vh;
     background-color: #fffbf4;
-    background-image: 
-        radial-gradient(circle at 80% -10%, rgba(255, 201, 60, 0.28) 0%, rgba(255, 201, 60, 0) 40%),
-        radial-gradient(circle at 20% 5%, rgba(255, 159, 28, 0.2) 0%, rgba(255, 159, 28, 0) 30%),
-        radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 40%);
+    /* Latar artwork 083535.png (dipasang inline di root), direntangkan penuh. */
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: top center;
     box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.05);
     color: #1a1410;
     box-sizing: border-box;
@@ -147,6 +149,19 @@ const styles = `
     overflow: hidden;
     text-overflow: ellipsis;
 }
+.page-riwayat-transaksi .card-subtitle span {
+    display: inline-block;
+}
+/* Teks yang lebih panjang dari kartunya berjalan bolak-balik (bukan
+   terpotong) — jarak geser (--slide) dihitung dari overflow di JS. */
+.page-riwayat-transaksi .card-subtitle.is-marquee span {
+    animation: rtrans-subtitle-slide 8s ease-in-out infinite;
+}
+@keyframes rtrans-subtitle-slide {
+    0%, 12% { transform: translateX(0); }
+    46%, 58% { transform: translateX(var(--slide, 0px)); }
+    92%, 100% { transform: translateX(0); }
+}
 .page-riwayat-transaksi .card-arrow {
     width: 16px;
     height: 16px;
@@ -156,8 +171,35 @@ const styles = `
 `;
 
 export default function RiwayatTransaksi() {
+  const rootRef = useRef(null);
+
+  /* Teks subtitel yang melebihi lebar kartunya diberi class "is-marquee"
+     supaya berjalan bolak-balik, bukan terpotong "...". Diukur ulang saat
+     resize dan setelah font Inter selesai dimuat. */
+  useEffect(() => {
+    const measure = () => {
+      const items = rootRef.current?.querySelectorAll('.card-subtitle') ?? [];
+      items.forEach((el) => {
+        const span = el.firstElementChild;
+        if (!span) return;
+        const overflow = el.scrollWidth - el.clientWidth;
+        if (overflow > 0) {
+          span.style.setProperty('--slide', `${-overflow}px`);
+          el.classList.add('is-marquee');
+        } else {
+          el.classList.remove('is-marquee');
+          span.style.removeProperty('--slide');
+        }
+      });
+    };
+    measure();
+    document.fonts?.ready.then(measure);
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+
   return (
-    <div className="page-riwayat-transaksi">
+    <div className="page-riwayat-transaksi" ref={rootRef} style={{ backgroundImage: `url(${pageBg})` }}>
       <style>{styles}</style>
       <div>
               <section id="section-header">
@@ -175,43 +217,43 @@ export default function RiwayatTransaksi() {
               </section>
               <section id="section-history-list">
                 <div className="list-container">
-                  <Link to="/transactions/riwayat-isi-ulang" className="history-card">
+                  <Link to="/index/transactions/riwayat-isi-ulang" className="history-card">
                     <img src={img_2} alt="Riwayat Isi Ulang" className="card-icon" />
                     <div className="card-content">
                       <h2 className="card-title">Riwayat Isi Ulang</h2>
-                      <p className="card-subtitle">Semua transaksi penambahan saldo</p>
+                      <p className="card-subtitle"><span>Semua transaksi penambahan saldo</span></p>
                     </div>
                     <img src={img_3} alt="Arrow Right" className="card-arrow" />
                   </Link>
-                  <Link to="/transactions/riwayat-penarikan" className="history-card">
+                  <Link to="/index/transactions/riwayat-penarikan" className="history-card">
                     <img src={img_4} alt="Riwayat Penarikan" className="card-icon" />
                     <div className="card-content">
                       <h2 className="card-title">Riwayat Penarikan</h2>
-                      <p className="card-subtitle">Semua transaksi tarik dana ke rekening</p>
+                      <p className="card-subtitle"><span>Semua transaksi tarik dana ke rekening</span></p>
                     </div>
                     <img src={img_5} alt="Arrow Right" className="card-arrow" />
                   </Link>
-                  <Link to="/assets/riwayat-aset-saya" className="history-card">
+                  <Link to="/index/assets/riwayat-aset-saya" className="history-card">
                     <img src={img_6} alt="Riwayat Aset Saya" className="card-icon" />
                     <div className="card-content">
                       <h2 className="card-title">Riwayat Aset Saya</h2>
-                      <p className="card-subtitle">Transaksi beli/jual emas &amp; keuntungan spread</p>
+                      <p className="card-subtitle"><span>Transaksi beli/jual emas &amp; keuntungan spread</span></p>
                     </div>
                     <img src={img_7} alt="Arrow Right" className="card-arrow" />
                   </Link>
-                  <Link to="/affiliate/riwayat-komisi" className="history-card">
+                  <Link to="/index/affiliate/riwayat-komisi" className="history-card">
                     <img src={img_8} alt="Riwayat Komisi" className="card-icon" />
                     <div className="card-content">
                       <h2 className="card-title">Riwayat Komisi</h2>
-                      <p className="card-subtitle">Komisi dari Tim &amp; Afiliasi kamu</p>
+                      <p className="card-subtitle"><span>Komisi dari Tim &amp; Afiliasi kamu</span></p>
                     </div>
                     <img src={img_9} alt="Arrow Right" className="card-arrow" />
                   </Link>
-                  <Link to="/rewards/riwayat-lainnya" className="history-card">
+                  <Link to="/index/rewards/riwayat-lainnya" className="history-card">
                     <img src={img_10} alt="Riwayat Lainnya" className="card-icon" />
                     <div className="card-content">
                       <h2 className="card-title">Riwayat Lainnya</h2>
-                      <p className="card-subtitle">Cetak emas, investasi rutin, dan penukaran poin</p>
+                      <p className="card-subtitle"><span>Cetak emas, investasi rutin, dan penukaran poin</span></p>
                     </div>
                     <img src={img_11} alt="Arrow Right" className="card-arrow" />
                   </Link>

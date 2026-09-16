@@ -7,8 +7,10 @@ import { getMissions, claimMission } from '../../lib/missionsApi.js';
 import { getAccountInfo } from '../../lib/authApi.js';
 import { getDownlineStats } from '../../lib/affiliateApi.js';
 import { formatRupiah } from '../../lib/transactionFormat.js';
-/* API notifications (success/error) use the shared NotifCard component. */
+/* Action notifications (claim/copy/share) open the shared /notif screen;
+   the missions load error keeps the inline NotifCard. */
 import NotifCard from '../../components/NotifCard.jsx';
+import { useShowNotif } from '../../lib/useShowNotif.js';
 import img_1 from '../../assets/images/103_2125.svg';
 import img_2 from '../../assets/images/17e7f2f606a56322420437f792ab8f3eef96e321.png';
 import img_3 from '../../assets/images/103_2159.svg';
@@ -353,12 +355,6 @@ const styles = `
     color: #a79c8f;
     padding: 2px 0;
   }
-  .page-misi #section-rewards .error-text {
-    font-size: 12px;
-    color: #e24c4c;
-    font-weight: 600;
-    padding: 2px 0;
-  }
   .page-misi #section-rewards .notice-margin {
     margin-bottom: 12px;
   }
@@ -455,7 +451,7 @@ export default function Misi() {
   const [downlineStats, setDownlineStats] = useState(null);
   const [claimingId, setClaimingId] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [notice, setNotice] = useState(null);
+  const showNotif = useShowNotif();
 
   useEffect(() => {
     let cancelled = false;
@@ -483,10 +479,14 @@ export default function Misi() {
     .sort((a, b) => (Number(a.requirement) || 0) - (Number(b.requirement) || 0) || a.id - b.id);
 
   /* Misi berikutnya untuk progress bar hero: requirement terkecil yang belum
-     diklaim; kalau semua sudah diklaim, pakai misi terakhir. */
+     diklaim; kalau semua sudah diklaim, pakai misi terakhir. Capaian hero =
+     jumlah anggota aktif saat ini (kartu "Bergabung"), targetnya = requirement
+     misi berikutnya. */
   const nextMission = sortedMissions.find((m) => m.status !== 'claimed') || sortedMissions[sortedMissions.length - 1] || null;
+  const level1 = (downlineStats?.levels || []).find((item) => item.level === 1) || null;
+  const activeMembers = Number(level1?.members_active) || 0;
   const heroPercent = nextMission
-    ? Math.min(100, Math.max(0, ((Number(nextMission.progress) || 0) / (Number(nextMission.requirement) || 1)) * 100))
+    ? Math.min(100, Math.max(0, (activeMembers / (Number(nextMission.requirement) || 1)) * 100))
     : 0;
 
   /* Total bonus = semua reward misi yang sudah diklaim (claimed_count x reward). */
@@ -495,19 +495,22 @@ export default function Misi() {
     0,
   );
 
-  const level1 = (downlineStats?.levels || []).find((item) => item.level === 1) || null;
   const referralCode = String(account?.referral_code || '').trim();
+  /* Salin/Bagikan memakai link pendaftaran dengan kode tertanam (?ref=KODE),
+     format yang dibaca halaman register untuk mengisi kode promo otomatis. */
+  const referralLink = referralCode
+    ? `${window.location.origin}/auth/register-01?ref=${encodeURIComponent(referralCode)}`
+    : '';
 
   /* Klaim: POST /api/missions/claim/ — sukses menambah saldo lalu menyegarkan
-     daftar misi; kegagalan (400/404) tampil lewat NotifCard. */
+     daftar misi; kegagalan (400/404) tampil lewat halaman /notif. */
   const handleClaim = async (mission) => {
     if (claimingId) return;
     setClaimingId(mission.id);
-    setNotice(null);
     try {
       const data = await claimMission({ missionId: mission.id });
       const walletLabel = WALLET_LABELS[String(data?.wallet_type || '').toUpperCase()] || 'saldo kamu';
-      setNotice({
+      showNotif({
         variant: 'success',
         title: 'Misi Berhasil Diklaim',
         description: `${mission.title} berhasil diklaim. ${formatRupiah(data?.reward_amount)} ditambahkan ke ${walletLabel} — saldo terbaru kamu ${formatRupiah(data?.new_balance)}.`,
@@ -516,7 +519,7 @@ export default function Misi() {
       setMissions(Array.isArray(payload?.results) ? payload.results : []);
       setMissionsError('');
     } catch (err) {
-      setNotice({
+      showNotif({
         variant: 'error',
         title: 'Klaim Misi Gagal',
         description: err?.message || 'Misi gagal diklaim. Silakan coba lagi.',
@@ -526,42 +529,43 @@ export default function Misi() {
     }
   };
 
-  /* "Salin" menyalin kode referral ke clipboard; label tombol berubah
+  /* "Salin" menyalin link referral ke clipboard; label tombol berubah
      sesaat sebagai umpan balik. */
   const handleCopyCode = async () => {
-    if (!referralCode) {
-      setNotice({ variant: 'error', title: 'Kode Belum Tersedia', description: 'Kode referral belum termuat. Muat ulang halaman ya.' });
+    if (!referralLink) {
+      showNotif({ title: 'Kode Belum Tersedia', description: 'Kode referral belum termuat. Muat ulang halaman ya.' });
       return;
     }
     try {
-      await navigator.clipboard.writeText(referralCode);
-      setNotice(null);
+      await navigator.clipboard.writeText(referralLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setNotice({ variant: 'error', title: 'Gagal Menyalin', description: 'Tidak dapat menyalin kode. Salin manual ya.' });
+      showNotif({ title: 'Gagal Menyalin', description: 'Tidak dapat menyalin link. Salin manual ya.' });
     }
   };
 
-  /* "Bagikan" memakai Web Share API kalau tersedia (umumnya mobile); kalau
-     tidak, teks referral disalin ke clipboard sebagai fallback. */
+  /* "Bagikan" memakai Web Share API kalau tersedia (umumnya mobile) dengan
+     link referral saja; kalau tidak, link disalin ke clipboard sebagai
+     fallback. */
   const handleShare = async () => {
-    const text = referralCode
-      ? `Gabung Jelajah Emas yuk! Pakai kode referral saya: ${referralCode}`
-      : 'Gabung Jelajah Emas yuk!';
+    if (!referralLink) {
+      showNotif({ title: 'Kode Belum Tersedia', description: 'Kode referral belum termuat. Muat ulang halaman ya.' });
+      return;
+    }
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Jelajah Emas', text });
+        await navigator.share({ title: 'Jelajah Emas', url: referralLink });
       } catch {
         /* Pengguna menutup share sheet — tidak ada aksi lanjutan. */
       }
       return;
     }
     try {
-      await navigator.clipboard.writeText(text);
-      setNotice({ variant: 'success', title: 'Teks Dibagikan', description: 'Teks ajakan disalin ke clipboard. Tempel di chat atau media sosial kamu.' });
+      await navigator.clipboard.writeText(referralLink);
+      showNotif({ variant: 'success', title: 'Link Disalin', description: 'Link referral disalin ke clipboard. Tempel di chat atau media sosial kamu.' });
     } catch {
-      setNotice({ variant: 'error', title: 'Gagal Membagikan', description: 'Tidak dapat membagikan kode. Salin manual ya.' });
+      showNotif({ title: 'Gagal Membagikan', description: 'Tidak dapat membagikan link. Salin manual ya.' });
     }
   };
 
@@ -588,7 +592,7 @@ export default function Misi() {
                         <div className="progress-fill" style={{ width: `${heroPercent}%` }} />
                       </div>
                       <p className="progress-text">
-                        {nextMission ? `${Number(nextMission.progress) || 0} dari ${nextMission.requirement} teman diundang` : 'Belum ada misi aktif'}
+                        {nextMission ? `${activeMembers} dari ${nextMission.requirement} teman bergabung` : 'Belum ada misi aktif'}
                       </p>
                     </div>
                   </div>
@@ -605,7 +609,7 @@ export default function Misi() {
                     <span className="stat-label">Bergabung</span>
                   </div>
                   <div className="stat-card">
-                    <span className="stat-value">{missions ? formatRupiah(claimedBonus) : '—'}</span>
+                    <span className="stat-value">{missions ? claimedBonus.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '—'}</span>
                     <span className="stat-label">Bonus Didapat</span>
                   </div>
                 </div>
@@ -652,11 +656,6 @@ export default function Misi() {
                 <div className="rewards-container">
                   <h2 className="section-title">Hadiah Tiap Ajakan</h2>
                   <div className="rewards-list">
-                    {notice && (
-                      <div className="notice-margin">
-                        <NotifCard variant={notice.variant} title={notice.title} description={notice.description} onClose={() => setNotice(null)} />
-                      </div>
-                    )}
                     {missionsError ? (
                       <div className="notice-margin">
                         <NotifCard variant="error" title="Gagal Memuat Misi" description={missionsError} />

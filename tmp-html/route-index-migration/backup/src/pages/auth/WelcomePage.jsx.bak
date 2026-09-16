@@ -1,0 +1,214 @@
+import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import img_1 from '../../assets/images/3d6fb697a044e75c7a6c789438a276b40b37b5b9.png';
+import img_2 from '../../assets/images/a2e642134a81c06da92ec2afc6d0074bf61bb78b.png';
+import img_3 from '../../assets/images/a.png';
+import img_4 from '../../assets/images/b.png';
+import img_5 from '../../assets/images/d35f294fb1a21fb0aa4f326dc1672ebf0f14686d.png';
+
+/* Page styles are kept inline in this file so the page is a single-file import. */
+const styles = `
+/* Scoped styles for WelcomePage — converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-welcome-page to isolate this page. */
+
+.page-welcome-page {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  background-size: cover;
+  background-position: center top;
+  background-attachment: fixed;
+  background-color: #f5f0eb;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-welcome-page, .page-welcome-page * {
+  box-sizing: border-box;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Hero */
+.page-welcome-page .hero-section {
+  max-width: 100%;
+  width: 100%;
+  margin: 0 auto;
+  padding-top: 191px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1 0 auto;
+}
+
+.page-welcome-page .hero-section .container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.page-welcome-page .hero-section .logo {
+  width: 205px;
+  height: 68px;
+  object-fit: contain;
+}
+
+.page-welcome-page .hero-section .subtitle {
+  margin-top: 0px;
+  margin-bottom: 15px;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 250px;
+}
+
+.page-welcome-page .hero-section .character {
+  width: 185px;
+  height: 223px;
+  object-fit: contain;
+  margin-bottom: 0;
+}
+
+.page-welcome-page .hero-section .button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0 24px;
+}
+
+/* CSS for section section:Buttons */
+.page-welcome-page .btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.page-welcome-page .btn:active {
+  opacity: 0.8;
+}
+
+.page-welcome-page .btn-primary {
+  background-color: #f1b04a;
+  color: #1a1410;
+}
+
+.page-welcome-page .btn-secondary {
+  background-color: #231b15;
+  color: #ffffff;
+}
+
+/* CSS for section section:Footer */
+.page-welcome-page .footer-section {
+  max-width: 100%;
+  width: 100%;
+  margin: 0 auto;
+  padding-top: 149px;
+  padding-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.page-welcome-page .footer-section .container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.page-welcome-page .footer-section .partner-logos {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.page-welcome-page .footer-section .partner-logos img {
+  height: 17px;
+  object-fit: contain;
+}
+
+.page-welcome-page .footer-section .footer-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.page-welcome-page .footer-section .footer-links a {
+  color: #514840;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.page-welcome-page .footer-section .footer-links a:hover {
+  text-decoration: underline;
+}
+
+.page-welcome-page .footer-section .footer-links .separator {
+  color: #a79c8f;
+  font-size: 12px;
+}
+
+.page-welcome-page .footer-section .copyright {
+  text-align: center;
+  color: #a79c8f;
+  font-size: 10px;
+  line-height: 1.5;
+  margin: 0;
+}
+`;
+
+export default function WelcomePage() {
+  const navigate = useNavigate();
+
+  return (
+    <div className="page-welcome-page" style={{ backgroundImage: `url(${img_5})` }}>
+      <style>{styles}</style>
+      <div>
+              <section id="section-hero" className="hero-section">
+                <div className="container">
+                  <img className="logo" src={img_1} alt="Jelajah Emas Logo" />
+                  <p className="subtitle">Saatnya memulai perjalanan emasmu,<br />peluang dan inspirasi dalam satu tempat.</p>
+                  <img className="character" src={img_2} alt="Mascot Character" />
+                  <div className="button-group">
+                    <button className="btn btn-primary" onClick={(e) => { e.preventDefault(); navigate('/auth/login'); }}>Masuk</button>
+                    <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/auth/register-01'); }}>Buat Akun</button>
+                  </div>
+                </div>
+              </section>
+              <section id="section-footer" className="footer-section">
+                <div className="container">
+                  <div className="partner-logos">
+                    <img src={img_3} alt="Partner Logo 1" />
+                    <img src={img_4} alt="Partner Logo 2" />
+                  </div>
+                  <div className="footer-links">
+                    <Link to="/support/kebijakan-privasi">Legal</Link>
+                    <span className="separator">•</span>
+                    <Link to="/landing">Tentang Kami</Link>
+                    <span className="separator">•</span>
+                    <Link to="/landing">Website Resmi</Link>
+                  </div>
+                  <p className="copyright">
+                    JelajahEmas dikelola oleh PT JELAJAH EMAS DIGITAL INDONESIA<br />
+                    AHU: AHU-A11995.AH.01.30 tahun 2026 • NPWP: 1000000011096252
+                  </p>
+                </div>
+              </section>
+            </div>
+
+    </div>
+  );
+}

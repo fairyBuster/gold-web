@@ -7,6 +7,8 @@ import img_6 from '../../assets/images/91d0ab97f9ac67690ef668b9d7be1822064ebf26.
 import img_7 from '../../assets/images/ea189c93af3cf445b247df84a4c0aac9334bc27d.png';
 import img_8 from '../../assets/images/26_530.svg';
 import img_9 from '../../assets/images/26_537.svg';
+/* Full-page background artwork (same asset as the login screen). */
+import img_10 from '../../assets/images/083535.png';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -19,8 +21,11 @@ const styles = `
   padding: 0;
   max-width: 100%;
   background-color: #fffbf4;
-  background-image: radial-gradient(circle at 0% 0%, rgba(255, 201, 60, 0.15) 0%, transparent 50%),
-                    radial-gradient(circle at 100% 0%, rgba(255, 159, 28, 0.1) 0%, transparent 50%);
+  /* Background artwork (assigned inline from the imported asset) is a
+     full-page image with glows anchored to the top/bottom — stretch it. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
   box-shadow: 0px 0px 20px rgba(0,0,0,0.1);
   min-height: 100vh;
   box-sizing: border-box;
@@ -267,7 +272,7 @@ const styles = `
 
 export default function TentangKami() {
   return (
-    <div className="page-tentang-kami">
+    <div className="page-tentang-kami" style={{ backgroundImage: `url(${img_10})` }}>
       <style>{styles}</style>
       <div>
               <section id="section-header">
@@ -284,7 +289,7 @@ export default function TentangKami() {
                     <img src={img_2} alt="JelajahEmas Logo" className="hero-logo" />
                     <div className="hero-title-group">
                       <h2 className="hero-title">JelajahEmas</h2>
-                      <p className="hero-subtitle">Platform investasi &amp; informasi emas</p>
+                      <p className="hero-subtitle">Dibawah naungan PT Jelajah Emas Digital Indonesia</p>
                     </div>
                   </div>
                   <div className="hero-description">
@@ -326,7 +331,7 @@ export default function TentangKami() {
                     <img src={img_3} alt="OJK Logo" className="card-logo ojk-logo" />
                     <div className="card-text">
                       <h4>Otoritas Jasa Keuangan</h4>
-                      <p>No. Izin: [Nomor Izin OJK]</p>
+                      {/* <p>No. Izin: [Nomor Izin OJK]</p> */}
                     </div>
                   </div>
                   <div className="legality-card">
@@ -352,13 +357,13 @@ export default function TentangKami() {
                     <div className="contact-icon">
                       <img src={img_8} alt="Email Icon" />
                     </div>
-                    <span className="contact-text"><strong>Email:</strong> cs@jelajahemas-domain.com</span>
+                    <span className="contact-text"><strong>Email:</strong> cs@jelajahemas.com</span>
                   </div>
                   <div className="contact-item">
-                    <div className="contact-icon">
+                    {/* <div className="contact-icon">
                       <img src={img_9} alt="Phone Icon" />
                     </div>
-                    <span className="contact-text"><strong>Telepon:</strong> (021) 000-0000</span>
+                    <span className="contact-text"><strong>Telepon:</strong> (021) 000-0000</span> */}
                   </div>
                 </div>
               </section>

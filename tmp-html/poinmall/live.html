@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>POINMALL-LIVE-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="pl-live-metrics">pending</pre>
+  <script type="module">
+    /* Live probe (TANPA stub fetch): saldo "Poin Kamu" dari API asli.
+       ?route=poinmall -> /index/rewards/poin-mall-01: hero .points-value
+       ?route=profil   -> /index/profil: baris kartu "Poin Kamu"
+       Keduanya dibandingkan dengan respons asli GET /api/roulette/points/
+       yang diambil probe lewat klien app (independen dari render). */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const route = new URLSearchParams(location.search).get('route') || 'poinmall';
+    metrics.route = route;
+
+    const session = await (await fetch('/e2e-token.json')).json();
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: session.access }));
+    window.sessionStorage.clear();
+    metrics.state.tokenUser = session.user;
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitUntil = async (predicate, timeout = 20000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        if (predicate()) return true;
+        await sleep(100);
+      }
+      return false;
+    };
+
+    /* Ekspektasi independen: respons asli GET /api/roulette/points/. */
+    const { getRoulettePoints } = await import('/src/lib/rouletteApi.js');
+    const pointsApi = await getRoulettePoints();
+    const ticketsText = (Number(pointsApi?.tickets) || 0).toLocaleString('id-ID');
+    metrics.state.pointsApi = pointsApi;
+
+    if (route === 'profil') {
+      /* Kartu Profil menampilkan "<tickets> Poin". */
+      metrics.state.expected = `${ticketsText} Poin`;
+      history.replaceState(null, '', '/index/profil');
+      await import('/src/main.jsx');
+      await waitUntil(() => document.querySelector('.page-profil .balance-card'));
+
+      const poinItem = () =>
+        [...document.querySelectorAll('.page-profil .balance-item')].find(
+          (el) => el.querySelector('.item-label')?.textContent.trim() === 'Poin Kamu',
+        );
+      await waitUntil(() => {
+        const item = poinItem();
+        const value = item?.querySelector('.item-value')?.textContent.trim() || '';
+        return Boolean(item) && !item.querySelector('.skeleton-bar') && value !== '';
+      });
+
+      const item = poinItem();
+      metrics.rendered = {
+        path: window.location.pathname,
+        value: item?.querySelector('.item-value')?.textContent.trim() ?? null,
+        skeleton: !!item?.querySelector('.skeleton-bar'),
+      };
+      metrics.allPassed = metrics.rendered.path === '/index/profil'
+        && metrics.rendered.skeleton === false
+        && metrics.rendered.value === metrics.state.expected
+        && metrics.errors.length === 0;
+    } else {
+      /* Hero PoinMall menampilkan angka tickets tanpa suffix. */
+      metrics.state.expected = ticketsText;
+      history.replaceState(null, '', '/index/rewards/poin-mall-01');
+      await import('/src/main.jsx');
+      await waitUntil(() => document.querySelector('.page-poin-mall-01 .hero-card'));
+      await waitUntil(() => (document.querySelector('.page-poin-mall-01 .points-value')?.textContent.trim() || '') !== '');
+
+      metrics.rendered = {
+        path: window.location.pathname,
+        hero: document.querySelector('.page-poin-mall-01 .points-value')?.textContent.trim() ?? null,
+      };
+      metrics.allPassed = metrics.rendered.path === '/index/rewards/poin-mall-01'
+        && metrics.rendered.hero === metrics.state.expected
+        && metrics.errors.length === 0;
+    }
+
+    document.getElementById('pl-live-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'POINMALL-LIVE-DONE';
+  </script>
+</body>
+</html>

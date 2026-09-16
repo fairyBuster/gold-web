@@ -1,0 +1,700 @@
+﻿<!DOCTYPE html>
+<html lang="id"><head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+    <script type="module" src="/@vite/client"></script>
+
+    <meta charset="UTF-8">
+    <title>PROGRESSIVE-DONE feed {"feedSkeleton":60,"feedFirstCard":360,"feedTotal10":360,"feedTotal20":1560,"feedTotal30":3960}</title>
+    <style>
+      html { background: #f0e9df; }
+      #progressive-metrics { font: 12px/1.5 monospace; white-space: pre-wrap; }
+    </style>
+  <style type="text/css" data-vite-dev-id="D:/webbaru/src/index.css">/* ============================================================
+
+   App shell styles shared by all converted pages.
+
+   Global resets below match the originals found in every
+
+   global.css, so individual page CSS files only need to carry
+
+   their page-specific (already scoped) rules.
+
+   ============================================================ */
+
+
+
+* {
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0;
+
+  -webkit-tap-highlight-color: transparent;
+
+}
+
+
+
+html,
+
+body,
+
+#root {
+
+  width: 100%;
+
+  min-height: 100vh;
+
+  margin: 0;
+
+  padding: 0;
+
+}
+
+
+
+/* Each converted page renders a single wrapper div below its page root
+
+   (e.g. #root > .page-x > div). The original mobile mockups sized that
+
+   wrapper by its content, which produced narrow centered columns on
+
+   desktop; force it to span the full width so pages have no side gaps. */
+
+#root > div > div {
+
+  width: 100%;
+
+}
+
+
+
+body {
+
+  font-family: 'Inter', sans-serif;
+
+  background-color: #f0e9df;
+
+  /* App-wide background image ΓÇö every page shows it through the
+
+     transparency rule below. */
+
+  background-image: url('/src/assets/images/background.jpg');
+
+  background-size: cover;
+
+  background-position: center top;
+
+  background-repeat: no-repeat;
+
+  background-attachment: fixed;
+
+  color: #1a1410;
+
+  min-height: 100vh;
+
+}
+
+
+
+/* Page wrappers paint their own opaque canvas; make them transparent so
+
+   the shared background image is visible on all pages. */
+
+#root > [class^="page-"] {
+
+  background-color: transparent;
+
+}
+
+
+
+a {
+
+  text-decoration: none;
+
+  color: inherit;
+
+}
+
+
+
+button {
+
+  border: none;
+
+  background: none;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+}
+
+
+
+input,
+
+textarea,
+
+select {
+
+  font-family: inherit;
+
+}
+
+
+
+/* ============================================================
+
+   Screen directory (route "/")
+
+   ============================================================ */
+
+
+
+.screen-index {
+
+  max-width: 1080px;
+
+  margin: 0 auto;
+
+  padding: 48px 24px 80px;
+
+}
+
+
+
+.screen-index__header {
+
+  text-align: center;
+
+  margin-bottom: 36px;
+
+}
+
+
+
+.screen-index__title {
+
+  font-size: 32px;
+
+  font-weight: 700;
+
+  color: #1a1410;
+
+  margin-bottom: 8px;
+
+}
+
+
+
+.screen-index__title span {
+
+  color: #e8790c;
+
+}
+
+
+
+.screen-index__subtitle {
+
+  font-size: 14px;
+
+  color: #8a7d6d;
+
+  margin-bottom: 24px;
+
+}
+
+
+
+.screen-index__search {
+
+  width: 100%;
+
+  max-width: 420px;
+
+  padding: 13px 18px;
+
+  font-size: 14px;
+
+  border: 1px solid #e2d8c8;
+
+  border-radius: 12px;
+
+  background-color: #fffbf4;
+
+  color: #1a1410;
+
+  outline: none;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__search:focus {
+
+  border-color: #e8790c;
+
+  box-shadow: 0 0 0 3px rgba(232, 121, 12, 0.15);
+
+}
+
+
+
+.screen-index__grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+
+  gap: 12px;
+
+}
+
+
+
+.screen-index__card {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  padding: 16px 18px;
+
+  background-color: #fffbf4;
+
+  border: 1px solid #e9dfd1;
+
+  border-radius: 14px;
+
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__card:hover {
+
+  border-color: #e8790c;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 10px 24px rgba(26, 20, 16, 0.08);
+
+}
+
+
+
+.screen-index__card-label {
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  color: #1a1410;
+
+}
+
+
+
+.screen-index__card-path {
+
+  font-size: 12px;
+
+  color: #b3a795;
+
+  font-family: 'SFMono-Regular', Consolas, monospace;
+
+}
+
+
+
+.screen-index__empty {
+
+  grid-column: 1 / -1;
+
+  text-align: center;
+
+  padding: 40px 0;
+
+  color: #b3a795;
+
+  font-size: 14px;
+
+}
+
+
+
+.screen-index__group {
+
+  margin-bottom: 32px;
+
+}
+
+
+
+.screen-index__group-title {
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  color: #8a7d6d;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+
+  margin-bottom: 12px;
+
+}
+
+
+
+/* ============================================================
+
+   Desktop layout (ΓëÑ768px) for all app screens.
+
+   Below 768px every page keeps its original mobile layout as-is.
+
+   From 768px up the page content renders as a centered app column
+
+   while backgrounds stay full-bleed on the page root, so no
+
+   phone-frame edges or side gaps appear. The landing page has its
+
+   own desktop layout (see LandingPagePerusahaan.jsx).
+
+   ============================================================ */
+
+
+
+@media (min-width: 768px) {
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > div,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > main,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > section {
+
+    max-width: 480px;
+
+    margin-left: auto;
+
+    margin-right: auto;
+
+    box-shadow: none;
+
+  }
+
+}
+
+
+
+/* Inner full-page containers keep a mobile drop shadow; drop it on desktop
+
+   too (they sit below the capped element, so the rule above does not reach
+
+   them). Selectors carry the #root prefix so they outrank the per-page
+
+   \3c style> blocks injected later in the document. */
+
+@media (min-width: 768px) {
+
+  #root .page-register-01 .app-container,
+
+  #root .page-register-04 .mobile-container,
+
+  #root .page-notifikasi-login .screen-container,
+
+  #root .page-notif-screen .screen-container,
+
+  #root .page-kartu-bank .mobile-app-container,
+
+  #root .page-beri-rating section:first-of-type,
+
+  #root .page-beri-rating section:last-of-type,
+
+  #root .page-livechat .input-container {
+
+    box-shadow: none;
+
+  }
+
+}
+
+</style></head>
+  <body>
+    <div id="root"><div class="page-riwayat-penarikan"><style>
+/* Scoped styles for RiwayatPenarikan ΓÇö converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-riwayat-penarikan to isolate this page. */
+
+.page-riwayat-penarikan {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  /* Opaque canvas on the root so it stays full-bleed on desktop. */
+  background-image: linear-gradient(#fffbf4, #fffbf4);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-riwayat-penarikan, .page-riwayat-penarikan * {
+  box-sizing: border-box;
+}
+
+.page-riwayat-penarikan .app-section {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Header */
+.page-riwayat-penarikan #section-header {
+  background-image: 
+    radial-gradient(circle at 80% -20%, rgba(255, 201, 60, 0.3) 0%, transparent 60%),
+    radial-gradient(circle at 110% 20%, rgba(255, 255, 255, 0.6) 0%, transparent 50%);
+}
+.page-riwayat-penarikan .header-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 20px 16px 20px;
+}
+.page-riwayat-penarikan .back-btn {
+  width: 36px;
+  height: 36px;
+  background-color: #f6f1e9;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+.page-riwayat-penarikan .back-btn:hover {
+  background-color: #ebe4d8;
+}
+.page-riwayat-penarikan .page-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1410;
+  margin: 0;
+}
+
+/* CSS for section section:Summary */
+.page-riwayat-penarikan .summary-content {
+  padding: 0 20px 20px 20px;
+}
+.page-riwayat-penarikan .summary-card {
+  position: relative;
+  background: radial-gradient(circle at 41.6% 43.7%, #241c16 0%, #1a1410 55%, #120d09 100%);
+  border-radius: 20px;
+  padding: 18px 20px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  min-height: 102px;
+}
+.page-riwayat-penarikan .summary-text {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.page-riwayat-penarikan .summary-label {
+  color: rgba(255, 249, 242, 0.55);
+  font-size: 12px;
+  font-weight: 400;
+}
+.page-riwayat-penarikan .summary-amount {
+  color: #fff9f2;
+  font-size: 22px;
+  font-weight: 700;
+  margin: 2px 0;
+  letter-spacing: -0.5px;
+}
+.page-riwayat-penarikan .summary-count {
+  color: rgba(255, 249, 242, 0.5);
+  font-size: 12px;
+  font-weight: 400;
+}
+.page-riwayat-penarikan .summary-bg-img {
+  position: absolute;
+  right: -50px;
+  top: -50px;
+  width: 227px;
+  height: 227px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* CSS for section section:History */
+.page-riwayat-penarikan .history-content {
+  padding: 0 20px 40px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: calc(100vh - 200px);
+}
+.page-riwayat-penarikan .history-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.page-riwayat-penarikan .date-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: #514840;
+  margin: 0;
+  padding-left: 2px;
+}
+.page-riwayat-penarikan .transaction-card {
+  background-color: #ffffff;
+  border: 1px solid #efe7dc;
+  border-radius: 16px;
+  padding: 13px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+  transition: background-color 0.2s ease;
+}
+.page-riwayat-penarikan .transaction-card:active {
+  background-color: #f6f1e9;
+}
+.page-riwayat-penarikan .tx-icon {
+  width: 43px;
+  height: 43px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.page-riwayat-penarikan .tx-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.page-riwayat-penarikan .tx-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1410;
+}
+.page-riwayat-penarikan .tx-desc {
+  font-size: 11px;
+  line-height: 1.4;
+  color: #a79c8f;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.page-riwayat-penarikan .tx-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.page-riwayat-penarikan .tx-amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1410;
+}
+.page-riwayat-penarikan .tx-status {
+  font-size: 12px;
+  font-weight: 500;
+}
+.page-riwayat-penarikan .status-pending {
+  color: #e8790c;
+}
+.page-riwayat-penarikan .status-success {
+  color: #207dff;
+}
+.page-riwayat-penarikan .status-failed {
+  color: #e24c4c;
+}
+</style><div><section id="section-header" class="app-section"><header class="header-content"><a href="#" class="back-btn" aria-label="Go back"><img src="data:image/svg+xml,%3csvg%20width='16'%20height='16'%20viewBox='0%200%2016%2016'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M9.99992%203.33325L5.33325%207.99992L9.99992%2012.6666'%20stroke='%231A1410'%20stroke-width='1.33333'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt=""></a><h1 class="page-title">Riwayat Penarikan</h1></header></section><section id="section-summary" class="app-section"><div class="summary-content"><div class="summary-card"><div class="summary-text"><span class="summary-label">Total Penarikan Bulan Ini</span><strong class="summary-amount">Rp3.465.000</strong><span class="summary-count">30 transaksi</span></div><img src="/src/assets/images/915ddfcd2308a67f93cb52100b8c074abaa5928b.png" alt="" class="summary-bg-img" aria-hidden="true"></div></div></section><section id="section-history" class="app-section"><div class="history-content"><div class="history-group"><h2 class="date-header">Kemarin</h2><button type="button" class="transaction-card"><img src="/src/assets/images/26f0f85c3f131cbe6775a26cf4afe79775404786.png" alt="Icon" class="tx-icon"><div class="tx-details"><div class="tx-title">Tarik Dana</div><div class="tx-desc">10:00 ΓÇó BCA ΓÇóΓÇó6789
+Nominal sebelum potongan: Rp109.000
+Biaya: Rp5.000
+Nominal sebenarnya: Rp104.000</div></div><div class="tx-meta"><div class="tx-amount">-Rp109.000</div><div class="tx-status status-success">Sukses</div></div></button><button type="button" class="transaction-card"><img src="/src/assets/images/26f0f85c3f131cbe6775a26cf4afe79775404786.png" alt="Icon" class="tx-icon"><div class="tx-details"><div class="tx-title">Tarik Dana</div><div class="tx-desc">10:00 ΓÇó BCA ΓÇóΓÇó6788
+Nominal sebelum potongan: Rp118.000
+Biaya: Rp5.000
+Nominal sebenarnya: Rp113.000</div></div><div class="tx-meta"><div class="tx-amount">-Rp118.000</div><div class="tx-status status-success">Sukses</div></div></button><button type="button" class="transaction-card"><img src="/src/assets/images/26f0f85c3f131cbe6775a26cf4afe79775404786.png" alt="Icon" class="tx-icon"><div class="tx-details"><div class="tx-title">Tarik Dana</div><div class="tx-desc">10:00 ΓÇó BCA ΓÇóΓÇó6787
+Nominal sebelum potongan: Rp127.000
+Biaya: Rp5.000
+Nominal sebenarnya: Rp122.000</div></div><div class="tx-meta"><div class="tx-amount">-Rp127.000</div><div class="tx-status status-success">Sukses</div></div></button></div><div class="history-group"><h2 class="date-header">12 September 2026</h2><button type="button" class="transaction-card"><img src="/src/assets/images/26f0f85c3f131cbe6775a26cf4afe79775404786.png" alt="Icon" class="tx-icon"><div class="tx-details"><div class="tx-title">Tarik Dana</div><div class="tx-desc">10:00 ΓÇó BCA ΓÇóΓÇó6781
+Nominal sebelum potongan: Rp101.000
+Biaya: Rp5.000
+Nominal sebenarnya: Rp96.000</div></div><div class="tx-meta"><div class="tx-amount">-Rp101.000</div><div class="tx-status status-pending">Diproses</div></div></button><button type="button" class="transaction-card"><img src="/src/assets/images/26f0f85c3f131cbe6775a26cf4afe79775404786.png" alt="Icon" class="tx-icon"><div class="tx-details"><div class="tx-title">Tarik Dana</div><div class="tx-desc">10:00 ΓÇó BCA ΓÇóΓÇó7810
+Nominal sebelum potongan: Rp110.000
+Biaya: Rp5.000
+Nominal sebenarnya: Rp105.000</div></div><div class="tx-meta"><div class="tx-amount">-Rp110.000</div><div class="tx-status status-pending">Diproses</div></div></button><button type="button" class="transaction-card"><img src="/src/assets/images/26f0f85c3f131cbe6775a26cf4afe79775404786.png" alt="Icon" class="tx-icon"><div class="tx-details"><div class="tx-title">Tarik Dana</div><div class="tx-desc">10:00 ΓÇó BCA ΓÇóΓÇó6789
+Nominal sebelum potongan: Rp119.000
+Biaya: Rp5.000
+Nominal sebenarnya: Rp114.000</div></div><div class="tx-meta"><div class="tx-amount">-Rp119.000</div><div class="tx-status status-pending">Diproses</div></div></button><button type="button" class="transaction-card"><img src="/src/assets/images/26f0f85c3f131cbe6775a26cf4afe79775404786.png" alt="Icon" class="tx-icon"><div class="tx-details"><div class="tx-title">Tarik Dana</div><div class="tx-desc">10:00 ΓÇó BCA ΓÇóΓÇó6788
+Nominal sebelum potongan: Rp128.000
+Biaya: Rp5.000
+Nominal sebenarnya: Rp123.000</div></div><div class="tx-meta"><div class="tx-amount">-Rp128.000</div><div class="tx-status status-pending">Diproses</div></div></button></div><div class="history-group"><h2 class="date-header">11 September 2026</h2><button type="button" class="transaction-card"><img src="/src/assets/images/26f0f85c3f131cbe6775a26cf4afe79775404786.png" alt="Icon" class="tx-icon"><div class="tx-details"><div class="tx-title">Tarik Dana</div><div class="tx-desc">10:00 ΓÇó BCA ΓÇóΓÇó6782
+Nominal sebelum potongan: Rp102.000
+Biaya: Rp5.000
+Nominal sebenarnya: Rp97.000</div></div><div class="tx-meta"><div class="tx-amount">-Rp102.000</div><div class="tx-status status-failed">Gagal</div></div></button></div><style>
+.list-pagination {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.list-pagination .list-pagination-info {
+  color: #a79c8f;
+  font-size: 12px;
+  margin: 0;
+}
+
+.list-pagination .load-more-button {
+  background-color: #ffffff;
+  color: #1a1410;
+  border: 1px solid #efe7dc;
+  border-radius: 999px;
+  padding: 10px 24px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0px 2px 8px 0px rgba(26, 20, 16, 0.06);
+  transition: background-color 0.2s ease;
+}
+
+.list-pagination .load-more-button:hover {
+  background-color: #f6f1e9;
+}
+</style><div class="list-pagination"><p class="list-pagination-info">Menampilkan 8 dari 30 transaksi</p><button type="button" class="load-more-button">Muat Lebih Banyak</button></div></div></section></div></div></div>
+    <pre id="progressive-metrics">METRICS feed {"feedSkeleton":60,"feedFirstCard":360,"feedTotal10":360,"feedTotal20":1560,"feedTotal30":3960}</pre>
+    <script type="module" src="/tmp-html/progressive/index.html?html-proxy&amp;index=0.js"></script>
+  
+
+</body></html>

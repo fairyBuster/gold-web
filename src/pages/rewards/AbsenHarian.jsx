@@ -1,15 +1,22 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+/* Data: GET /api/attendance/logs/calendar/ drives the streak card and the
+   monthly grid, and the Absen Sekarang button posts to
+   POST /api/attendance/logs/claim/. The calendar follows the server date
+   (WIB) and the month arrows only browse other months — attendance can
+   never be claimed for another date. */
+import { getAttendanceCalendar, claimAttendance } from '../../lib/attendanceApi.js';
+import { formatRupiah } from '../../lib/transactionFormat.js';
+/* Action notifications (claim success/failure) open the shared /notif screen;
+   the calendar load error keeps the inline NotifCard. */
+import NotifCard from '../../components/NotifCard.jsx';
+import ListState from '../../components/ListState.jsx';
+import { useShowNotif } from '../../lib/useShowNotif.js';
 import img_1 from '../../assets/images/102_1724.svg';
 import img_2 from '../../assets/images/f8f1a5b57a11f48b4845177ed85bf0e0ce6512a1.png';
 import img_3 from '../../assets/images/102_1732.svg';
 import img_4 from '../../assets/images/102_1737.svg';
-import img_5 from '../../assets/images/102_1782.svg';
-import img_6 from '../../assets/images/102_1782.svg';
-import img_7 from '../../assets/images/102_1782.svg';
-import img_8 from '../../assets/images/102_1782.svg';
-import img_9 from '../../assets/images/102_1782.svg';
-import img_10 from '../../assets/images/102_1782.svg';
-import img_11 from '../../assets/images/102_1782.svg';
-import img_12 from '../../assets/images/102_1782.svg';
+import img_check from '../../assets/images/102_1782.svg';
+import img_missed from '../../assets/images/absen-terlewat.svg';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -182,6 +189,28 @@ const styles = `
     height: 10px;
   }
 
+  /* Terlewat (tidak absen) — mirror of day-completed in red. */
+  .page-absen-harian .day-missed {
+    background-color: rgba(226, 76, 76, 0.1);
+    border: 1px solid rgba(226, 76, 76, 0.3);
+  }
+  .page-absen-harian .day-missed .day-text {
+    color: #e24c4c;
+  }
+  .page-absen-harian .miss-icon-wrapper {
+    width: 14px;
+    height: 14px;
+    background-color: #e24c4c;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .page-absen-harian .miss-icon-wrapper img {
+    width: 10px;
+    height: 10px;
+  }
+
   .page-absen-harian .day-current {
     background-color: rgba(255, 159, 28, 0.1);
     border: 1px solid #e8790c;
@@ -209,6 +238,9 @@ const styles = `
     background-color: #efe7dc;
     border-radius: 2px;
   }
+  .page-absen-harian .notice-margin {
+    margin-bottom: 12px;
+  }
 
 /* CSS for section section:BottomAction */
 .page-absen-harian .bottom-action-wrapper {
@@ -234,9 +266,123 @@ const styles = `
   .page-absen-harian .btn-primary:active {
     opacity: 0.8;
   }
+  .page-absen-harian .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #f1b04a;
+  }
 `;
 
+/* claim response balance_type -> display label (same wording as the
+   fund-source labels across the app). */
+const BALANCE_LABELS = {
+  balance: 'Saldo JelajahEmas',
+  balance_deposit: 'Saldo Deposit',
+};
+
+/* Day state -> cell modifier; states without a status (future days and
+   dates before the user's first attendance) reuse the neutral future look. */
+const CELL_CLASS = {
+  completed: 'day-completed',
+  current: 'day-current',
+  missed: 'day-missed',
+};
+
 export default function AbsenHarian() {
+  const [calendar, setCalendar] = useState(null);
+  const [calendarError, setCalendarError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [claiming, setClaiming] = useState(false);
+  const showNotif = useShowNotif();
+  /* Guards against out-of-order month responses when arrows are clicked fast. */
+  const requestSeq = useRef(0);
+
+  /* Tanpa year/month backend memakai bulan berjalan (WIB); parameter hanya
+     memilih bulan yang dilihat, tidak mengubah data absen. */
+  const loadCalendar = useCallback(async (year, month) => {
+    const seq = ++requestSeq.current;
+    setLoading(true);
+    try {
+      const data = await getAttendanceCalendar(year && month ? { year, month } : undefined);
+      if (seq !== requestSeq.current) return;
+      setCalendar(data);
+      setCalendarError('');
+    } catch (err) {
+      if (seq !== requestSeq.current) return;
+      setCalendarError(err?.message || 'Gagal memuat kalender absen.');
+    } finally {
+      if (seq === requestSeq.current) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCalendar();
+  }, [loadCalendar]);
+
+  /* Panah bulan hanya mengganti bulan yang dilihat (bisa lintas tahun). */
+  const shiftMonth = (delta) => {
+    if (!calendar) return;
+    const shifted = (calendar.month - 1) + delta;
+    const year = calendar.year + Math.floor(shifted / 12);
+    const month = ((shifted % 12) + 12) % 12 + 1;
+    loadCalendar(year, month);
+  };
+
+  /* Klaim: POST /api/attendance/logs/claim/ — tanggal ditentukan server,
+     sekali per hari. Sukses menyegarkan kalender lalu membuka /notif;
+     kegagalan (400/401) juga tampil lewat /notif. */
+  const handleClaim = async () => {
+    if (claiming || !calendar?.can_claim_today) return;
+    setClaiming(true);
+    try {
+      const data = await claimAttendance();
+      await loadCalendar(calendar.year, calendar.month);
+      const walletLabel = BALANCE_LABELS[String(data?.balance_type || '').toLowerCase()] || 'saldo kamu';
+      showNotif({
+        variant: 'success',
+        title: 'Absen Berhasil',
+        description: `Absen hari ini tercatat dengan streak ${Number(data?.streak) || 0} hari. ${formatRupiah(data?.claimed_amount)} ditambahkan ke ${walletLabel} — saldo terbaru kamu ${formatRupiah(data?.balance_after)}.`,
+      });
+    } catch (err) {
+      showNotif({
+        variant: 'error',
+        title: 'Absen Gagal',
+        description: err?.message || 'Absen gagal dicatat. Silakan coba lagi.',
+      });
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  /* Sel grid: hijau ✓ sudah absen, merah terlewat, oranye hari ini (belum
+     absen), abu-abu belum tersedia (setelah hari ini / sebelum absen
+     pertama). */
+  const cells = [];
+  if (calendar) {
+    const attended = new Set(calendar.attended_dates || []);
+    const missed = new Set(calendar.missed_dates || []);
+    const today = String(calendar.today || '');
+    const lead = (new Date(calendar.year, calendar.month - 1, 1).getDay() + 6) % 7;
+    const total = new Date(calendar.year, calendar.month, 0).getDate();
+    for (let i = 0; i < lead; i += 1) cells.push(null);
+    for (let day = 1; day <= total; day += 1) {
+      const iso = `${calendar.year}-${String(calendar.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      let state = 'plain';
+      if (attended.has(iso)) state = 'completed';
+      else if (iso === today) state = 'current';
+      else if (missed.has(iso)) state = 'missed';
+      else if (iso > today) state = 'future';
+      cells.push({ day, state });
+    }
+  }
+
+  const monthLabel = calendar
+    ? new Date(calendar.year, calendar.month - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+    : '';
+  const streak = Number(calendar?.streak) || 0;
+  const hasClaimed = Boolean(calendar?.has_claimed_today);
+  const canClaim = Boolean(calendar?.can_claim_today);
+
   return (
     <div className="page-absen-harian">
       <style>{styles}</style>
@@ -252,17 +398,17 @@ export default function AbsenHarian() {
               <section id="section-streak-card" className="streak-card-wrapper">
                 <div className="streak-card">
                   <img src={img_2} alt="Streak Icon" className="streak-icon" />
-                  <h2 className="streak-title">4 Hari Berturut-turut</h2>
-                  <p className="streak-subtitle">Lorem ipsum dolor sit amet, jangan putus streak kamu!</p>
+                  <h2 className="streak-title">{calendar ? `${streak} Hari Berturut-turut` : '—'}</h2>
+                  <p className="streak-subtitle">Jangan putus streak kamu, rajin absen setiap hari ya!</p>
                 </div>
               </section>
               <section id="section-calendar" className="calendar-section">
                 <div className="calendar-header">
-                  <button className="month-nav-btn" aria-label="Previous Month">
+                  <button className="month-nav-btn" aria-label="Previous Month" onClick={() => shiftMonth(-1)}>
                     <img src={img_3} alt="" />
                   </button>
-                  <span className="current-month">September 2026</span>
-                  <button className="month-nav-btn" aria-label="Next Month">
+                  <span className="current-month">{monthLabel}</span>
+                  <button className="month-nav-btn" aria-label="Next Month" onClick={() => shiftMonth(1)}>
                     <img src={img_4} alt="" />
                   </button>
                 </div>
@@ -275,42 +421,37 @@ export default function AbsenHarian() {
                   <div className="weekday">Sab</div>
                   <div className="weekday">Min</div>
                 </div>
-                <div className="calendar-grid">
-                  <div className="day-cell empty" />
-                  <div className="day-cell day-completed"><span className="day-text">1</span><div className="check-icon-wrapper"><img src={img_5} alt="Completed" /></div></div>
-                  <div className="day-cell day-completed"><span className="day-text">2</span><div className="check-icon-wrapper"><img src={img_6} alt="Completed" /></div></div>
-                  <div className="day-cell day-completed"><span className="day-text">3</span><div className="check-icon-wrapper"><img src={img_7} alt="Completed" /></div></div>
-                  <div className="day-cell day-completed"><span className="day-text">4</span><div className="check-icon-wrapper"><img src={img_8} alt="Completed" /></div></div>
-                  <div className="day-cell day-completed"><span className="day-text">5</span><div className="check-icon-wrapper"><img src={img_9} alt="Completed" /></div></div>
-                  <div className="day-cell day-completed"><span className="day-text">6</span><div className="check-icon-wrapper"><img src={img_10} alt="Completed" /></div></div>
-                  <div className="day-cell day-completed"><span className="day-text">7</span><div className="check-icon-wrapper"><img src={img_11} alt="Completed" /></div></div>
-                  <div className="day-cell day-completed"><span className="day-text">8</span><div className="check-icon-wrapper"><img src={img_12} alt="Completed" /></div></div>
-                  <div className="day-cell day-current"><span className="day-text">9</span><div className="dot-current" /></div>
-                  <div className="day-cell day-future"><span className="day-text">10</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">11</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">12</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">13</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">14</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">15</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">16</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">17</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">18</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">19</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">20</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">21</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">22</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">23</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">24</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">25</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">26</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">27</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">28</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">29</span><div className="dot-future" /></div>
-                  <div className="day-cell day-future"><span className="day-text">30</span><div className="dot-future" /></div>
-                </div>
+                {calendarError ? (
+                  <div className="notice-margin">
+                    <NotifCard variant="error" title="Gagal Memuat Kalender Absen" description={calendarError} />
+                  </div>
+                ) : null}
+                {!calendar ? (
+                  loading ? <ListState text="Memuat kalender absen…" /> : null
+                ) : (
+                  <div className="calendar-grid">
+                    {cells.map((cell, index) => cell === null ? (
+                      <div key={`empty-${index}`} className="day-cell empty" />
+                    ) : (
+                      <div key={cell.day} className={`day-cell ${CELL_CLASS[cell.state] || 'day-future'}`}>
+                        <span className="day-text">{cell.day}</span>
+                        {cell.state === 'completed' ? (
+                          <div className="check-icon-wrapper"><img src={img_check} alt="Sudah absen" /></div>
+                        ) : null}
+                        {cell.state === 'missed' ? (
+                          <div className="miss-icon-wrapper"><img src={img_missed} alt="Terlewat" /></div>
+                        ) : null}
+                        {cell.state === 'current' ? <div className="dot-current" /> : null}
+                        {cell.state === 'future' || cell.state === 'plain' ? <div className="dot-future" /> : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </section>
               <section id="section-bottom-action" className="bottom-action-wrapper">
-                <button className="btn-primary">Absen Sekarang</button>
+                <button className="btn-primary" disabled={!canClaim || claiming} onClick={handleClaim}>
+                  {claiming ? 'Memproses...' : hasClaimed ? 'Sudah Absen Hari Ini' : 'Absen Sekarang'}
+                </button>
               </section>
             </div>
 

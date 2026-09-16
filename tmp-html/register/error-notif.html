@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>REGISTER-ERROR-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="register-error-metrics">pending</pre>
+  <script type="module">
+    /* E2E for the register-03 error notif: backend error (salt-encoded, sama
+       seperti server) hanya memilih teks FE — yang tampil selalu kalimat
+       buatan FE, bukan kutipan bahasa API.
+       A — 400 {email, phone} -> 2 salinan FE, satu baris per field, dan
+           TIDAK memuat teks mentah backend (noBackendQuote).
+       B — 400 {referral_code: 'Invalid referral code.'} -> salinan FE.
+       C — 400 limit harian -> salinan FE dengan angka limit tetap terbawa.
+       D — 429 {detail} -> salinan FE throttle.
+       E — fetch gagal (offline) -> salinan jaringan dari apiClient. */
+    const metrics = { errors: [], cases: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+    const encodeSalted = (obj) => {
+      const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+      return { data: [...(base64 + SALT)].reverse().join('') };
+    };
+
+    let nextResponder = () => { throw new TypeError('network down'); };
+    window.fetch = async (url) => {
+      if (String(url).includes('/api/auth/register/')) return nextResponder();
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    };
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, timeout = 10000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const value = fn();
+        if (value) return value;
+        await sleep(50);
+      }
+      return null;
+    };
+    const descEl = () => document.querySelector('.page-register-03 .notif-card .notification-desc');
+    const descText = () => descEl()?.textContent || '';
+    const titleText = () => document.querySelector('.page-register-03 .notif-card .notification-title')?.textContent || '';
+    const retry = async (expected) => {
+      document.querySelector('.page-register-03 .btn-primary')?.click();
+      await sleep(200);
+      await waitFor(() => descText() === expected);
+    };
+
+    /* Suntik data wizard dulu supaya guard step 3 tidak melempar ke register-01. */
+    const flow = await import('/src/lib/registerFlow.js');
+    flow.save({
+      fullName: 'Budi Santoso',
+      email: 'budi@example.com',
+      phone: '628123456789',
+      referralCode: 'REF123',
+      password: 'rahasia123',
+      password2: 'rahasia123',
+    });
+
+    history.replaceState(null, '', '/index/auth/register-03');
+    await import('/src/main.jsx');
+
+    /* ---------- A: 400 multi-field (email + phone sudah terdaftar) ---------- */
+    const BACKEND_EMAIL = 'User dengan email telah ada.';
+    const BACKEND_PHONE = 'User dengan phone telah ada.';
+    const COPY_EMAIL = 'Email ini sudah terdaftar. Pakai email lain, atau langsung masuk ya.';
+    const COPY_PHONE = 'Nomor ponsel ini sudah terdaftar. Pakai nomor lain, atau langsung masuk ya.';
+    nextResponder = () => new Response(JSON.stringify(encodeSalted({
+      email: [BACKEND_EMAIL],
+      phone: [BACKEND_PHONE],
+    })), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    await waitFor(() => descText().includes(COPY_EMAIL));
+    const descA = descText();
+    metrics.cases.multi400 = {
+      title: titleText(),
+      desc: descA,
+      lines: descA.split('\n'),
+      whiteSpace: descEl() ? getComputedStyle(descEl()).whiteSpace : null,
+      noBackendQuote: !descA.includes(BACKEND_EMAIL) && !descA.includes(BACKEND_PHONE),
+      passed:
+        descA === `${COPY_EMAIL}\n${COPY_PHONE}` &&
+        titleText() === 'Pendaftaran Gagal' &&
+        getComputedStyle(descEl()).whiteSpace === 'pre-line' &&
+        !descA.includes('User dengan'),
+    };
+
+    /* ---------- B: referral tidak ditemukan ---------- */
+    const COPY_REFERRAL = 'Kode referral tidak ditemukan. Periksa lagi penulisannya ya.';
+    nextResponder = () => new Response(JSON.stringify(encodeSalted({
+      referral_code: ['Invalid referral code.'],
+    })), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    await retry(COPY_REFERRAL);
+    metrics.cases.referralInvalid = {
+      desc: descText(),
+      noBackendQuote: !descText().includes('Invalid referral code.'),
+      passed: descText() === COPY_REFERRAL,
+    };
+
+    /* ---------- C: limit undang harian (angka limit terbawa) ---------- */
+    const COPY_LIMIT = 'Kuota undang harian sudah habis (5/hari).';
+    nextResponder = () => new Response(JSON.stringify(encodeSalted({
+      referral_code: ['Batas undang harian tercapai (5/hari).'],
+    })), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    await retry(COPY_LIMIT);
+    metrics.cases.referralLimit = {
+      desc: descText(),
+      passed: descText() === COPY_LIMIT,
+    };
+
+    /* ---------- D: 429 throttling ---------- */
+    const COPY_THROTTLE = 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi ya.';
+    nextResponder = () => new Response(JSON.stringify(encodeSalted({
+      detail: 'Permintaan ini telah dibatasi. Expected available in 54 seconds.',
+    })), { status: 429, headers: { 'Content-Type': 'application/json' } });
+    await retry(COPY_THROTTLE);
+    metrics.cases.throttle429 = {
+      desc: descText(),
+      noBackendQuote: !descText().includes('Expected available'),
+      passed: descText() === COPY_THROTTLE,
+    };
+
+    /* ---------- E: jaringan mati ---------- */
+    nextResponder = () => { throw new TypeError('network down'); };
+    const OFFLINE_TEXT = 'Tidak dapat terhubung ke server. Periksa koneksi internet kamu.';
+    await retry(OFFLINE_TEXT);
+    metrics.cases.offline = { desc: descText(), passed: descText() === OFFLINE_TEXT };
+
+    metrics.allPassed =
+      Object.values(metrics.cases).every((c) => c.passed) && metrics.errors.length === 0;
+    document.getElementById('register-error-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'REGISTER-ERROR-DONE ' + JSON.stringify({ allPassed: metrics.allPassed });
+  </script>
+</body>
+</html>

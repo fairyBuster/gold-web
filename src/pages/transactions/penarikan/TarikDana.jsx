@@ -17,7 +17,9 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import NotifCard from '../../../components/NotifCard.jsx';
+import { useShowNotif } from '../../../lib/useShowNotif.js';
 import img_4 from '../../../assets/images/33_71.svg';
+import pageBg from '../../../assets/images/083535.png';
 
 /* Withdrawal API + the cross-step store for the wizard. */
 import { getAccountInfo } from '../../../lib/authApi.js';
@@ -63,6 +65,30 @@ function parseAmount(text) {
   return digits ? Number(digits) : 0;
 }
 
+/* Nomor rekening disensor sebagian: 9+ digit -> "8808 •••• 5678"; nomor
+   pendek (<= 8 digit) ditampilkan apa adanya (aturan sama dgn KartuBank). */
+function maskAccountNumber(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return '—';
+  if (digits.length <= 8) return digits;
+  return `${digits.slice(0, 4)} •••• ${digits.slice(-4)}`;
+}
+
+/* Nama pemilik disensor setengah: kata kedua dst hanya huruf awal
+   ("Budi Santoso" -> "Budi S••••••"); nama satu kata disensor separuh
+   ("Ahmad" -> "Ahm••"). */
+function maskAccountName(value) {
+  const words = String(value || '').trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '—';
+  if (words.length === 1) {
+    const keep = Math.max(1, Math.ceil(words[0].length / 2));
+    return words[0].slice(0, keep) + '•'.repeat(words[0].length - keep);
+  }
+  return words
+    .map((word, index) => (index === 0 ? word : word.slice(0, 1) + '•'.repeat(Math.max(0, word.length - 1))))
+    .join(' ');
+}
+
 /* Fee estimate — mirrors WithdrawalSerializer: amount × percent/100 + fixed. */
 function estimateWithdrawFee(amount, feePercent, feeFixed) {
   const fee = ((Number(amount) || 0) * (Number(feePercent) || 0)) / 100 + (Number(feeFixed) || 0);
@@ -91,9 +117,10 @@ const TarikDana01Styles = `
   max-width: 100%;
   min-height: 100vh;
   background-color: #fffbf4;
-  background-image: 
-    radial-gradient(circle at 100% 20%, rgba(255, 201, 60, 0.15) 0%, transparent 60%),
-    radial-gradient(circle at 80% 80%, rgba(255, 159, 28, 0.15) 0%, transparent 60%);
+  /* Latar artwork 083535.png (dipasang inline di root), direntangkan penuh. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
   box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
@@ -111,6 +138,15 @@ const TarikDana01Styles = `
 }
 
 /* ---- inline section styles ---- */
+
+/* Section wrapper — keeps the flex column chain intact so the main content
+   grows and the footer (button) sticks to the bottom of the page. */
+.page-tarik-dana-01 .page-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+}
 
 /* CSS for section section:Header */
 .page-tarik-dana-01 #section-header {
@@ -227,13 +263,14 @@ const TarikDana01Styles = `
   border: none;
   outline: none;
   font-size: 24px;
-  font-weight: 700;
-  color: #a79c8f;
+  font-weight: 800;
+  color: #1a1410;
   width: 100%;
   background: transparent;
 }
-.page-tarik-dana-01 .amount-input:focus {
-  color: #1a1410;
+.page-tarik-dana-01 .amount-input::placeholder {
+  color: #a79c8f;
+  font-weight: 700;
 }
 .page-tarik-dana-01 .min-withdrawal {
   color: #a79c8f;
@@ -283,12 +320,6 @@ const TarikDana01Styles = `
 .page-tarik-dana-01 .info-text strong {
   color: #1a1410;
 }
-.page-tarik-dana-01 .error-text {
-  color: #e24c4c;
-  font-size: 12px;
-  font-weight: 600;
-  margin: 0 0 12px 0;
-}
 
 /* CSS for section section:Footer */
 .page-tarik-dana-01 #section-footer {
@@ -297,13 +328,19 @@ const TarikDana01Styles = `
   margin-top: auto;
 }
 .page-tarik-dana-01 .footer-container {
-  padding: 20px;
+  /* padding-top memberi ruang vertikal maskot (202px) supaya badannya
+     tidak menimpa info-box di atas; padding-bottom 12px menurunkan
+     tombol lebih dekat ke ujung halaman. */
+  padding: 132px 20px 12px 20px;
   position: relative;
 }
 .page-tarik-dana-01 .character-img {
   position: absolute;
   right: -10px;
-  bottom: 80px;
+  /* Diturunkan dari 80px: ujung bawah maskot terselip di belakang
+     tombol dan kepalanya berhenti di bawah info-box, tidak menimpa
+     teksnya. */
+  bottom: 12px;
   width: 135px;
   height: auto;
   z-index: 1;
@@ -337,7 +374,7 @@ function TarikDana01() {
     const stored = Number(withdrawFlow.get().amount) || 0;
     return stored > 0 ? formatGroupedAmount(stored) : '';
   });
-  const [error, setError] = useState('');
+  const showNotif = useShowNotif();
 
   // Live data for the step: wallet balance, admin settings, the user's saved
   // banks (min/fee hints) and the public bank metadata. Failures leave the
@@ -375,50 +412,48 @@ function TarikDana01() {
   ].filter(Boolean).join(' + ');
   const minText = bankMeta
     ? (minAmount > 0 ? `Minimal penarikan ${formatRupiahSpaced(minAmount)}` : '')
-    : 'Minimal penarikan Rp 50.000';
+    : 'Minimal penarikan Rp 35.000';
   const amount = parseAmount(amountText);
 
   const applyAmount = (value) => {
     setAmountText(value > 0 ? formatGroupedAmount(value) : '');
-    setError('');
   };
 
   const handleAmountChange = (event) => {
     const digits = event.target.value.replace(/\D/g, '').slice(0, 12);
     setAmountText(digits ? formatGroupedAmount(Number(digits)) : '');
-    setError('');
   };
 
   const handleContinue = () => {
     if (settings && settings.is_active === false) {
-      setError('Penarikan sedang dinonaktifkan oleh admin.');
+      showNotif({ title: 'Penarikan Tidak Bisa Dilanjutkan', description: 'Penarikan sedang dinonaktifkan oleh admin.' });
       return;
     }
     if (amount <= 0) {
-      setError('Masukkan nominal penarikan.');
+      showNotif({ title: 'Penarikan Tidak Bisa Dilanjutkan', description: 'Masukkan nominal penarikan.' });
       return;
     }
     if (account && amount > balance) {
-      setError('Saldo tidak mencukupi.');
+      showNotif({ title: 'Penarikan Tidak Bisa Dilanjutkan', description: 'Saldo tidak mencukupi.' });
       return;
     }
     if (minAmount > 0 && amount < minAmount) {
-      setError(`Minimal penarikan ${formatRupiahSpaced(minAmount)}.`);
+      showNotif({ title: 'Penarikan Tidak Bisa Dilanjutkan', description: `Minimal penarikan ${formatRupiahSpaced(minAmount)}.` });
       return;
     }
     if (maxAmount > 0 && amount > maxAmount) {
-      setError(`Maksimal penarikan ${formatRupiahSpaced(maxAmount)}.`);
+      showNotif({ title: 'Penarikan Tidak Bisa Dilanjutkan', description: `Maksimal penarikan ${formatRupiahSpaced(maxAmount)}.` });
       return;
     }
     withdrawFlow.save({ amount });
     /* Sudah punya rekening tersimpan? Lewati halaman tambah rekening. */
-    navigate(userBanks.length > 0 ? '/transactions/tarik-dana-03' : '/transactions/tarik-dana-02');
+    navigate(userBanks.length > 0 ? '/index/transactions/tarik-dana-03' : '/index/transactions/tarik-dana-02');
   };
 
   return (
-    <div className="page-tarik-dana-01">
+    <div className="page-tarik-dana-01" style={{ backgroundImage: `url(${pageBg})` }}>
       <style>{TarikDana01Styles}</style>
-      <div>
+      <div className="page-body">
               <section id="section-header">
                 <header className="header-container">
                   <div className="top-bar">
@@ -441,7 +476,7 @@ function TarikDana01() {
                   <p className="subtitle">Masukkan nominal yang ingin kamu tarik ke rekening bank kamu.</p>
                   <div className="balance-box">
                     <span className="balance-label">Saldo tersedia</span>
-                    <span className="balance-amount">{account ? formatRupiahSpaced(balance) : '—'}</span>
+                    <span className="balance-amount">{account ? formatRupiahSpaced(balance) : ''}</span>
                   </div>
                   <div className="input-container">
                     <span className="currency-prefix">Rp</span>
@@ -475,9 +510,9 @@ function TarikDana01() {
                   <div className="info-box">
                     <img src={S1_img_2} alt="Info" className="info-icon" />
                     {feeInfo ? (
-                      <p className="info-text">Biaya admin <strong>{feeInfo}</strong> dari nominal penarikan, diproses dalam 1–24 jam kerja pada jam operasional 08:00–20:00 WIB.</p>
+                      <p className="info-text">Biaya admin <strong>{feeInfo}</strong> dari nominal penarikan, diproses dalam 1–5 jam kerja pada jam operasional 08:00–20:00 WIB.</p>
                     ) : (
-                      <p className="info-text">Biaya admin <strong>Rp 2.500</strong> berlaku untuk setiap penarikan, diproses dalam 1–24 jam kerja pada jam operasional 08:00–20:00 WIB.</p>
+                      <p className="info-text">Biaya admin <strong>5% + Rp3000</strong> berlaku untuk setiap penarikan, diproses dalam 1–5 jam kerja pada jam operasional 08:00–20:00 WIB.</p>
                     )}
                   </div>
                 </div>
@@ -486,7 +521,6 @@ function TarikDana01() {
                 <div className="footer-container">
                   <img src={S1_img_3} alt="Mascot" className="character-img" />
                   <div className="button-wrapper">
-                    {error ? <p className="error-text">{error}</p> : null}
                     <button className="submit-btn" onClick={(e) => { e.preventDefault(); handleContinue(); }}>Lanjutkan</button>
                   </div>
                 </div>
@@ -510,9 +544,10 @@ const TarikDana02Styles = `
   max-width: 100%;
   min-height: 100vh;
   background-color: #fffbf4;
-  background-image: 
-    radial-gradient(circle at 80% 20%, rgba(255, 201, 60, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 90% 80%, rgba(255, 159, 28, 0.1) 0%, transparent 50%);
+  /* Latar artwork 083535.png (dipasang inline di root), direntangkan penuh. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
   box-shadow: 0px 0px 20px rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
@@ -736,12 +771,12 @@ function TarikDana02() {
   }, []);
 
   if (hasBank === true) {
-    return <Navigate to="/transactions/tarik-dana-03" replace />;
+    return <Navigate to="/index/transactions/tarik-dana-03" replace />;
   }
 
   if (hasBank === null) {
     return (
-      <div className="page-tarik-dana-02">
+      <div className="page-tarik-dana-02" style={{ backgroundImage: `url(${pageBg})` }}>
         <style>{TarikDana02Styles}</style>
         <p className="checking-text">Memuat rekening...</p>
       </div>
@@ -749,7 +784,7 @@ function TarikDana02() {
   }
 
   return (
-    <div className="page-tarik-dana-02">
+    <div className="page-tarik-dana-02" style={{ backgroundImage: `url(${pageBg})` }}>
       <style>{TarikDana02Styles}</style>
       <div>
               <section id="section-header">
@@ -781,7 +816,7 @@ function TarikDana02() {
               </section>
               <section id="section-actions">
                 <div className="actions-container">
-                  <button className="add-account-btn" onClick={(e) => { e.preventDefault(); navigate('/profil/kartu-bank-02'); }}>
+                  <button className="add-account-btn" onClick={(e) => { e.preventDefault(); navigate('/index/profil/kartu-bank-02'); }}>
                     <img src={S2_img_3} alt="" />
                     <span>Tambah Rekening Baru</span>
                   </button>
@@ -797,7 +832,7 @@ function TarikDana02() {
               </section>
               <section id="section-footer">
                 <div className="footer-container">
-                  <button className="continue-btn" onClick={(e) => { e.preventDefault(); navigate('/transactions/tarik-dana-03'); }}>Lanjutkan</button>
+                  <button className="continue-btn" onClick={(e) => { e.preventDefault(); navigate('/index/transactions/tarik-dana-03'); }}>Lanjutkan</button>
                 </div>
               </section>
             </div>
@@ -816,7 +851,11 @@ const TarikDana03Styles = `
   margin: 0;
   padding: 0;
   font-family: 'Inter', sans-serif;
-  background-color: #f5f5f5;
+  background-color: #fffbf4;
+  /* Latar artwork 083535.png (dipasang inline di root), direntangkan penuh. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
@@ -830,7 +869,7 @@ const TarikDana03Styles = `
 .page-tarik-dana-03 .mobile-container {
   max-width: 100%;
   margin: 0 auto;
-  background-color: #fffbf4;
+  background-color: transparent;
   position: relative;
 }
 
@@ -841,10 +880,7 @@ const TarikDana03Styles = `
 
 /* CSS for section section:Header */
 .page-tarik-dana-03 .header-bg {
-  background: 
-    radial-gradient(circle at 80% 0%, rgba(255, 159, 28, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.6) 0%, transparent 40%),
-    #fffbf4;
+  background: transparent;
   padding-top: 20px;
 }
 .page-tarik-dana-03 .top-nav {
@@ -1073,11 +1109,6 @@ const TarikDana03Styles = `
   font-weight: 700;
   color: #1a1410;
 }
-.page-tarik-dana-03 .error-text {
-  color: #e24c4c;
-  font-size: 12px;
-  margin: 0 0 10px 0;
-}
 .page-tarik-dana-03 .spacer {
   flex: 1;
   min-height: 40px;
@@ -1111,9 +1142,8 @@ function TarikDana03() {
   const [settings, setSettings] = useState(null);
   const [selectedId, setSelectedId] = useState(() => Number(withdrawFlow.get().bankAccountId) || null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  /* API load failures render via the shared NotifCard; client validation stays inline. */
   const [loadError, setLoadError] = useState('');
+  const showNotif = useShowNotif();
 
   // Saved bank accounts of the current user (backend returns default first).
   useEffect(() => {
@@ -1148,19 +1178,19 @@ function TarikDana03() {
     if (loading) return;
     if (banks.length === 0) {
       if (requireBank) {
-        setError('Tambahkan rekening bank terlebih dahulu.');
+        showNotif({ title: 'Rekening Belum Dipilih', description: 'Tambahkan rekening bank terlebih dahulu.' });
         return;
       }
     } else if (!selectedId) {
-      setError('Pilih rekening bank terlebih dahulu.');
+      showNotif({ title: 'Rekening Belum Dipilih', description: 'Pilih rekening bank terlebih dahulu.' });
       return;
     }
     withdrawFlow.save({ bankAccountId: selectedId || null });
-    navigate('/transactions/tarik-dana-04');
+    navigate('/index/transactions/tarik-dana-04');
   };
 
   return (
-    <div className="page-tarik-dana-03">
+    <div className="page-tarik-dana-03" style={{ backgroundImage: `url(${pageBg})` }}>
       <style>{TarikDana03Styles}</style>
       <div>
               <section id="section-header">
@@ -1206,7 +1236,7 @@ function TarikDana03() {
                             name="bank_selection"
                             value={bank.id}
                             checked={isSelected}
-                            onChange={() => { setSelectedId(bank.id); setError(''); }}
+                            onChange={() => setSelectedId(bank.id)}
                             className="sr-only"
                           />
                           {/* <div className="bank-icon" /> */}
@@ -1215,15 +1245,15 @@ function TarikDana03() {
                               <span className="bank-name">{bank.bank_name}</span>
                               {bank.is_default ? <span className="badge">Utama</span> : null}
                             </div>
-                            <div className="bank-acc">{bank.account_number}</div>
-                            <div className="bank-owner">a.n. {bank.account_name}</div>
+                            <div className="bank-acc">{maskAccountNumber(bank.account_number)}</div>
+                            <div className="bank-owner">a.n. {maskAccountName(bank.account_name)}</div>
                           </div>
                           <div className="radio-custom">{isSelected ? <div className="radio-dot" /> : null}</div>
                         </label>
                       );
                     })}
                   </div>
-                  <button className="add-btn" onClick={(e) => { e.preventDefault(); navigate('/profil/kartu-bank-02'); }}>
+                  <button className="add-btn" onClick={(e) => { e.preventDefault(); navigate('/index/profil/kartu-bank-02'); }}>
                     <img src={S3_img_2} alt="Add Icon" />
                     <span>Tambah Rekening Baru</span>
                   </button>
@@ -1236,7 +1266,6 @@ function TarikDana03() {
               </section>
               <section id="section-footer">
                 <div className="mobile-container footer-container">
-                  {error ? <p className="error-text">{error}</p> : null}
                   <button className="btn-primary" disabled={loading} onClick={(e) => { e.preventDefault(); handleContinue(); }}>Lanjutkan</button>
                 </div>
               </section>
@@ -1263,7 +1292,10 @@ const TarikDana04Styles = `
   max-width: 100%;
   min-height: 100vh;
   background-color: #fffbf4;
-  background-image: radial-gradient(circle at top right, rgba(255, 201, 60, 0.15), transparent 60%);
+  /* Latar artwork 083535.png (dipasang inline di root), direntangkan penuh. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
   box-shadow: 0px 0px 20px rgba(0,0,0,0.05);
   position: relative;
   overflow-x: hidden;
@@ -1474,11 +1506,15 @@ const TarikDana04Styles = `
 .page-tarik-dana-04 .action-wrapper {
   position: relative;
   padding: 0 20px 16px;
-  margin-top: 60px;
+  /* Margin atas >= tinggi maskot (90px) supaya maskot yang berdiri di
+     atas tombol tidak menimpa konten/tulisan di atasnya. */
+  margin-top: 96px;
 }
 .page-tarik-dana-04 .character-img {
   position: absolute;
-  bottom: 16px;
+  /* 16px padding bawah + ~52px tinggi tombol = maskot berdiri tepat di
+     tepi atas tombol (tidak lagi terselip di belakangnya). */
+  bottom: 68px;
   left: 9px;
   width: 85px;
   height: 90px;
@@ -1501,10 +1537,11 @@ const TarikDana04Styles = `
   opacity: 0.7;
   cursor: default;
 }
-.page-tarik-dana-04 .error-text {
-  color: #e24c4c;
-  font-size: 12px;
+.page-tarik-dana-04 .notice-margin {
   margin: 0 0 10px 0;
+  /* Notifikasi tampil di atas maskot supaya teksnya selalu terbaca. */
+  position: relative;
+  z-index: 2;
 }
 `;
 
@@ -1518,8 +1555,10 @@ function TarikDana04() {
   const [settings, setSettings] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  /* API failures (load/submit) render via the shared NotifCard; client checks stay inline. */
+  /* Load-state failures keep the inline cards below; client checks and submit
+     results go through the /notif screen. */
   const [notice, setNotice] = useState(null);
+  const showNotif = useShowNotif();
 
   // Live banks + settings so the confirmation card shows the real target
   // account and the exact fee the backend will charge.
@@ -1546,7 +1585,7 @@ function TarikDana04() {
 
   // Direct visits without a collected amount start over at step 1.
   if (!amount) {
-    return <Navigate to="/transactions/tarik-dana-01" replace />;
+    return <Navigate to="/index/transactions/tarik-dana-01" replace />;
   }
 
   const bank =
@@ -1561,11 +1600,11 @@ function TarikDana04() {
   const handleConfirm = async () => {
     if (submitting) return;
     if (settings && settings.is_active === false) {
-      setError('Penarikan sedang dinonaktifkan oleh admin.');
+      showNotif({ title: 'Periksa Data Penarikan', description: 'Penarikan sedang dinonaktifkan oleh admin.' });
       return;
     }
     if (requireBank && !bank) {
-      setError('Rekening tujuan tidak ditemukan. Pilih rekening terlebih dahulu.');
+      showNotif({ title: 'Periksa Data Penarikan', description: 'Rekening tujuan tidak ditemukan. Pilih rekening terlebih dahulu.' });
       return;
     }
     setSubmitting(true);
@@ -1581,15 +1620,15 @@ function TarikDana04() {
       } catch {
         /* storage unavailable */
       }
-      navigate('/transactions/loading-penarikan', { state: { withdrawalId: created?.id } });
+      navigate('/index/transactions/loading-penarikan', { state: { withdrawalId: created?.id } });
     } catch (err) {
-      setNotice({ title: 'Penarikan Gagal', description: err?.message || 'Penarikan gagal. Silakan coba lagi.' });
+      showNotif({ title: 'Penarikan Gagal', description: err?.message || 'Penarikan gagal. Silakan coba lagi.' });
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="page-tarik-dana-04">
+    <div className="page-tarik-dana-04" style={{ backgroundImage: `url(${pageBg})` }}>
       <style>{TarikDana04Styles}</style>
       <div className="page-body">
               <section id="section-header">
@@ -1613,13 +1652,13 @@ function TarikDana04() {
                 </div>
                 {bank ? (
                   <div className="bank-card">
-                    <div className="bank-icon" />
+                 
                     <div className="bank-details">
                       <div className="bank-name">{bank.bank_name}</div>
-                      <div className="bank-acc">{bank.account_number}</div>
-                      <div className="bank-owner">a.n. {bank.account_name}</div>
+                      <div className="bank-acc">{maskAccountNumber(bank.account_number)}</div>
+                      <div className="bank-owner">a.n. {maskAccountName(bank.account_name)}</div>
                     </div>
-                    <Link to="/transactions/tarik-dana-03" className="btn-ubah">Ubah</Link>
+                    <Link to="/index/transactions/tarik-dana-03" className="btn-ubah">Ubah</Link>
                   </div>
                 ) : null}
                 <div className="amount-card">
@@ -1641,18 +1680,24 @@ function TarikDana04() {
                   <div className="info-icon-wrapper">
                     <img src={S4_img_2} alt="Info" />
                   </div>
-                  <p className="info-text">Dana akan diproses dalam <strong>1–2 jam kerja</strong> pada jam operasional (08:00–20:00 WIB). Penarikan tidak dapat dibatalkan setelah dikonfirmasi.</p>
+                  <p className="info-text">Dana akan diproses dalam <strong>1–5 jam kerja</strong> pada jam operasional (08:00–20:00 WIB). Penarikan tidak dapat dibatalkan setelah dikonfirmasi.</p>
                 </div>
                 <div className="terms-box">
-                  <p className="terms-text">Saya telah memeriksa detail penarikan dan menyetujui <Link to="/support/syarat-dan-ketentuan">Syarat &amp; Ketentuan</Link> penarikan dana.</p>
+                  <p className="terms-text">Saya telah memeriksa detail penarikan dan menyetujui <Link to="/index/support/syarat-dan-ketentuan">Syarat &amp; Ketentuan</Link> penarikan dana.</p>
                 </div>
               </section>
               <section id="section-footer">
                 <div className="action-wrapper">
                   <img src={S4_img_3} alt="Character" className="character-img" />
-                  {error ? <p className="error-text">{error}</p> : null}
+                  {error ? (
+                    <div className="notice-margin">
+                      <NotifCard variant="error" title="Periksa Data Penarikan" description={error} onClose={() => setError('')} />
+                    </div>
+                  ) : null}
                   {notice ? (
-                    <NotifCard variant="error" title={notice.title} description={notice.description} onClose={() => setNotice(null)} />
+                    <div className="notice-margin">
+                      <NotifCard variant="error" title={notice.title} description={notice.description} onClose={() => setNotice(null)} />
+                    </div>
                   ) : null}
                   <button className="btn-confirm" disabled={submitting} onClick={(e) => { e.preventDefault(); handleConfirm(); }}>
                     {submitting ? 'Memproses...' : 'Konfirmasi Penarikan'}

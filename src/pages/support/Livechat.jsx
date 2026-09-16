@@ -1,3 +1,9 @@
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+/* Live Chat: GET/POST /api/support/chat/... (thread dibuat otomatis backend). */
+import { fetchChatMessages, sendChatMessage } from '../../lib/supportChatApi.js';
+import NotifCard from '../../components/NotifCard.jsx';
+import ListState from '../../components/ListState.jsx';
+import { formatTime, groupByDay } from '../../lib/transactionFormat.js';
 import img_1 from '../../assets/images/105_2418.svg';
 import img_2 from '../../assets/images/7f43db77fdc0a54172b923d3fc56ba8f36714aa6.png';
 import img_3 from '../../assets/images/105_2458.svg';
@@ -15,7 +21,9 @@ const styles = `
 
 .page-livechat {
   font-family: 'Inter', sans-serif;
-  background-color: #f0f0f0; /* Desktop background */
+  /* Opaque canvas moved onto the root so it stays full-bleed on desktop;
+     the header/chat/input containers fully cover it at every width. */
+  background-image: linear-gradient(#f0f0f0, #f0f0f0);
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -35,6 +43,17 @@ const styles = `
   }
 }
 
+/* Rantai flex harus utuh dari kolom konten sampai tiap section: wrapper di
+   dalam root ikut direntangkan (bukan menyusut ke tinggi konten) supaya
+   area chat mengisi ruang tersisa dan footer input terkunci di bawah layar. */
+.page-livechat > div {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
 /* ---- inline section styles ---- */
 
 /* CSS for section section:Header */
@@ -42,7 +61,6 @@ const styles = `
   width: 100%;
   display: flex;
   justify-content: center;
-  background-color: #f0f0f0;
   flex-shrink: 0;
 }
 
@@ -106,9 +124,9 @@ const styles = `
 .page-livechat #section-chat {
   width: 100%;
   flex: 1;
+  min-height: 0; /* izinkan menyusut agar pesan panjang di-scroll di dalam */
   display: flex;
   justify-content: center;
-  background-color: #f0f0f0;
   overflow: hidden;
 }
 
@@ -174,11 +192,30 @@ const styles = `
   color: #1a1410;
   font-size: 14px;
   line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .page-livechat .msg-time {
   color: #a79c8f;
   font-size: 12px;
+}
+
+/* Pesan user rata kanan dengan bubble emas tanpa avatar; sudut kanan atas
+   dibuat siku sebagai cerminan bubble CS di sisi kiri. */
+.page-livechat .message-row.user {
+  flex-direction: row-reverse;
+}
+
+.page-livechat .message-row.user .msg-content {
+  align-items: flex-end;
+  max-width: 85%;
+}
+
+.page-livechat .msg-bubble.user {
+  background-color: #f1b04a;
+  border-color: #f1b04a;
+  border-radius: 12px 0 12px 12px;
 }
 
 .page-livechat .quick-replies-wrapper {
@@ -215,7 +252,6 @@ const styles = `
   width: 100%;
   display: flex;
   justify-content: center;
-  background-color: #f0f0f0;
   flex-shrink: 0;
 }
 
@@ -266,9 +302,124 @@ const styles = `
   flex-shrink: 0;
   padding: 0;
 }
+
+.page-livechat .send-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 `;
 
+/* Jeda polling pesan baru. Balasan CS (sender_type ADMIN) diambil lewat
+   since_id agar hanya pesan baru yang diunduh. */
+const POLL_INTERVAL_MS = 5000;
+
+/* Saran cepat saat percakapan masih kosong — tampil sampai user mengirim
+   pesan pertamanya. Klik mengisi kolom teks (belum terkirim) agar user bisa
+   mengubah dulu; "Lainnya" hanya memfokuskan input untuk tulis bebas. */
+const QUICK_REPLIES = ['Kendala isi ulang', 'Status tarik dana', 'Lainnya'];
+
 export default function Livechat() {
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [input, setInput] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
+  const chatRef = useRef(null);
+  const inputRef = useRef(null);
+  const lastIdRef = useRef(0);
+  const pollBusyRef = useRef(false);
+
+  /* Gabungkan pesan baru berdasarkan id (idempotent — hasil polling dan hasil
+     kirim bisa tumpang tindih), lalu urutkan lama → baru. */
+  const mergeMessages = useCallback((incoming) => {
+    if (!Array.isArray(incoming) || incoming.length === 0) return;
+    setMessages((prev) => {
+      const byId = new Map(prev.map((msg) => [msg.id, msg]));
+      incoming.forEach((msg) => { if (msg && msg.id != null) byId.set(msg.id, msg); });
+      return [...byId.values()].sort((a, b) => a.id - b.id);
+    });
+  }, []);
+
+  /* Muat seluruh pesan thread saat halaman dibuka. */
+  const loadMessages = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchChatMessages();
+      mergeMessages(data);
+      setError('');
+    } catch (err) {
+      setError(err?.message || 'Gagal memuat chat.');
+    } finally {
+      setLoading(false);
+    }
+  }, [mergeMessages]);
+
+  useEffect(() => { loadMessages(); }, [loadMessages]);
+
+  /* Id pesan terakhir — dikirim sebagai since_id saat polling. */
+  useEffect(() => {
+    lastIdRef.current = messages.length ? messages[messages.length - 1].id : 0;
+  }, [messages]);
+
+  /* Polling ringan agar balasan CS muncul tanpa reload. Kegagalan poll
+     didiamkan — percobaan berikutnya yang mencoba lagi. */
+  useEffect(() => {
+    const timer = window.setInterval(async () => {
+      if (pollBusyRef.current) return;
+      pollBusyRef.current = true;
+      try {
+        const data = await fetchChatMessages(lastIdRef.current ? { sinceId: lastIdRef.current } : undefined);
+        setError('');
+        mergeMessages(data);
+      } catch {
+        /* diamkan */
+      } finally {
+        pollBusyRef.current = false;
+      }
+    }, POLL_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [mergeMessages]);
+
+  /* Selalu tampilkan pesan terbaru. */
+  useEffect(() => {
+    const el = chatRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, loading, sendError]);
+
+  /* Kirim pesan — dari tombol kirim atau tombol Enter. Error tampil inline
+     agar teks yang diketik tidak hilang. */
+  const handleSend = async () => {
+    if (sending) return;
+    const text = input.trim();
+    if (!text) {
+      inputRef.current?.focus();
+      return;
+    }
+    setSending(true);
+    setSendError('');
+    try {
+      const data = await sendChatMessage(text);
+      mergeMessages([data]);
+      setInput('');
+      inputRef.current?.focus();
+    } catch (err) {
+      setSendError(err?.message || 'Pesan gagal terkirim. Coba lagi ya.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  /* Saran cepat mengisi kolom teks (bukan langsung terkirim) supaya user
+     masih bisa mengubah pesannya dulu. "Lainnya" hanya memfokuskan input. */
+  const handleQuickReply = (label) => {
+    if (label !== 'Lainnya') setInput(label);
+    inputRef.current?.focus();
+  };
+
+  const hasUserMessages = messages.some((msg) => msg.sender_type === 'USER');
+  const showQuickReplies = !loading && !error && !hasUserMessages;
+
   return (
     <div className="page-livechat">
       <style>{styles}</style>
@@ -288,36 +439,74 @@ export default function Livechat() {
                 </header>
               </section>
               <section id="section-chat">
-                <main className="chat-container">
-                  <div className="chat-date">
-                    <span>Hari Ini, 14:02</span>
-                  </div>
-                  <div className="message-row">
-                    <div className="msg-avatar">
-                      <img src={img_2} alt="CS Avatar" />
-                    </div>
-                    <div className="msg-content">
-                      <div className="msg-bubble">
-                        <p>Halo! Selamat datang di Live Chat<br />JelajahEmas. Ada yang bisa kami bantu<br />hari ini? 😊</p>
-                      </div>
-                      <span className="msg-time">14:02</span>
-                    </div>
-                  </div>
-                  <div className="quick-replies-wrapper">
-                    <div className="quick-replies">
-                      <button className="reply-btn">Kendala isi ulang</button>
-                      <button className="reply-btn">Status tarik dana</button>
-                      <button className="reply-btn">Lainnya</button>
-                    </div>
-                  </div>
+                <main className="chat-container" ref={chatRef}>
+                  {error ? (
+                    <NotifCard variant="error" title="Gagal Memuat Chat" description={error} />
+                  ) : loading ? (
+                    <ListState text="Memuat chat…" />
+                  ) : (
+                    <>
+                      {messages.length === 0 ? (
+                        <ListState text="Belum ada pesan. Mulai chat dengan CS JelajahEmas." />
+                      ) : (
+                        groupByDay(messages).map((group) => (
+                          <Fragment key={group.label}>
+                            <div className="chat-date">
+                              <span>{group.label}</span>
+                            </div>
+                            {group.items.map((msg) => {
+                              const isUser = msg.sender_type === 'USER';
+                              return (
+                                <div className={`message-row${isUser ? ' user' : ''}`} key={msg.id}>
+                                  {isUser ? null : (
+                                    <div className="msg-avatar">
+                                      <img src={img_2} alt="CS Avatar" />
+                                    </div>
+                                  )}
+                                  <div className="msg-content">
+                                    <div className={`msg-bubble${isUser ? ' user' : ''}`}>
+                                      <p>{msg.message}</p>
+                                    </div>
+                                    <span className="msg-time">{formatTime(msg.created_at)}</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </Fragment>
+                        ))
+                      )}
+                      {showQuickReplies ? (
+                        <div className="quick-replies-wrapper">
+                          <div className="quick-replies">
+                            {QUICK_REPLIES.map((label) => (
+                              <button key={label} className="reply-btn" onClick={() => handleQuickReply(label)}>{label}</button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
+                  {sendError ? (
+                    <NotifCard variant="error" title="Pesan Gagal Terkirim" description={sendError} />
+                  ) : null}
                 </main>
               </section>
               <section id="section-input">
                 <footer className="input-container">
                   <div className="input-box">
-                    <input type="text" placeholder="Tulis pesan..." aria-label="Type a message" />
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      placeholder="Tulis pesan..."
+                      aria-label="Type a message"
+                      value={input}
+                      maxLength={5000}
+                      enterKeyHint="send"
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSend(); } }}
+                    />
                   </div>
-                  <button className="send-btn" aria-label="Send message">
+                  <button className="send-btn" aria-label="Send message" disabled={sending || !input.trim()} onClick={(e) => { e.preventDefault(); handleSend(); }}>
                     <img src={img_3} alt="" />
                   </button>
                 </footer>

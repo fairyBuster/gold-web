@@ -9,7 +9,7 @@ export default function RequireAuth() {
   const { access } = get();
 
   if (!access) {
-    return <Navigate to="/auth/login" replace state={{ from: location.pathname + location.search }} />;
+    return <Navigate to="/index/auth/login" replace state={{ from: location.pathname + location.search }} />;
   }
 
   return <Outlet />;

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VIDEO-FRAME-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="frame-metrics">pending</pre>
+  <script type="module">
+    /* Ukur frame video di halaman landing nyata: rasio frame harus sama
+       dengan rasio video asli (854x480) supaya tidak ada bagian ter-crop. */
+    const metrics = { errors: [], viewportWidth: window.innerWidth };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+    window.fetch = () => Promise.resolve(new Response('{}', { status: 404, headers: { 'Content-Type': 'application/json' } }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    history.replaceState(null, '', '/index/landing');
+    await import('/src/main.jsx');
+
+    let placeholder = null;
+    for (let i = 0; i < 120 && !placeholder; i += 1) {
+      placeholder = document.querySelector('.page-landing-page-perusahaan .video-placeholder');
+      if (!placeholder) await sleep(50);
+    }
+    const video = document.querySelector('.page-landing-page-perusahaan .video-player');
+    if (placeholder && video) {
+      const rect = placeholder.getBoundingClientRect();
+      metrics.frame = {
+        w: +rect.width.toFixed(2),
+        h: +rect.height.toFixed(2),
+        ratio: rect.height ? +(rect.width / rect.height).toFixed(4) : null,
+      };
+      for (let i = 0; i < 100 && !video.videoWidth; i += 1) await sleep(50);
+      metrics.video = {
+        w: video.videoWidth,
+        h: video.videoHeight,
+        ratio: video.videoWidth ? +(video.videoWidth / video.videoHeight).toFixed(4) : null,
+      };
+      metrics.ratioDiff = metrics.video.ratio ? +Math.abs(metrics.frame.ratio - metrics.video.ratio).toFixed(4) : null;
+      metrics.cropFree = metrics.ratioDiff !== null && metrics.ratioDiff < 0.001;
+      metrics.objectFit = getComputedStyle(video).objectFit;
+    } else {
+      metrics.errors.push('placeholder/video not found: ' + !!placeholder + '/' + !!video);
+    }
+    document.getElementById('frame-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'VIDEO-FRAME-DONE';
+  </script>
+</body>
+</html>

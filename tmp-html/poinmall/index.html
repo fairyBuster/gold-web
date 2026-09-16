@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>PoinMall probe — hero "Poin Kamu" dari /api/roulette/points/</title>
+</head>
+<body>
+<div id="root"></div>
+<pre id="poinmall-metrics">pending</pre>
+<script type="module">
+  /* Probe PoinMall step 1 (route /index/rewards/poin-mall-01) — hero "Poin Kamu":
+     - case=points   : GET /api/roulette/points/ sukses → hero menampilkan
+                       `tickets` dari ringkasan poin (4.321), BUKAN saldo
+                       katalog redeem (999) — dua angka sengaja dibedakan.
+     - case=fallback : ringkasan poin gagal (500) → hero jatuh ke saldo
+                       katalog redeem (999) sebagai cadangan. */
+  const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+  const probeCase = new URLSearchParams(location.search).get('case') || 'points';
+
+  const encodeSalted = (obj) => {
+    const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+    return { data: [...(base64 + SALT)].reverse().join('') };
+  };
+  const json = (obj) => Promise.resolve(new Response(JSON.stringify(encodeSalted(obj)), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+  const fail500 = () => Promise.resolve(new Response(JSON.stringify({ detail: 'probe 500' }), {
+    status: 500,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+
+  /* Dua endpoint membaca wallet tiket yang sama; nilainya sengaja dibedakan
+     supaya jelas angka hero berasal dari ringkasan poin. */
+  const POINTS = {
+    tickets: 4321,
+    total_earned: 5000,
+    total_spent: 679,
+    earned_breakdown: { level1_purchase: 3000, self_deposit: 2000, admin_adjust: 0 },
+    spent_breakdown: { spin: 179, redeem: 500, admin_adjust: 0 },
+    ticket_cost: 1,
+    spins_available: 10,
+    total_spins: 3,
+    total_redeems: 1,
+  };
+  const CATALOG = {
+    is_active: true,
+    tickets: 999,
+    prizes: [
+      { id: 11, name: 'Voucher Belanja', prize_type: 'BALANCE', points_cost: 500 },
+      { id: 12, name: 'Saldo Deposit 50K', prize_type: 'BALANCE_DEPOSIT', points_cost: 750 },
+    ],
+  };
+
+  const fetches = [];
+  window.fetch = (input) => {
+    const url = typeof input === 'string' ? input : (input?.url ?? String(input));
+    fetches.push(url.replace(/^https?:\/\/[^/]+/, ''));
+    if (url.includes('/api/roulette/points/')) {
+      return probeCase === 'fallback' ? fail500() : json(POINTS);
+    }
+    if (url.includes('/api/roulette/redeem/')) {
+      return json(CATALOG);
+    }
+    return json({});
+  };
+
+  localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+  history.replaceState(null, '', '/index/rewards/poin-mall-01');
+
+  const metrics = { probeCase, errors: [], steps: [] };
+  window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+  window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+  const write = () => { document.getElementById('poinmall-metrics').textContent = JSON.stringify(metrics, null, 2); };
+  const waitFor = async (fn, timeout = 15000, step = 100) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      try { if (fn()) return true; } catch { /* belum siap */ }
+      await new Promise((r) => setTimeout(r, step));
+    }
+    return false;
+  };
+
+  try {
+    await import('/src/main.jsx');
+
+    const heroText = () => document.querySelector('.page-poin-mall-01 .points-value')?.textContent.trim() ?? null;
+    const cardCount = () => document.querySelectorAll('.page-poin-mall-01 .catalog-card').length;
+
+    const pageReady = await waitFor(() => document.querySelector('.page-poin-mall-01 .hero-card'));
+    metrics.steps.push(['hero tampil', pageReady]);
+
+    const heroFilled = await waitFor(() => (heroText() || '') !== '');
+    metrics.steps.push(['hero terisi', heroFilled]);
+    const cardsReady = await waitFor(() => cardCount() === 2);
+    metrics.steps.push(['katalog tampil (2 kartu)', cardsReady]);
+
+    metrics.rendered = {
+      hero: heroText(),
+      catalogCards: cardCount(),
+      prizeNames: [...document.querySelectorAll('.page-poin-mall-01 .catalog-card .card-title')].map((el) => el.textContent.trim()),
+    };
+    metrics.calls = fetches.filter((path) => path.includes('/api/roulette/'));
+
+    const heroExpected = probeCase === 'fallback' ? '999' : '4.321';
+    metrics.allPassed = Boolean(pageReady && heroFilled && cardsReady) &&
+      metrics.errors.length === 0 &&
+      fetches.some((path) => path.includes('/api/roulette/points/')) &&
+      fetches.some((path) => path.includes('/api/roulette/redeem/')) &&
+      metrics.rendered.hero === heroExpected &&
+      metrics.rendered.catalogCards === 2;
+  } catch (error) {
+    metrics.error = String(error);
+    metrics.allPassed = false;
+  }
+
+  write();
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '../../components/BottomNav.jsx';
 import NotifCard from '../../components/NotifCard.jsx';
+import PopupKomunitas from '../../components/PopupKomunitas.jsx';
 import img_1 from '../../assets/images/38a55ef245471fd7a368a8008013cd81b2525d61.png';
 import img_2 from '../../assets/images/3d6fb697a044e75c7a6c789438a276b40b37b5b9.png';
 import img_3 from '../../assets/images/120_3267.svg';
@@ -27,15 +28,18 @@ import img_19 from '../../assets/images/d35f294fb1a21fb0aa4f326dc1672ebf0f14686d
 import img_20 from '../../assets/images/b1.png';
 import img_21 from '../../assets/images/b2.png';
 import img_22 from '../../assets/images/b3.png';
+/* Full-page background artwork (same asset as the login screen). */
+import img_23 from '../../assets/images/083535.png';
 /* Live gold-price card data (free public sources, cached 5 min). */
 import { fetchGoldPrice, getCachedGoldPrice, formatIDR, formatPercentID } from '../../lib/goldPriceApi.js';
 /* Header greeting user data — GET /api/auth/account-info/. */
-import { getAccountInfo } from '../../lib/authApi.js';
+import { getAccountInfo, getBalanceStatistics } from '../../lib/authApi.js';
 /* "Berita Terbaru" cards — GET /api/news/ (public endpoint). */
 import { listNews } from '../../lib/newsApi.js';
 /* Notification badge — same rolling 7-day transaction feed as MenuNotifikasi. */
 import { useTransactionFeed } from '../../lib/useTransactionFeed.js';
 import { statusKind } from '../../lib/transactionFormat.js';
+import { getSeenAt, isUnseen } from '../../lib/notifSeen.js';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -59,7 +63,11 @@ const styles = `
   min-height: 100vh;
   overflow-x: hidden;
   padding-bottom: 80px; /* Space for bottom nav */
-  background-image: linear-gradient(180deg, rgba(255, 201, 60, 0.15) 0%, rgba(255, 251, 244, 0) 25%);
+  /* Background artwork (assigned inline from the imported asset) is a
+     full-page image with glows anchored to the top/bottom — stretch it. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
   box-shadow: 0px 0px 20px rgba(0,0,0,0.05);
   width: 100%;
 }
@@ -199,6 +207,21 @@ const styles = `
     font-weight: 700;
     line-height: 33px;
   }
+  /* Loading placeholder for the saldo value: the bar keeps the 24px number's
+     footprint (h2 line-height) so the card does not jump when it resolves. */
+  .page-home .asset-value-skeleton {
+    display: inline-block;
+    width: 176px;
+    height: 26px;
+    border-radius: 7px;
+    background: linear-gradient(90deg, rgba(26, 20, 16, 0.08) 25%, rgba(26, 20, 16, 0.16) 37%, rgba(26, 20, 16, 0.08) 63%);
+    background-size: 400% 100%;
+    animation: home-asset-shimmer 1.4s ease infinite;
+  }
+  @keyframes home-asset-shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: 0 0; }
+  }
   .page-home .visibility-btn {
     display: flex;
     align-items: center;
@@ -214,6 +237,9 @@ const styles = `
     color: #3fa66b;
     font-size: 12px;
     font-weight: 600;
+  }
+  .page-home .change-text.is-down {
+    color: #e24c4c;
   }
 
 /* CSS for section section:MarketPrice */
@@ -461,16 +487,36 @@ function startDateParam() {
   return `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`;
 }
 
+/* "Gabung Komunitas Kami" popup gate: resets on every page load (a refresh
+   shows the popup again) but survives internal navigation — remounting Home
+   within the same page load (e.g. returning from Profil) does not re-show it. */
+let komunitasShownThisLoad = false;
+
 export default function Home() {
   const navigate = useNavigate();
   const [goldPrice, setGoldPrice] = useState(null);
   const [account, setAccount] = useState(null);
+  /* True until GET /api/auth/account-info/ settles — drives the saldo
+     skeleton; both success and failure end it. */
+  const [balanceLoading, setBalanceLoading] = useState(true);
   const [news, setNews] = useState([]);
   const [newsLoading, setNewsLoading] = useState(true);
   const [newsError, setNewsError] = useState('');
-  // Eye toggle on the "Total Aset Emas Kamu" card — always starts visible
+  // Eye toggle on the "Saldo sekarang" card — always starts visible
   // (terbuka) on every visit; each tap masks/unmasks the amounts.
   const [assetVisible, setAssetVisible] = useState(true);
+  /* Today's / yesterday's income for the change line under the balance card
+     (GET /api/auth/balance-statistics/today|yesterday/). */
+  const [todayStats, setTodayStats] = useState(null);
+  const [yesterdayStats, setYesterdayStats] = useState(null);
+  /* "Gabung Komunitas Kami" popup (src/components/PopupKomunitas.jsx) —
+     shows again after every refresh of Home, but only once per page load
+     (see komunitasShownThisLoad above). The X or an overlay tap just
+     hides it. */
+  const [showKomunitas, setShowKomunitas] = useState(!komunitasShownThisLoad);
+  useEffect(() => {
+    komunitasShownThisLoad = true;
+  }, []);
 
   // Live "Harga Emas Hari Ini" — a cached value paints instantly, then the
   // free public sources refresh it in the background (see goldPriceApi.js).
@@ -497,7 +543,25 @@ export default function Home() {
       })
       .catch(() => {
         /* keep the "[Nama Pengguna]" placeholder */
+      })
+      .finally(() => {
+        /* Either way the saldo skeleton stops once the request settles. */
+        if (active) setBalanceLoading(false);
       });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Card change line — today's and yesterday's income for the "(…%)" growth
+  // badge under the balance (same balance-statistics endpoints as Profil).
+  useEffect(() => {
+    let active = true;
+    Promise.allSettled([getBalanceStatistics('today'), getBalanceStatistics('yesterday')]).then(([today, yesterday]) => {
+      if (!active) return;
+      if (today.status === 'fulfilled' && today.value) setTodayStats(today.value);
+      if (yesterday.status === 'fulfilled' && yesterday.value) setYesterdayStats(yesterday.value);
+    });
     return () => {
       active = false;
     };
@@ -564,13 +628,15 @@ export default function Home() {
     };
   }, []);
 
-  // Notification badge — number of new (pending) notifications. Zero pending
-  // means the badge is not rendered at all.
+  // Notification badge — number of new notifications: pending transactions
+  // that came in after the last view of the notif list (notifSeen watermark).
+  // Zero means the badge is not rendered at all.
+  const [seenAt] = useState(getSeenAt);
   const { items: notificationItems } = useTransactionFeed(NOTIFICATION_TYPES, {
     startDate: startDateParam(),
   });
   const newNotificationCount = notificationItems.filter(
-    (trx) => statusKind(trx.status) === 'pending'
+    (trx) => statusKind(trx.status) === 'pending' && isUnseen(trx, seenAt)
   ).length;
 
   const hasLivePrice = Boolean(goldPrice) && Number.isFinite(goldPrice.pricePerGram);
@@ -585,25 +651,50 @@ export default function Home() {
   const greetingTime = hour < 11 ? 'pagi' : hour < 15 ? 'siang' : hour < 19 ? 'sore' : 'malam';
   const displayName =
     (account?.full_name || '').trim() || (account?.username || '').trim() || '[Nama Pengguna]';
-  // Wallet saldo on the "Total Aset Emas Kamu" card — the `balance` field of
-  // GET /api/auth/account-info/ (numeric string in IDR). "—" until it loads.
+  // Wallet saldo on the "Saldo sekarang" card — the `balance` field of
+  // GET /api/auth/account-info/ (numeric string in IDR). While the request
+  // is in flight the card shows a skeleton bar; on failure it falls back
+  // to "—".
   const balanceText = account ? formatIDR(Number(account.balance) || 0) : '—';
+  /* Change line under the balance: today's income in Rupiah plus the percent
+     change of that income against yesterday ("Rp X (Y%)"). The mockup
+     "Rp 0 (0,0%)" stays until both stats requests land. */
+  const incomeToday = todayStats ? Number(todayStats.total_income) || 0 : null;
+  const incomeYesterday = yesterdayStats ? Number(yesterdayStats.total_income) || 0 : null;
+  const incomeChangePercent =
+    incomeToday === null || incomeYesterday === null
+      ? null
+      : incomeYesterday > 0
+        ? ((incomeToday - incomeYesterday) / incomeYesterday) * 100
+        : incomeToday > 0
+          ? 100
+          : 0;
+  /* Same up/down convention as the gold-price trend: the arrow carries the
+     direction, the percent stays absolute. */
+  const incomeTrendUp = incomeChangePercent === null || incomeChangePercent >= 0;
+  const incomeChangeText =
+    incomeToday === null || incomeChangePercent === null
+      ? 'Rp 0 (0,0%)'
+      : `${formatIDR(incomeToday)} (${formatPercentID(Math.abs(incomeChangePercent))})`;
 
   return (
-    <div className="page-home">
+    <div className="page-home" style={{ backgroundImage: `url(${img_23})` }}>
       <style>{styles}</style>
+      {/* Community popup — the X only hides it (default onClose would
+          history.back() and leave Home). */}
+      {showKomunitas && <PopupKomunitas onClose={() => setShowKomunitas(false)} />}
       <div>
               <section id="section-header" className="header-section">
                 <img src={img_1} className="character-img" alt="Mascot" />
                 <div className="header-content">
-                  <p className="greeting">Selamat {greetingTime}, {displayName}!</p>
+                  {/* <p className="greeting">Selamat {greetingTime}, {displayName}!</p> */}
                   <div className="header-main">
                     <img src={img_2} className="brand-logo" alt="Jelajah Emas" />
                     <div className="header-actions">
-                      <button className="icon-btn" onClick={(e) => { e.preventDefault(); navigate('/support/tentang-kami'); }}>
+                      <button className="icon-btn" onClick={(e) => { e.preventDefault(); navigate('/index/support/tentang-kami'); }}>
                         <img src={img_3} alt="Tentang Kami" />
                       </button>
-                      <button className="icon-btn notification-btn" onClick={(e) => { e.preventDefault(); navigate('/profil/notifikasi'); }}>
+                      <button className="icon-btn notification-btn" onClick={(e) => { e.preventDefault(); navigate('/index/profil/notifikasi'); }}>
                         <img src={img_4} alt="Notification" />
                         {newNotificationCount > 0 && <span className="badge">{newNotificationCount}</span>}
                       </button>
@@ -614,14 +705,18 @@ export default function Home() {
               <section id="section-asset" className="asset-section">
                 <div className="asset-card" style={{ backgroundImage: `url(${img_18})` }}>
                   <div className="asset-header">
-                    <span className="asset-label">Total Aset Emas Kamu</span>
-                    <Link to="/assets/aset-saya-01" className="asset-link">
+                    <span className="asset-label">Saldo sekarang</span>
+                    <Link to="/index/assets/aset-saya-01" className="asset-link">
                       Lihat Milik Saya
                       <img src={img_5} alt=">" />
                     </Link>
                   </div>
                   <div className="asset-value-container">
-                    <h2 className="asset-value">{assetVisible ? balanceText : 'Rp ••••••'}</h2>
+                    <h2 className="asset-value">
+                      {balanceLoading
+                        ? <span className="asset-value-skeleton" aria-hidden="true" />
+                        : (assetVisible ? balanceText : 'Rp ••••••')}
+                    </h2>
                     <button
                       className="visibility-btn"
                       aria-label={assetVisible ? 'Sembunyikan nilai aset' : 'Tampilkan nilai aset'}
@@ -631,8 +726,8 @@ export default function Home() {
                     </button>
                   </div>
                   <div className="asset-change">
-                    <img src={img_7} alt="Up" />
-                    <span className="change-text">{assetVisible ? 'Rp 0 (0,0%)' : 'Rp •••••• (•••%)'}</span>
+                    <img src={incomeTrendUp ? img_7 : img_9} alt={incomeTrendUp ? 'Up' : 'Down'} />
+                    <span className={`change-text${incomeTrendUp ? '' : ' is-down'}`}>{assetVisible ? incomeChangeText : 'Rp •••••• (•••%)'}</span>
                   </div>
                 </div>
               </section>
@@ -648,28 +743,28 @@ export default function Home() {
                     <span className={`trend-value${trendUp ? ' positive' : ''}`}>{formatPercentID(Math.abs(changePercent))}</span>
                   </div>
                 </div>
-                <button className="btn-buy" onClick={(e) => { e.preventDefault(); navigate('/assets/emas-digital'); }}>Beli Emas Sekarang</button>
+                <button className="btn-buy" onClick={(e) => { e.preventDefault(); navigate('/index/assets/asset-01'); }}>Beli Emas Sekarang</button>
               </section>
               <section id="section-features" className="features-section">
                 <h3 className="section-title">Fitur Lainnya</h3>
                 <div className="features-grid">
-                  <Link to="/transactions/isi-ulang" className="feature-item">
+                  <Link to="/index/transactions/isi-ulang" className="feature-item">
                     <img src={img_10} alt="Isi Ulang" />
                     <span>Isi Ulang</span>
                   </Link>
-                  <Link to="/assets/cetak-emas-01" className="feature-item">
+                  <Link to="/index/assets/cetak-emas-01" className="feature-item">
                     <img src={img_11} alt="Cetak" />
                     <span>Cetak</span>
                   </Link>
-                  <Link to="/affiliate/tim-afiliasi" className="feature-item">
+                  <Link to="/index/affiliate/tim-afiliasi" className="feature-item">
                     <img src={img_12} alt="Tim/Afiliasi" />
                     <span>Tim/Afiliasi</span>
                   </Link>
-                  <Link to="/transactions/tarik-dana-01" className="feature-item">
+                  <Link to="/index/transactions/tarik-dana-01" className="feature-item">
                     <img src={img_13} alt="Tarik Dana" />
                     <span>Tarik Dana</span>
                   </Link>
-                  <Link to="/transactions/riwayat-transaksi" className="feature-item">
+                  <Link to="/index/transactions/riwayat-transaksi" className="feature-item">
                     <img src={img_14} alt="Riwayat" />
                     <span>Riwayat</span>
                   </Link>
@@ -692,7 +787,7 @@ export default function Home() {
               <section id="section-news" className="news-section">
                 <div className="news-header">
                   <h3 className="section-title">Berita Terbaru</h3>
-                  <Link to="/berita" className="link-all">
+                  <Link to="/index/berita" className="link-all">
                     Lihat Semua
                     <img src={img_15} alt=">" />
                   </Link>
@@ -706,7 +801,7 @@ export default function Home() {
                   {news.map((item) => (
                     <Link
                       key={item.id}
-                      to="/berita/detail"
+                      to="/index/berita/detail"
                       state={{ newsId: item.id }}
                       className="news-card"
                       onClick={() => sessionStorage.setItem('je_news_id', String(item.id))}

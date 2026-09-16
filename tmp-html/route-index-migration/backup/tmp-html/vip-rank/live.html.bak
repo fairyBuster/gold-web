@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VIP-RANK-LIVEAPI-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="vip-live-metrics">pending</pre>
+  <script type="module">
+    /* Live probe: /rewards/vip terhadap API asli (tanpa stub fetch).
+       Expected dihitung dari endpoint yang sama lewat client aplikasi:
+       - getRankStatus() -> hero = current_title (rank yang sudah terpenuhi),
+         label "Menuju next_title", nilai + syarat dari progress_basis.
+       - getRankLevels() -> daftar tingkatan; kartu is_current_rank ber-badge. */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const session = await (await fetch('/e2e-token.json')).json();
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: session.access }));
+    metrics.state.tokenUser = session.user;
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, timeout = 15000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        if (fn()) return true;
+        await sleep(100);
+      }
+      return false;
+    };
+    const fmt = (value) => `Rp${Math.abs(Number(value) || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}`;
+
+    /* Kunci nilai per progress_basis (salinan independen dari logika halaman). */
+    const BASIS_PAIRS = {
+      missions: ['completed_missions', 'next_required_missions'],
+      downlines_total: ['downlines_total', 'next_required_downlines_total'],
+      downlines_active: ['downlines_active', 'next_required_downlines_active'],
+      deposit_self_total: ['deposit_self_total', 'next_required_deposit_self_total'],
+      team_deposit_level_1_total: ['team_deposit_level_1_total', 'next_required_team_deposit_level_1_total'],
+    };
+
+    let expected = null;
+    try {
+      const { getRankStatus, getRankLevels } = await import('/src/lib/authApi.js');
+      const st = await getRankStatus();
+      const levels = await getRankLevels();
+      const pair = BASIS_PAIRS[st?.progress_basis] || null;
+      const value = pair ? Number(st[pair[0]]) || 0 : 0;
+      const required = pair ? Number(st[pair[1]]) || 0 : 0;
+      metrics.state.liveStatus = st;
+      expected = {
+        hero: st?.current_title || st?.next_title || '',
+        label: st?.next_title ? `Menuju ${st.next_title}` : '',
+        amount: `${fmt(value)} / ${fmt(required)}`,
+        width: required > 0 ? `${Math.min(100, Math.round((value / required) * 100))}%` : null,
+        badgeTitle: levels.find((l) => l.is_current_rank)?.title || null,
+        tierCount: levels.length,
+        lockedCount: levels.filter((l) => !l.is_unlocked).length,
+      };
+    } catch (err) {
+      metrics.state.infoError = String(err?.message || err);
+    }
+
+    history.replaceState(null, '', '/rewards/vip');
+    await import('/src/main.jsx');
+
+    /* Tunggu sampai hero memuat rank asli (bukan fallback mockup). */
+    await waitFor(() => {
+      const t = document.querySelector('.page-vip .status-title')?.textContent.trim() || '';
+      return t !== '' && t !== 'Gold Member';
+    });
+    await sleep(200);
+
+    const text = (selector) => document.querySelector(selector)?.textContent.trim() ?? '(missing)';
+    metrics.state.heroTitle = text('.page-vip .status-title');
+    metrics.state.progressLabel = text('.page-vip .progress-label');
+    metrics.state.progressAmount = text('.page-vip .progress-amount');
+    metrics.state.progressWidth = document.querySelector('.page-vip .progress-bar-fill')?.style.width ?? '(missing)';
+
+    const tiers = [...document.querySelectorAll('.page-vip .tier-card')].map((card) => ({
+      title: card.querySelector('.tier-name').textContent.trim(),
+      locked: card.classList.contains('locked'),
+      badge: card.querySelector('.current-level-badge')?.textContent.trim() ?? '',
+    }));
+    metrics.state.tierCount = tiers.length;
+    metrics.state.lockedCount = tiers.filter((t) => t.locked).length;
+    metrics.state.badgeTitles = tiers.filter((t) => t.badge).map((t) => t.title);
+
+    const bodyText = document.querySelector('.page-vip').textContent;
+    metrics.state.mockupLeftovers = ['Gold Member', 'Menuju Platinum', 'Rp3.512.870'].filter((s) => bodyText.includes(s));
+
+    const badgeOk = expected?.badgeTitle == null
+      || JSON.stringify(metrics.state.badgeTitles) === JSON.stringify([expected.badgeTitle]);
+    const passed = expected != null
+      && metrics.state.heroTitle === expected.hero
+      && metrics.state.progressLabel === expected.label
+      && metrics.state.progressAmount === expected.amount
+      && (expected.width == null || metrics.state.progressWidth === expected.width)
+      && metrics.state.tierCount === expected.tierCount
+      && metrics.state.lockedCount === expected.lockedCount
+      && badgeOk
+      && metrics.state.mockupLeftovers.length === 0
+      && metrics.errors.length === 0;
+
+    metrics.state.expected = expected;
+    metrics.allPassed = passed;
+    document.getElementById('vip-live-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'VIP-RANK-LIVEAPI-DONE';
+  </script>
+</body>
+</html>

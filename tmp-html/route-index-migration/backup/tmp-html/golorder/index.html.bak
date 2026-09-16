@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GOLORDER-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="golorder-metrics">pending</pre>
+  <script type="module">
+    /* E2E probe for the Asset-01 golongan ordering:
+       tabs must read Semua → Simpanan → Periode → Spesial (+ unknown last),
+       and the "Semua" list must group cards in that same order while keeping
+       the API feed order (newest-first) inside each category. */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    /* Feed arrives newest-first with the categories shuffled (as the real
+       API does). Within Simpanan the feed order is B → D, Periode A → C,
+       Spesial X → Y; "Bonus" is an unknown category that must land last. */
+    const product = (id, name, golongan) => ({
+      id,
+      name,
+      golongan,
+      price: '100000',
+      profit_type: 'percentage',
+      profit_rate: '5',
+      duration: 24,
+      stock_enabled: false,
+    });
+    const feed = [
+      product(1, 'Rencana Periode A', 'Periode'),
+      product(2, 'Rencana Spesial X', 'Spesial'),
+      product(3, 'Rencana Simpanan B', 'Simpanan'),
+      product(4, 'Rencana Bonus Z', 'Bonus'),
+      product(5, 'Rencana Periode C', 'Periode'),
+      product(6, 'Rencana Simpanan D', 'Simpanan'),
+      product(7, 'Rencana Spesial Y', 'Spesial'),
+    ];
+
+    const json = (data, status = 200) => new Response(JSON.stringify(data), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    window.fetch = (url) => {
+      const target = String(url);
+      if (target.includes('/api/products/')) return Promise.resolve(json({ count: feed.length, results: feed }));
+      return Promise.resolve(json({}, 404));
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const writeMetrics = (passed) => {
+      metrics.allPassed = passed;
+      document.getElementById('golorder-metrics').textContent = JSON.stringify(metrics, null, 2);
+      document.title = 'GOLORDER-DONE';
+    };
+    const waitFor = async (selector, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+    const textList = (selector) => [...document.querySelectorAll(selector)].map((el) => el.textContent.trim());
+    const clickTab = async (label) => {
+      const button = [...document.querySelectorAll('.page-asset-01 .tab')].find((b) => b.textContent.trim() === label);
+      button?.click();
+      await sleep(200);
+    };
+
+    history.replaceState(null, '', '/assets/asset-01');
+    await import('/src/main.jsx');
+
+    await waitFor('.page-asset-01 .program-card');
+    metrics.state.tabs = textList('.page-asset-01 .tab');
+    metrics.state.semuaOrder = textList('.page-asset-01 .program-card .product-name');
+
+    await clickTab('Periode');
+    metrics.state.periodeOrder = textList('.page-asset-01 .program-card .product-name');
+    await clickTab('Simpanan');
+    metrics.state.simpananOrder = textList('.page-asset-01 .program-card .product-name');
+    await clickTab('Spesial');
+    metrics.state.spesialOrder = textList('.page-asset-01 .program-card .product-name');
+    await clickTab('Semua');
+    metrics.state.backToSemuaCount = document.querySelectorAll('.page-asset-01 .program-card').length;
+
+    const eq = (list, expected) => JSON.stringify(list) === JSON.stringify(expected);
+    const passed = eq(metrics.state.tabs, ['Semua', 'Simpanan', 'Periode', 'Spesial', 'Bonus'])
+      && eq(metrics.state.semuaOrder, [
+        'Rencana Simpanan B', 'Rencana Simpanan D',
+        'Rencana Periode A', 'Rencana Periode C',
+        'Rencana Spesial X', 'Rencana Spesial Y',
+        'Rencana Bonus Z',
+      ])
+      && eq(metrics.state.periodeOrder, ['Rencana Periode A', 'Rencana Periode C'])
+      && eq(metrics.state.simpananOrder, ['Rencana Simpanan B', 'Rencana Simpanan D'])
+      && eq(metrics.state.spesialOrder, ['Rencana Spesial X', 'Rencana Spesial Y'])
+      && metrics.state.backToSemuaCount === 7
+      && metrics.errors.length === 0;
+    writeMetrics(passed);
+  </script>
+</body>
+</html>

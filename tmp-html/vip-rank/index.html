@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VIP-RANK-RUNNING</title>
+  <style>#vip-metrics { display: none; }</style>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="vip-metrics">pending</pre>
+  <script type="module">
+    /* Stub E2E untuk wiring rank-status di halaman VIP:
+       - Hero menampilkan rank yang SUDAH terpenuhi dari current_title
+         ("Silver"), bukan judul mockup / rank-levels.
+       - Progress "Menuju Gold" memakai deposit_self_total 900.000 vs syarat
+         next_required_deposit_self_total 1.400.000 (basis dari progress_basis)
+         -> "Rp900.000 / Rp1.400.000" dan bar 64%.
+       - Daftar tingkatan tetap dari rank-levels: kartu Silver aktif + badge
+         "Level Kamu", Gold/Platinum/Diamond terkunci.
+       - Semua angka mockup (Gold Member / Menuju Platinum / Rp3.512.870)
+         hilang setelah data live tampil. */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const json = (data, status = 200) => new Response(JSON.stringify(data), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const level = (rank, title, deposit, extra = {}) => ({
+      rank,
+      title,
+      description: `Total aset isi ulang Rp ${deposit === 0 ? 0 : deposit.toLocaleString('id-ID')}`,
+      missions_required_total: 0,
+      downlines_total_required: 0,
+      downlines_active_required: 0,
+      deposit_self_total_required: `${deposit}.00`,
+      team_deposit_level_1_total_required: '0.00',
+      is_current_rank: false,
+      is_unlocked: false,
+      user_progress_val: 900000,
+      ...extra,
+    });
+
+    const LEVELS = [
+      level(1, 'Non VIP', 0, { is_unlocked: true }),
+      level(2, 'Bronze', 50000, { is_unlocked: true }),
+      level(3, 'Silver', 350000, { is_current_rank: true, is_unlocked: true }),
+      level(4, 'Gold', 1400000),
+      level(5, 'Platinum', 2500000),
+      level(6, 'Diamond', 5000000),
+    ];
+
+    const STATUS = {
+      current_rank: 3,
+      current_title: 'Silver',
+      completed_missions: 0,
+      downlines_total: 0,
+      downlines_active: 0,
+      deposit_self_total: '900000.00',
+      team_deposit_level_1_total: '0.00',
+      next_rank: 4,
+      next_title: 'Gold',
+      next_required_missions: 0,
+      next_required_downlines_total: 0,
+      next_required_downlines_active: 0,
+      next_required_deposit_self_total: '1400000.00',
+      next_required_team_deposit_level_1_total: '0.00',
+      progress_basis: 'deposit_self_total',
+    };
+
+    window.fetch = (url) => {
+      const target = String(url);
+      if (target.includes('/api/auth/rank-status/')) return Promise.resolve(json(STATUS));
+      if (target.includes('/api/auth/rank-levels/')) return Promise.resolve(json(LEVELS));
+      return Promise.resolve(json({}, 404));
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitForText = async (selector, expected, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el && el.textContent.trim() === expected) return true;
+        await sleep(50);
+      }
+      return false;
+    };
+
+    history.replaceState(null, '', '/index/rewards/vip');
+    await import('/src/main.jsx');
+
+    await waitForText('.page-vip .status-title', 'Silver');
+    await sleep(200);
+
+    const text = (selector) => document.querySelector(selector)?.textContent.trim() ?? '(missing)';
+    metrics.state.heroTitle = text('.page-vip .status-title');
+    metrics.state.progressLabel = text('.page-vip .progress-label');
+    metrics.state.progressAmount = text('.page-vip .progress-amount');
+    metrics.state.progressWidth = document.querySelector('.page-vip .progress-bar-fill')?.style.width ?? '(missing)';
+
+    const tiers = [...document.querySelectorAll('.page-vip .tier-card')].map((card) => ({
+      title: card.querySelector('.tier-name').textContent.trim(),
+      active: card.classList.contains('active'),
+      locked: card.classList.contains('locked'),
+      badge: card.querySelector('.current-level-badge')?.textContent.trim() ?? '',
+    }));
+    metrics.state.tierCount = tiers.length;
+    metrics.state.activeTitle = tiers.find((t) => t.active)?.title ?? '(none)';
+    metrics.state.badgeTitles = tiers.filter((t) => t.badge).map((t) => t.title);
+    metrics.state.lockedTitles = tiers.filter((t) => t.locked).map((t) => t.title);
+
+    const bodyText = document.querySelector('.page-vip').textContent;
+    metrics.state.mockupLeftovers = ['Gold Member', 'Menuju Platinum', 'Rp3.512.870'].filter((s) => bodyText.includes(s));
+
+    const passed = metrics.state.heroTitle === 'Silver'
+      && metrics.state.progressLabel === 'Menuju Gold'
+      && metrics.state.progressAmount === 'Rp900.000 / Rp1.400.000'
+      && metrics.state.progressWidth === '64%'
+      && metrics.state.tierCount === 6
+      && metrics.state.activeTitle === 'Silver'
+      && JSON.stringify(metrics.state.badgeTitles) === JSON.stringify(['Silver'])
+      && JSON.stringify(metrics.state.lockedTitles) === JSON.stringify(['Gold', 'Platinum', 'Diamond'])
+      && metrics.state.mockupLeftovers.length === 0
+      && metrics.errors.length === 0;
+
+    metrics.allPassed = passed;
+    document.getElementById('vip-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'VIP-RANK-DONE';
+  </script>
+</body>
+</html>

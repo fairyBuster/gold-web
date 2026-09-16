@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ASSET-TOTAL-RUNNING</title>
+  <style>#at-metrics { display: none; }</style>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="at-metrics">pending</pre>
+  <script type="module">
+    /* Stub E2E untuk kartu "Total Aset Emas Kamu" (aset/asset-01):
+       - Selagi GET /api/gold/info/ belum selesai: dua bar skeleton shimmer
+         (asset01-gold-shimmer), bukan angka dummy.
+       - Setelah data: gram = balance_hold / price_per_gram (3.437.500 /
+         2.500.000 -> "1,375 gram") dan fiat = balance_hold ("≈ Rp3.437.500").
+       - Dummy lama ("1,367" / "Rp3.512.870") hilang dari halaman.
+       Respons gold info di-gate supaya skeleton bisa dipastikan tampil dulu,
+       baru dilepas dari harness. */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const json = (data, status = 200) => new Response(JSON.stringify(data), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    let releaseGoldInfo;
+    const goldInfoGate = new Promise((resolve) => { releaseGoldInfo = resolve; });
+    window.fetch = (url) => {
+      const target = String(url);
+      if (target.includes('/api/gold/info/')) {
+        return goldInfoGate.then(() => json({
+          price_per_gram: '2500000.00',
+          balance_hold: '3437500.00',
+          balance_deposit: '120000.00',
+        }));
+      }
+      return Promise.resolve(json({}, 404));
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        if (fn()) return true;
+        await sleep(50);
+      }
+      return false;
+    };
+
+    history.replaceState(null, '', '/index/assets/asset-01');
+    await import('/src/main.jsx');
+
+    /* Fase loading: kedua bar skeleton harus tampil (respons masih di-gate). */
+    const skeletonSeen = await waitFor(() =>
+      document.querySelector('.page-asset-01 .asset-value-skeleton')
+      && document.querySelector('.page-asset-01 .asset-fiat-skeleton'));
+    metrics.state.skeletonDuringLoad = skeletonSeen;
+    metrics.state.skeletonAnimation = document.querySelector('.page-asset-01 .asset-value-skeleton')
+      ? getComputedStyle(document.querySelector('.page-asset-01 .asset-value-skeleton')).animationName
+      : '(missing)';
+
+    releaseGoldInfo();
+    await waitFor(() =>
+      document.querySelector('.page-asset-01 .asset-value')?.textContent.trim() === '1,375 gram');
+    await sleep(200);
+
+    const text = (selector) => document.querySelector(selector)?.textContent.trim() ?? '(missing)';
+    metrics.state.assetValue = text('.page-asset-01 .asset-value');
+    metrics.state.assetFiat = text('.page-asset-01 .asset-fiat');
+    metrics.state.skeletonGone = !document.querySelector('.page-asset-01 .asset-value-skeleton')
+      && !document.querySelector('.page-asset-01 .asset-fiat-skeleton');
+
+    const bodyText = document.querySelector('.page-asset-01').textContent;
+    metrics.state.dummyLeftovers = ['1,367', 'Rp3.512.870'].filter((s) => bodyText.includes(s));
+
+    const passed = metrics.state.skeletonDuringLoad === true
+      && metrics.state.skeletonAnimation === 'asset01-gold-shimmer'
+      && metrics.state.assetValue === '1,375 gram'
+      && metrics.state.assetFiat === '≈ Rp3.437.500'
+      && metrics.state.skeletonGone === true
+      && metrics.state.dummyLeftovers.length === 0
+      && metrics.errors.length === 0;
+
+    metrics.allPassed = passed;
+    document.getElementById('at-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'ASSET-TOTAL-DONE';
+  </script>
+</body>
+</html>

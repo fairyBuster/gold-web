@@ -160,8 +160,8 @@ const styles = `
 
 const DEFAULT_ROWS = [
   { label: 'Jenis', value: 'Nama Produk' },
-  { label: 'Pembagian', value: 'Rp2.000' },
-  { label: 'Frekuensi', value: 'Siklus' },
+  { label: 'Pembagian manfaat', value: 'Rp2.000' },
+  // { label: 'Frekuensi', value: 'Siklus' },
   { label: 'Sumber Dana', value: 'Saldo JelajahEmas' },
 ];
 
@@ -178,7 +178,7 @@ export default function ModalKonfirmasi({
   rows = DEFAULT_ROWS,
   totalLabel = 'Estimasi Biaya',
   totalValue = 'Rp392.300',
-  disclaimer = 'Dengan menekan Aktifkan, saldo kamu akan otomatis terpotong sesuai jadwal di atas sampai rencana ini dijeda atau dihentikan.',
+  disclaimer = 'Dengan menekan aktifkan, Anda menyetujui partisipasi rencana ini secara sadar sesuai dengan ketentuan yang berlaku',
   cancelLabel = 'Batal',
   confirmLabel = 'Aktifkan',
   busy = false,
@@ -199,7 +199,7 @@ export default function ModalKonfirmasi({
     e.preventDefault();
     if (busy) return;
     if (onConfirm) onConfirm();
-    else navigate('/assets/aset-saya-01');
+    else navigate('/index/assets/aset-saya-01');
   };
 
   return (

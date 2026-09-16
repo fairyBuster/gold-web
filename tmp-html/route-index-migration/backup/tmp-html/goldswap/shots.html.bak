@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GOLDSWAP-SHOTS</title>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module">
+    /* Screenshot harness for the Tukar Emas flow — stubs the backend with the
+       task-spec values and cold-loads a step. Usage: ?screen=1|2|3 */
+    const screen = new URLSearchParams(location.search).get('screen') || '1';
+
+    const info = {
+      is_active: true,
+      price_available: true,
+      price_per_gram: '2436835.76',
+      price_source: 'live',
+      price_updated_at: '2026-09-15T19:50:11.837276',
+      price_usd_per_oz: '4291.70',
+      usd_idr_rate: '17660.6149',
+      printing_fee_per_gram: '20000.00',
+      shipping_cost: '15000.00',
+      balance_hold: '2000000.00',
+      balance_deposit: '100000.00',
+    };
+    const address = {
+      id: 12,
+      recipient_name: 'Budi Santoso',
+      phone_number: '081234567890',
+      address_details: 'Jl. Merdeka No. 10, RT 01/RW 02, Jakarta Pusat',
+      house_number: '10',
+      is_primary: true,
+    };
+    const order = {
+      id: 5,
+      status: 'PENDING',
+      gram: '0.5000',
+      price_per_gram: '2436835.76',
+      gold_value: '1218417.88',
+      printing_fee: '10000.00',
+      shipping_cost: '15000.00',
+      total_fee: '25000.00',
+      recipient_name: 'Budi Santoso',
+      phone_number: '081234567890',
+      address_details: 'Jl. Merdeka No. 10, RT 01/RW 02, Jakarta Pusat',
+      house_number: '10',
+      tracking_number: '',
+      transaction_id: 'SWP-20260915201234-A1B2C3',
+      fee_transaction_id: 'SWF-20260915201234-D4E5F6',
+      refunded_at: null,
+      created_at: '2026-09-15T20:12:34.567890',
+      updated_at: '2026-09-15T20:12:34.567890',
+    };
+    const json = (data, status = 200) => new Response(JSON.stringify(data), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    window.fetch = (url) => {
+      const target = String(url);
+      if (target.includes('/api/gold/info/')) return Promise.resolve(json(info));
+      if (target.includes('/api/auth/address/')) return Promise.resolve(json({ count: 1, next: null, previous: null, results: [address] }));
+      if (target.includes('/api/gold/swap/')) return Promise.resolve(json({ message: 'ok', order, price_per_gram: '2436835.76', price_source: 'live', balance_hold: '781582.12', balance_deposit: '75000.00' }, 201));
+      return Promise.resolve(json({}, 404));
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+    if (screen === '2') {
+      window.sessionStorage.setItem('je_gold_swap_gram', '0.5');
+    }
+    if (screen === '3') {
+      window.sessionStorage.setItem('je_gold_order', JSON.stringify({ order }));
+    }
+    history.replaceState(null, '', screen === '1' ? '/assets/cetak-emas-01' : screen === '2' ? '/assets/cetak-emas-02' : '/assets/cetak-emas-03');
+    await import('/src/main.jsx');
+  </script>
+</body>
+</html>

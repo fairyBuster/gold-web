@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PHONE-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="phone-metrics">pending</pre>
+  <script type="module">
+    /* E2E: verifies the LupaPassword step-1 phone field rule.
+       - Displayed value auto-normalizes to a local "08..." number while typing
+         (short form "8...", international paste "+62 8...", "07..." -> "087...").
+       - The typed "08..." sequence is not disturbed (no "088" double-8).
+       - The API payload stays +62 form: POST request-otp-registered { phone: "6281..." }. */
+    const metrics = { errors: [], probes: {}, fetchCalls: [] };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    /* Stub fetch BEFORE the app loads: record every call, answer 200 {}. */
+    window.fetch = async (url, init = {}) => {
+      metrics.fetchCalls.push({
+        url: String(url),
+        body: typeof init.body === 'string' ? init.body : null,
+      });
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    };
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const writeMetrics = () => {
+      document.getElementById('phone-metrics').textContent = JSON.stringify(metrics, null, 2);
+      document.title = 'PHONE-DONE ' + JSON.stringify(metrics);
+    };
+
+    /* Fake session in case any layer expects tokens (public route, stub 200s). */
+    localStorage.setItem('je_auth_session', JSON.stringify({ access: 'fake-access', refresh: 'fake-refresh' }));
+    history.replaceState(null, '', '/index/auth/lupa-password');
+
+    await import('/src/main.jsx');
+
+    const waitFor = async (selector, timeout = 5000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+
+    const input = await waitFor('.page-lupa-password #phone-input');
+    metrics.pageRendered = !!input;
+    if (!input) { writeMetrics(); throw new Error('page not rendered'); }
+    await sleep(100);
+
+    /* React controlled input: use the native value setter + input event so
+       onChange fires exactly like a real keystroke/paste of that text. */
+    const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    const feed = async (raw) => {
+      nativeSet.call(input, raw);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      await sleep(80);
+      return input.value;
+    };
+
+    /* ---- Normalization probes ---- */
+    metrics.probes.shortFormTyping = await feed('8123456789');      // typed without leading 0/8 prefix
+    metrics.probes.validLocal = await feed('08123456789');          // already correct
+    metrics.probes.internationalPaste = await feed('+62 812-3456-789'); // pasted +62 with separators
+    metrics.probes.loneZero = await feed('0');                      // mid-typing: first keystroke stays "0"
+    metrics.probes.zeroThenEight = await feed('08');                // "0" + "8" must NOT become "088"
+    metrics.probes.sevenForm = await feed('07');                    // "07..." -> "087..."
+    metrics.probes.leadingEight = await feed('8');                  // first keystroke "8" -> "08"
+    metrics.probes.empty = await feed('');                          // cleared stays empty
+
+    /* ---- Submit with a valid local number → API payload must be 62-form ---- */
+    metrics.finalDisplay = await feed('08123456789');
+    await sleep(80);
+    document.querySelector('.page-lupa-password .submit-btn')?.click();
+    await sleep(700);
+
+    const apiCall = metrics.fetchCalls.find((c) => c.url.includes('request-otp-registered'));
+    metrics.apiCalled = !!apiCall;
+    if (apiCall) {
+      try {
+        metrics.apiPayload = JSON.parse(apiCall.body);
+      } catch {
+        metrics.apiPayload = apiCall.body;
+      }
+    }
+    metrics.pathAfterSubmit = location.pathname;
+    metrics.overlayShownOnSuccess = !!document.querySelector('.notif-overlay');
+
+    writeMetrics();
+  </script>
+</body>
+</html>

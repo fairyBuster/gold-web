@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>HubungiCs probe — kartu channel → support links API (id 11, 13 & 12)</title>
+</head>
+<body>
+<div id="root"></div>
+<pre id="hubungics-metrics">pending</pre>
+<script type="module">
+  /* Probe HubungiCs (route /index/support/hubungi-cs):
+     - case=loaded   : GET /api/support/links/ sukses → kartu Call Center &
+                       CS Jelajah href = url entri id 11 (https://t.me/jelajahemas),
+                       Saluran Komunitas = id 13 (https://t.me/jelajahemasindonesia),
+                       WhatsApp = id 12 (https://whatsapp.com/channel/0029VbDLjWgGpLHMw51xCe2l);
+                       kartu Email tetap '#' dan Live Chat tetap Link internal.
+     - case=missing  : results tanpa id 11, 12 & 13 → ketiga href tetap '#'.
+     - case=inactive : id 11, 12 & 13 ada tapi is_active=false → tetap '#'.
+     - case=error    : request gagal → ketiga href tetap '#'. */
+  const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+  const probeCase = new URLSearchParams(location.search).get('case') || 'loaded';
+
+  const encodeSalted = (obj) => {
+    const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+    return { data: [...(base64 + SALT)].reverse().join('') };
+  };
+  const json = (obj) => Promise.resolve(new Response(JSON.stringify(encodeSalted(obj)), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+
+  const LINKS = {
+    count: 3, next: null, previous: null, root_parent_phone: null,
+    results: [
+      { id: 13, title: 'Saluran Telegram', url: 'https://t.me/jelajahemasindonesia', platform: 'telegram', description: '', icon: null, is_active: true },
+      { id: 12, title: 'Saluran WhatsApp', url: 'https://whatsapp.com/channel/0029VbDLjWgGpLHMw51xCe2l', platform: 'whatsapp', description: '', icon: null, is_active: true },
+      { id: 11, title: 'Layanan Bantuan', url: 'https://t.me/jelajahemas', platform: 'other', description: '', icon: null, is_active: true },
+    ],
+  };
+  const WIRED_IDS = [11, 13, 12];
+  if (probeCase === 'missing') LINKS.results = LINKS.results.filter((item) => !WIRED_IDS.includes(item.id));
+  if (probeCase === 'inactive') LINKS.results = LINKS.results.map((item) => (WIRED_IDS.includes(item.id) ? { ...item, is_active: false } : item));
+
+  window.fetch = (input) => {
+    const url = typeof input === 'string' ? input : input.url;
+    if (url.includes('/api/support/links/')) {
+      if (probeCase === 'error') return Promise.reject(new Error('probe: network down'));
+      return json(LINKS);
+    }
+    return json({});
+  };
+
+  localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+  history.replaceState(null, '', '/index/support/hubungi-cs');
+
+  const metrics = { probeCase, steps: [] };
+  const write = () => { document.getElementById('hubungics-metrics').textContent = JSON.stringify(metrics, null, 2); };
+  const waitFor = async (fn, timeout = 15000, step = 200) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      try { if (fn()) return true; } catch { /* belum siap */ }
+      await new Promise((r) => setTimeout(r, step));
+    }
+    return false;
+  };
+
+  try {
+    await import('/src/main.jsx');
+
+    const snapshot = () => {
+      const cards = [...document.querySelectorAll('.page-hubungi-cs .channel-card')];
+      const call = cards.find((a) => a.querySelector('h4')?.textContent === 'Call Center') || null;
+      const live = cards.find((a) => a.querySelector('h4')?.textContent === 'Live Chat di Aplikasi') || null;
+      const community = cards.find((a) => a.querySelector('h4')?.textContent === 'Saluran Komunitas') || null;
+      const whatsapp = cards.find((a) => a.querySelector('h4')?.textContent === 'WhatsApp') || null;
+      const csJelajah = cards.find((a) => a.querySelector('h4')?.textContent === 'CS Jelajah') || null;
+      const email = cards.find((a) => a.querySelector('h4')?.textContent === 'Email') || null;
+      return {
+        pagePresent: !!document.querySelector('.page-hubungi-cs'),
+        cardCount: cards.length,
+        callHref: call?.getAttribute('href') ?? null,
+        callTitle: call?.querySelector('h4')?.textContent ?? null,
+        callSubtitle: call?.querySelector('p')?.textContent ?? null,
+        communityHref: community?.getAttribute('href') ?? null,
+        whatsAppHref: whatsapp?.getAttribute('href') ?? null,
+        csJelajahHref: csJelajah?.getAttribute('href') ?? null,
+        emailHref: email?.getAttribute('href') ?? null,
+        liveChatHref: live?.getAttribute('href') ?? null,
+      };
+    };
+
+    const pageReady = await waitFor(() => snapshot().pagePresent);
+    metrics.steps.push(['halaman tampil', pageReady]);
+
+    if (probeCase === 'loaded') {
+      const hrefsSet = await waitFor(() =>
+        snapshot().callHref === 'https://t.me/jelajahemas' &&
+        snapshot().csJelajahHref === 'https://t.me/jelajahemas' &&
+        snapshot().communityHref === 'https://t.me/jelajahemasindonesia' &&
+        snapshot().whatsAppHref === 'https://whatsapp.com/channel/0029VbDLjWgGpLHMw51xCe2l');
+      metrics.steps.push(['href id 11 (2 kartu), 13 & 12 terpasang', hrefsSet]);
+      const snap = snapshot();
+      metrics.rendered = snap;
+      metrics.allPassed = pageReady && hrefsSet &&
+        snap.cardCount === 6 &&
+        snap.callHref === 'https://t.me/jelajahemas' &&
+        snap.csJelajahHref === 'https://t.me/jelajahemas' &&
+        snap.callTitle === 'Call Center' &&
+        snap.callSubtitle === 'Tarif sesuai operator' &&
+        snap.communityHref === 'https://t.me/jelajahemasindonesia' &&
+        snap.whatsAppHref === 'https://whatsapp.com/channel/0029VbDLjWgGpLHMw51xCe2l' &&
+        snap.emailHref === '#' &&
+        snap.liveChatHref === '/index/support/livechat';
+    } else {
+      await new Promise((r) => setTimeout(r, 1200)); /* beri waktu fetch settle */
+      const snap = snapshot();
+      metrics.rendered = snap;
+      metrics.allPassed = pageReady && snap.cardCount === 6 &&
+        snap.callHref === '#' && snap.csJelajahHref === '#' &&
+        snap.communityHref === '#' && snap.whatsAppHref === '#';
+    }
+  } catch (error) {
+    metrics.error = String(error);
+    metrics.allPassed = false;
+  }
+
+  write();
+</script>
+</body>
+</html>

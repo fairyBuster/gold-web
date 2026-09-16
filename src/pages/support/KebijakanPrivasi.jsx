@@ -368,7 +368,7 @@ export default function KebijakanPrivasi() {
                     </div>
                     <p>Apabila Anda memiliki pertanyaan, pengaduan, atau permintaan terkait data pribadi, silakan menghubungi:</p>
                     <p>Pengelola: PT JELAJAH EMAS DIGITAL INDONESIA</p>
-                    <p>Email: cs@jelajahemas.co.id</p>
+                    <p>Email: cs@jelajahemas.com</p>
                     <p>Kami akan meninjau dan menanggapi permintaan Anda sesuai dengan ketentuan hukum yang berlaku.</p>
                   </div>
                 </div>

@@ -38,7 +38,7 @@ import S4_img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17
    (POST /api/auth/change-password-otp/). */
 import { requestOtpRegistered, changePasswordOtp } from '../../../lib/authApi.js';
 import * as lupaPasswordFlow from '../../../lib/lupaPasswordFlow.js';
-import NotifCard from '../../../components/NotifCard.jsx';
+import { useShowNotif } from '../../../lib/useShowNotif.js';
 
 
 /* ================= Step 1 — /auth/lupa-password (was LupaPassword.jsx) ================= */
@@ -207,42 +207,45 @@ const LupaPassword01Styles = `
   opacity: 0.7;
   cursor: default;
 }
-.page-lupa-password .form-error {
-  color: #e24c4c;
-  font-size: 12px;
-  line-height: 1.4;
-  margin: 0 0 12px 0;
-}
-.page-lupa-password .notif-margin {
-  margin-bottom: 12px;
-}
 `;
+
+/* Field rule for the phone input: the displayed value must always read as a
+   local "08..." number — users may type the short form ("8...") or paste the
+   international form ("+62 8...", "62 8..."), and it is normalized on every
+   change. The API payload is unchanged: handleSubmit still builds `62${digits}`. */
+const normalizePhoneInput = (raw) => {
+  let digits = String(raw || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('62')) digits = digits.slice(2);
+  if (!digits.startsWith('0')) digits = `0${digits}`;
+  // Force the mobile prefix once a second digit exists ("07..." -> "087...").
+  // A lone "0" is left as-is so typing the natural "08..." sequence is not
+  // disturbed (otherwise the user's "8" after "0" would build "088").
+  if (digits.length >= 2 && digits[1] !== '8') digits = `08${digits.slice(1)}`;
+  return digits;
+};
 
 function LupaPassword01() {
   const navigate = useNavigate();
-  const [phone, setPhone] = useState((lupaPasswordFlow.get().phone || '').replace(/^62/, ''));
+  const showNotif = useShowNotif();
+  const [phone, setPhone] = useState(normalizePhoneInput(lupaPasswordFlow.get().phone || ''));
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [apiError, setApiError] = useState('');
 
   const handleSubmit = async () => {
     if (loading) return;
     const digits = phone.replace(/\D/g, '').replace(/^0+/, '');
     if (digits.length < 9 || digits.length > 13) {
-      setApiError('');
-      setError('Masukkan nomor ponsel yang valid.');
+      showNotif({ title: 'Lengkapi Data', description: 'Masukkan nomor ponsel yang valid.' });
       return;
     }
-    setError('');
-    setApiError('');
     setLoading(true);
     try {
       const normalized = `62${digits}`;
       await requestOtpRegistered({ phone: normalized });
       lupaPasswordFlow.save({ phone: normalized });
-      navigate('/auth/lupa-password-02');
+      navigate('/index/auth/lupa-password-02');
     } catch (err) {
-      setApiError(err?.message || 'Kode verifikasi gagal dikirim. Periksa koneksi lalu coba lagi.');
+      showNotif({ title: 'Kode Gagal Terkirim', description: err?.message || 'Kode verifikasi gagal dikirim. Periksa koneksi lalu coba lagi.' });
       setLoading(false);
     }
   };
@@ -285,19 +288,13 @@ function LupaPassword01() {
                       className="input-field"
                       value={phone}
                       disabled={loading}
-                      onChange={(e) => { setPhone(e.target.value); setError(''); setApiError(''); }}
+                      onChange={(e) => setPhone(normalizePhoneInput(e.target.value))}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(); } }}
                     />
                   </div>
                 </div>
               </section>
               <section id="section-footer" className="footer-section">
-                {error && <p className="form-error">{error}</p>}
-                {apiError && (
-                  <div className="notif-margin">
-                    <NotifCard variant="error" title="Kode Gagal Terkirim" description={apiError} onClose={() => setApiError('')} />
-                  </div>
-                )}
                 <button className="submit-btn" disabled={loading} onClick={(e) => { e.preventDefault(); handleSubmit(); }}>{loading ? 'Mengirim...' : 'Kirim Kode Verifikasi'}</button>
               </section>
             </div>
@@ -481,23 +478,12 @@ const LupaPassword02Styles = `
   cursor: default;
   font-weight: 600;
 }
-.page-lupa-password-02 .form-error {
-  color: #e24c4c;
-  font-size: 12px;
-  line-height: 1.4;
-  margin: 0 0 16px 0;
-  text-align: center;
-}
-.page-lupa-password-02 .notice-margin {
-  margin: 0 0 16px 0;
-}
 `;
 
 function LupaPassword02() {
   const navigate = useNavigate();
+  const showNotif = useShowNotif();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState(null);
   const [secondsLeft, setSecondsLeft] = useState(59);
   const [resending, setResending] = useState(false);
   const otpRefs = useRef([]);
@@ -511,7 +497,7 @@ function LupaPassword02() {
   // Direct visits / refreshes have no phone number. Restart from step 1.
   useEffect(() => {
     if (!lupaPasswordFlow.get().phone) {
-      navigate('/auth/lupa-password', { replace: true });
+      navigate('/index/auth/lupa-password', { replace: true });
     }
   }, [navigate]);
 
@@ -529,7 +515,6 @@ function LupaPassword02() {
       next[index] = digit;
       return next;
     });
-    setError('');
     if (digit && index < 5) otpRefs.current[index + 1]?.focus();
   };
 
@@ -542,29 +527,26 @@ function LupaPassword02() {
   const handleVerify = () => {
     const code = otp.join('');
     if (code.length !== 6) {
-      setError('Masukkan 6 digit kode verifikasi.');
+      showNotif({ title: 'Kode Belum Lengkap', description: 'Masukkan 6 digit kode verifikasi.' });
       return;
     }
-    setError('');
     lupaPasswordFlow.save({ otp: code });
-    navigate('/auth/lupa-password-03');
+    navigate('/index/auth/lupa-password-03');
   };
 
   const handleResend = async () => {
     if (resending || secondsLeft > 0) return;
     setResending(true);
-    setNotice(null);
     try {
       await requestOtpRegistered({ phone: lupaPasswordFlow.get().phone });
       setSecondsLeft(59);
-      setNotice({
+      showNotif({
         variant: 'success',
         title: 'Kode Terkirim',
         description: 'Kode verifikasi baru telah dikirim ke WhatsApp kamu.',
       });
     } catch (err) {
-      setNotice({
-        variant: 'error',
+      showNotif({
         title: 'Gagal Kirim Ulang',
         description: err?.message || 'Kode verifikasi gagal dikirim ulang. Silakan coba lagi.',
       });
@@ -608,7 +590,6 @@ function LupaPassword02() {
                     />
                   ))}
                 </div>
-                {error && <p className="form-error">{error}</p>}
                 <p className="resend-text">Tidak menerima kode?{' '}
                   {secondsLeft > 0 ? (
                     <span className="resend-link disabled">Kirim Ulang (00:{String(secondsLeft).padStart(2, '0')})</span>
@@ -616,11 +597,6 @@ function LupaPassword02() {
                     <span className="resend-link" role="button" tabIndex={0} onClick={handleResend} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleResend(); } }}>{resending ? 'Mengirim...' : 'Kirim Ulang'}</span>
                   )}
                 </p>
-                {notice && (
-                  <div className="notice-margin">
-                    <NotifCard variant={notice.variant} title={notice.title} description={notice.description} onClose={() => setNotice(null)} />
-                  </div>
-                )}
                 <div className="spacer" />
                 <button className="verify-btn" onClick={(e) => { e.preventDefault(); handleVerify(); }}>Verifikasi</button>
               </main>
@@ -849,19 +825,11 @@ const LupaPassword03Styles = `
   opacity: 0.7;
   cursor: default;
 }
-.page-lupa-password-03 .form-error {
-  color: #e24c4c;
-  font-size: 12px;
-  line-height: 1.4;
-  margin: 12px 0 0 0;
-}
-.page-lupa-password-03 .notice-margin {
-  margin-top: 16px;
-}
 `;
 
 function LupaPassword03() {
   const navigate = useNavigate();
+  const showNotif = useShowNotif();
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -869,41 +837,33 @@ function LupaPassword03() {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [apiError, setApiError] = useState('');
 
   // Direct visits / refreshes have no verified OTP. Restart from step 1.
   useEffect(() => {
     const flowData = lupaPasswordFlow.get();
     if (!flowData.phone || !flowData.otp) {
-      navigate('/auth/lupa-password', { replace: true });
+      navigate('/index/auth/lupa-password', { replace: true });
     }
   }, [navigate]);
 
   const handleSubmit = async () => {
     if (loading) return;
     if (!oldPassword) {
-      setApiError('');
-      setError('Masukkan password lama kamu.');
+      showNotif({ title: 'Password Tidak Sesuai', description: 'Masukkan password lama kamu.' });
       return;
     }
     if (newPassword.length < 6) {
-      setApiError('');
-      setError('Password baru minimal 6 karakter.');
+      showNotif({ title: 'Password Tidak Sesuai', description: 'Password baru minimal 6 karakter.' });
       return;
     }
     if (!/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
-      setApiError('');
-      setError('Password baru harus kombinasi huruf & angka.');
+      showNotif({ title: 'Password Tidak Sesuai', description: 'Password baru harus kombinasi huruf & angka.' });
       return;
     }
     if (newPassword !== confirmPassword) {
-      setApiError('');
-      setError('Konfirmasi password tidak sama.');
+      showNotif({ title: 'Password Tidak Sesuai', description: 'Konfirmasi password tidak sama.' });
       return;
     }
-    setError('');
-    setApiError('');
     setLoading(true);
     try {
       const flowData = lupaPasswordFlow.get();
@@ -915,9 +875,9 @@ function LupaPassword03() {
         otp: flowData.otp,
       });
       lupaPasswordFlow.clear();
-      navigate('/auth/lupa-password-04');
+      navigate('/index/auth/lupa-password-04');
     } catch (err) {
-      setApiError(err?.message || 'Password gagal diubah. Silakan coba lagi.');
+      showNotif({ title: 'Gagal Mengubah Password', description: err?.message || 'Password gagal diubah. Silakan coba lagi.' });
       setLoading(false);
     }
   };
@@ -962,7 +922,7 @@ function LupaPassword03() {
                       placeholder="Masukkan password lama"
                       className="form-input"
                       value={oldPassword}
-                      onChange={(e) => { setOldPassword(e.target.value); setError(''); setApiError(''); }}
+                      onChange={(e) => setOldPassword(e.target.value)}
                     />
                     <button type="button" className="icon-btn" aria-label="Tampilkan password lama" onClick={() => setShowOld((v) => !v)}><img src={img_6} alt="Toggle Visibility" /></button>
                   </div>
@@ -976,7 +936,7 @@ function LupaPassword03() {
                       placeholder="Masukkan password baru"
                       className="form-input"
                       value={newPassword}
-                      onChange={(e) => { setNewPassword(e.target.value); setError(''); setApiError(''); }}
+                      onChange={(e) => setNewPassword(e.target.value)}
                     />
                     <button type="button" className="icon-btn" aria-label="Tampilkan password baru" onClick={() => setShowNew((v) => !v)}><img src={img_4} alt="Toggle Visibility" /></button>
                   </div>
@@ -990,7 +950,7 @@ function LupaPassword03() {
                       placeholder="Ulangi password baru"
                       className="form-input"
                       value={confirmPassword}
-                      onChange={(e) => { setConfirmPassword(e.target.value); setError(''); setApiError(''); }}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                     />
                     <button type="button" className="icon-btn" aria-label="Tampilkan konfirmasi password" onClick={() => setShowConfirm((v) => !v)}><img src={img_6} alt="Toggle Visibility" /></button>
                   </div>
@@ -1012,12 +972,6 @@ function LupaPassword03() {
                   </div>
                 </section>
                 <section id="section-footer">
-                  {error && <p className="form-error">{error}</p>}
-                  {apiError && (
-                    <div className="notice-margin">
-                      <NotifCard variant="error" title="Gagal Mengubah Password" description={apiError} onClose={() => setApiError('')} />
-                    </div>
-                  )}
                   <div className="spacer" />
                   <button className="submit-btn" disabled={loading} onClick={(e) => { e.preventDefault(); handleSubmit(); }}>{loading ? 'Menyimpan...' : 'Simpan Password'}</button>
                 </section>
@@ -1038,7 +992,8 @@ const LupaPassword04Styles = `
   margin: 0;
   padding: 0;
   font-family: 'Inter', sans-serif;
-  background-color: #e0e0e0;
+  /* Opaque canvas on the root so it stays full-bleed on desktop. */
+  background-image: linear-gradient(#fff9f2, #fff9f2);
   display: flex;
   justify-content: center;
   min-height: 100vh;
@@ -1055,7 +1010,6 @@ const LupaPassword04Styles = `
 .page-lupa-password-04 .mobile-screen {
     width: 100%;
     max-width: 100%;
-    background-color: #fff9f2;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -1147,7 +1101,7 @@ function LupaPassword04() {
                   <p className="description">Kata sandi Anda berhasil diperbarui. Silakan masuk kembali menggunakan kata sandi baru.</p>
                 </div>
               </div>
-              <Link to="/auth/login" className="btn-primary">Kembali ke Login</Link>
+              <Link to="/index/auth/login" className="btn-primary">Kembali ke Login</Link>
             </section>
 
     </div>

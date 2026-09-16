@@ -363,7 +363,7 @@ export default function PertanyaanUmum() {
               </section>
               <section id="contact">
                 <div className="contact-container">
-                  <Link to="/support/hubungi-cs" className="contact-card">
+                  <Link to="/index/support/hubungi-cs" className="contact-card">
                     <div className="icon-wrapper">
                       <img src={img_11} alt="Chat Icon" />
                     </div>

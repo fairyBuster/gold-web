@@ -1,8 +1,59 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import img_1 from '../../../assets/images/67_135.svg';
 import img_2 from '../../../assets/images/cd4321a034b318f75c488cf1f2e3603c65cc1a7f.png';
 import img_3 from '../../../assets/images/45c66465850aad401bebf25b861b6f2f05b9a3dd.png';
-import img_4 from '../../../assets/images/41927ed85951f37628e9c41204ae79d6bfaa23e5.png';
+import NotifCard from '../../../components/NotifCard.jsx';
+import ListPagination from '../../../components/ListPagination.jsx';
+import ListState from '../../../components/ListState.jsx';
+import { useTransactionFeed } from '../../../lib/useTransactionFeed.js';
+import { parseDate, statusKind } from '../../../lib/transactionFormat.js';
+/* Summary card totals — GET /api/roulette/points/. */
+import { getRoulettePoints } from '../../../lib/rouletteApi.js';
+
+/* Points on this page are roulette tickets. The history list below shows the
+   redemptions recorded by the transactions API (type REDEEM); the summary
+   totals come from GET /api/roulette/points/. */
+const POINT_TYPES = ['REDEEM'];
+
+/* "Muat Lebih Banyak" reveals the next batch of this many loaded rows. */
+const HISTORY_PAGE_SIZE = 8;
+
+/* Redeem status group → the note next to the date. */
+const STATUS_NOTES = { success: 'Ditukar', pending: 'Diproses', failed: 'Gagal' };
+
+/* "1.317" — points are integers shown with Indonesian separators. */
+function formatPoints(value) {
+  return (Number(value) || 0).toLocaleString('id-ID');
+}
+
+/* "04 Sep 2026" — compact date for the card subtitle. */
+function formatDay(iso) {
+  const date = parseDate(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+/* Groups a newest-first list into consecutive month sections:
+   [{ label: 'September 2026', items: [...] }, ...]. */
+function groupByMonth(items) {
+  const groups = [];
+  for (const trx of items) {
+    const date = parseDate(trx.created_at);
+    const label = Number.isNaN(date.getTime())
+      ? 'Lainnya'
+      : date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    const current = groups[groups.length - 1];
+    if (current && current.label === label) current.items.push(trx);
+    else groups.push({ label, items: [trx] });
+  }
+  return groups;
+}
+
+/* REDEEM rows carry the prize name; keep a fallback for stragglers. */
+function buildTitle(trx) {
+  return String(trx.redeem_prize_name || '').trim() || 'Penukaran Hadiah';
+}
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -18,6 +69,12 @@ const styles = `
   margin: 0;
   padding: 0;
   background-color: #fffbf4;
+  /* Full-bleed page canvas — the opaque base is repeated as a gradient layer
+     so the artwork survives the global transparent-root rule. */
+  background-image: 
+    radial-gradient(circle at 76.9% 11.5%, rgba(255, 201, 60, 0.15) 0%, transparent 60%),
+    radial-gradient(circle at 111.1% 25.5%, rgba(255, 255, 255, 0.55) 0%, transparent 60%),
+    linear-gradient(#fffbf4, #fffbf4);
   display: flex;
   justify-content: center;
   min-height: 100vh;
@@ -39,18 +96,14 @@ const styles = `
   flex-direction: column;
 }
 
-/* Stretch the content column to the full viewport and paint the page
-   background here so no gray canvas shows around or below the content. */
+/* Content column stretched to the full viewport; the page background is
+   painted on the page root instead (see .page-riwayat-poin above). */
 .page-riwayat-poin > div {
   flex: 1;
   display: flex;
   flex-direction: column;
   width: 100%;
   min-height: 100vh;
-  background-color: #fffbf4;
-  background-image: 
-    radial-gradient(circle at 76.9% 11.5%, rgba(255, 201, 60, 0.15) 0%, transparent 60%),
-    radial-gradient(circle at 111.1% 25.5%, rgba(255, 255, 255, 0.55) 0%, transparent 60%);
 }
 
 /* ---- inline section styles ---- */
@@ -161,6 +214,13 @@ const styles = `
     flex-direction: column;
     gap: 8px;
   }
+  .page-riwayat-poin .month-group {
+    display: flex;
+    flex-direction: column;
+  }
+  .page-riwayat-poin .month-group:not(:first-child) {
+    margin-top: 18px;
+  }
   .page-riwayat-poin .history-card {
     background-color: #ffffff;
     border: 1px solid #efe7dc;
@@ -217,6 +277,30 @@ const styles = `
 `;
 
 export default function RiwayatPoin() {
+  const { items, loading, error } = useTransactionFeed(POINT_TYPES);
+  const [visibleCount, setVisibleCount] = useState(HISTORY_PAGE_SIZE);
+  const groups = groupByMonth(items.slice(0, visibleCount));
+
+  /* Summary card totals — GET /api/roulette/points/ ("total_earned" /
+     "total_spent", all-time). null while loading or when the request
+     fails: both rows then keep the "—" placeholder. */
+  const [pointsSummary, setPointsSummary] = useState(null);
+  useEffect(() => {
+    let active = true;
+    getRoulettePoints()
+      .then((data) => {
+        if (active && data) setPointsSummary(data);
+      })
+      .catch(() => {
+        /* keep the "—" placeholders */
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const totalEarned = pointsSummary ? Number(pointsSummary.total_earned) || 0 : null;
+  const totalSpent = pointsSummary ? Number(pointsSummary.total_spent) || 0 : null;
+
   return (
     <div className="page-riwayat-poin">
       <style>{styles}</style>
@@ -237,45 +321,69 @@ export default function RiwayatPoin() {
                     <div className="summary-card">
                       <div className="summary-content">
                         <div className="summary-row">
-                          <span className="summary-label">Poin Didapat Bulan Ini</span>
-                          <span className="summary-value positive">+320</span>
+                          <span className="summary-label">Poin Didapat</span>
+                          <span className="summary-value positive">{totalEarned === null ? '' : formatPoints(totalEarned)}</span>
                         </div>
                         <div className="summary-row">
-                          <span className="summary-label">Poin Ditukar Bulan Ini</span>
-                          <span className="summary-value negative">-950</span>
+                          <span className="summary-label">Poin Ditukar</span>
+                          <span className="summary-value negative">{totalSpent === null ? '' : totalSpent ? `-${formatPoints(totalSpent)}` : '0'}</span>
                         </div>
                       </div>
                       <img src={img_2} alt="Mascot Character" className="character-img" />
                     </div>
                   </div>
                 </div>
-              </section>
+              </section> 
               <section id="section-history">
                 <div className="app-container" style={{minHeight: 'auto', boxShadow: 'none', background: 'transparent', flex: 1}}>
                   <div className="history-wrapper">
-                    <h2 className="month-title">September 2026</h2>
-                    <div className="history-list">
-                      <Link to="/rewards/detail-riwayat-poin" className="history-card">
-                        <img src={img_3} alt="Gift Voucher" className="card-icon" />
-                        <div className="card-details">
-                          <div className="card-header">
-                            <h3 className="card-title">Voucher Belanja Rp100.000</h3>
-                            <span className="card-points negative">-950</span>
+                    {error ? (
+                      <NotifCard variant="error" title="Gagal Memuat Riwayat" description={error} />
+                    ) : loading ? (
+                      <ListState text="Memuat riwayat…" />
+                    ) : groups.length === 0 ? (
+                      <ListState text="Belum ada riwayat." />
+                    ) : (
+                      <>
+                        {groups.map((group) => (
+                          <div className="month-group" key={group.label}>
+                            <h2 className="month-title">{group.label}</h2>
+                            <div className="history-list">
+                              {group.items.map((trx) => {
+                                const spent = Number(trx.redeem_points_spent) || 0;
+                                const note = STATUS_NOTES[statusKind(trx.status)] || 'Ditukar';
+                                return (
+                                  <Link
+                                    to="/index/rewards/detail-riwayat-poin"
+                                    state={{ transaction: trx }}
+                                    className="history-card"
+                                    key={trx.id ?? `REDEEM-${trx.created_at}`}
+                                  >
+                                    <img src={img_3} alt="Hadiah Penukaran" className="card-icon" />
+                                    <div className="card-details">
+                                      <div className="card-header">
+                                        <h3 className="card-title">{buildTitle(trx)}</h3>
+                                        <span className="card-points negative">{spent ? `-${formatPoints(spent)}` : '—'}</span>
+                                      </div>
+                                      <p className="card-date">
+                                        {[formatDay(trx.created_at), note].filter(Boolean).join(' • ')}
+                                      </p>
+                                    </div>
+                                  </Link>
+                                );
+                              })}
+                            </div>
                           </div>
-                          <p className="card-date">04 Sep 2026 • Ditukar</p>
-                        </div>
-                      </Link>
-                      <Link to="/rewards/detail-riwayat-poin" className="history-card">
-                        <img src={img_4} alt="Coin Top Up" className="card-icon" />
-                        <div className="card-details">
-                          <div className="card-header">
-                            <h3 className="card-title">Isi Ulang Saldo Rp100.000</h3>
-                            <span className="card-points positive">+100</span>
-                          </div>
-                          <p className="card-date">04 Sep 2026 • Didapat</p>
-                        </div>
-                      </Link>
-                    </div>
+                        ))}
+                        <ListPagination
+                          visible={visibleCount}
+                          total={items.length}
+                          label="penukaran"
+                          pageSize={HISTORY_PAGE_SIZE}
+                          onLoadMore={() => setVisibleCount((count) => count + HISTORY_PAGE_SIZE)}
+                        />
+                      </>
+                    )}
                   </div>
                 </div>
               </section>

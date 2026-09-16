@@ -262,9 +262,9 @@ const STATUS_LABELS = { success: 'Berhasil', pending: 'Diproses', failed: 'Gagal
 /* Wallet origin label shown under the card title. */
 const WALLET_LABELS = {
   BALANCE: 'Saldo JelajahEmas',
-  BALANCE_DEPOSIT: 'Saldo Deposit',
+  BALANCE_DEPOSIT: 'Saldo JelajahEmas',
   BALANCE_CASHBACK: 'Saldo Cashback',
-  BALANCE_HOLD: 'Saldo Hold',
+  BALANCE_HOLD: 'Saldo Emas',
 };
 
 /* Design tabs: the whole feed, purchases only, profit claims only. */
@@ -280,16 +280,25 @@ function matchesTab(trx, tab) {
   return true;
 }
 
-/* "Beli Emas 0,05 gram" — purchase quantity in grams when provided. */
+/* Both row kinds name their product: "Beli Emas Produk 1" for purchases,
+   "Spread dari Produk 1" for profit. The gram quantity remains the purchase
+   fallback when no product name is set. */
 function buildTitle(trx) {
-  if (trx.type === 'INTEREST') return 'Keuntungan Investasi';
+  const product = (trx.product_name || '').trim();
+  if (trx.type === 'INTEREST') return product ? `Spread dari ${product}` : 'Keuntungan Investasi';
+  if (product) return `Beli Emas ${product}`;
   const quantity = Number(trx.investment_quantity);
   if (quantity > 0) return `Beli Emas ${quantity.toLocaleString('id-ID', { maximumFractionDigits: 4 })} gram`;
   return 'Beli Emas';
 }
 
+/* Automatic profit (profit_method 'auto') is credited to the main saldo by the
+   scheduler, so its subtitle says where it landed instead of naming the wallet;
+   hold/manual profits and purchases keep the wallet label. */
 function buildSubtitle(trx) {
-  return [formatTime(trx.created_at), WALLET_LABELS[trx.wallet_type] || 'Saldo JelajahEmas'].filter(Boolean).join(' • ');
+  const automatic = trx.type === 'INTEREST' && trx.profit_method === 'auto';
+  const label = automatic ? 'Masuk ke Saldo' : WALLET_LABELS[trx.wallet_type] || 'Saldo JelajahEmas';
+  return [formatTime(trx.created_at), label].filter(Boolean).join(' • ');
 }
 
 export default function RiwayatAsetSaya() {
@@ -394,7 +403,12 @@ export default function RiwayatAsetSaya() {
                         <h2 className="date-header">{group.label}</h2>
                         <div className="history-card">
                           {group.items.map((trx) => {
-                            const amount = Number(trx.amount) || 0;
+                            /* Gold purchases debit the wallet, so they read "-" in
+                               black even though the backend stores the amount
+                               positive; profit claims credit and stay "+" green. */
+                            const raw = Number(trx.amount) || 0;
+                            const debit = trx.type === 'INVESTMENTS' || raw < 0;
+                            const amount = Math.abs(raw);
                             return (
                               <div className="history-item" key={trx.id ?? `${trx.type}-${trx.created_at}`}>
                                 <img src={img_3} className="item-icon" alt="Beli Emas" />
@@ -403,8 +417,8 @@ export default function RiwayatAsetSaya() {
                                   <span className="item-subtitle">{buildSubtitle(trx)}</span>
                                 </div>
                                 <div className="item-amounts">
-                                  <span className={`item-amount ${amount < 0 ? 'negative' : 'positive'}`}>
-                                    {amount < 0 ? '-' : '+'}{formatRupiah(amount)}
+                                  <span className={`item-amount ${debit ? 'negative' : 'positive'}`}>
+                                    {debit ? '-' : '+'}{formatRupiah(amount)}
                                   </span>
                                   <span className="item-status">{STATUS_LABELS[statusKind(trx.status)]}</span>
                                 </div>

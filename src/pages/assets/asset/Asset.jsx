@@ -19,6 +19,10 @@ import img_9 from '../../../assets/images/74_478.svg';
 import img_10 from '../../../assets/images/74_478.svg';
 import img_11 from '../../../assets/images/74_478.svg';
 import img_12 from '../../../assets/images/d35f294fb1a21fb0aa4f326dc1672ebf0f14686d.png';
+/* Live "Harga Emas Hari Ini" — free public sources, cached 5 min. */
+import { fetchGoldPrice, getCachedGoldPrice, formatIDR, formatPercentID } from '../../../lib/goldPriceApi.js';
+/* Saldo emas user (balance_hold + harga per gram) — kartu "Total Aset Emas". */
+import { getGoldInfo } from '../../../lib/goldApi.js';
 
 /* Step 1 imports (renamed to avoid collisions with other steps) */
 import S1_img_1 from '../../../assets/images/141_595.svg';
@@ -27,17 +31,18 @@ import S1_img_2 from '../../../assets/images/27d2feb51364f020c6b57863d6f2929526f
 /* Step 2 imports (renamed to avoid collisions with other steps) */
 import S2_img_1 from '../../../assets/images/41_1038.svg';
 import S2_img_2 from '../../../assets/images/15_398.svg';
+/* Mascot illustration for the inactive-product empty state. */
+import S2_img_3 from '../../../assets/images/empty.jpg';
 
 /* Product display helpers (shared with the Konfirmasi page). */
 import {
   isMeaningful,
   productSpecLine,
   formatDuration,
-  durationDays,
   profitPerClaim,
-  claimCount,
+  profitRange,
+  formatRupiahRange,
   profitLabel,
-  claimLabel,
   fundSourceLabel,
 } from '../../../lib/productFormat.js';
 
@@ -55,7 +60,6 @@ const Asset01Styles = `
   font-family: 'Inter', sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #e5e5e5;
   min-height: 100vh;
   width: 100%;
 }
@@ -125,6 +129,27 @@ const Asset01Styles = `
   font-size: 12px;
   margin: 0;
 }
+/* Bar shimmer untuk nilai Total Aset Emas selagi gold info dimuat — konvensi
+   skeleton halaman Home; warna tint #fff9f2 mengikuti teks kartu gelap. */
+.page-asset-01 .asset-metric-skeleton {
+  display: inline-block;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(255, 249, 242, 0.12) 25%, rgba(255, 249, 242, 0.24) 37%, rgba(255, 249, 242, 0.12) 63%);
+  background-size: 400% 100%;
+  animation: asset01-gold-shimmer 1.4s ease infinite;
+}
+.page-asset-01 .asset-value-skeleton {
+  width: 110px;
+  height: 20px;
+}
+.page-asset-01 .asset-fiat-skeleton {
+  width: 90px;
+  height: 12px;
+}
+@keyframes asset01-gold-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
 .page-asset-01 .character-img {
   position: absolute;
   right: -10px;
@@ -143,9 +168,8 @@ const Asset01Styles = `
   padding: 0 20px;
   position: relative;
   z-index: 10;
-  /* Top 47px stay transparent: the dark hero shows through the strip the card
-     overlaps, then the light body colour continues seamlessly. */
-  background: linear-gradient(to bottom, transparent 47px, #fff9f2 47px);
+  /* Transparan penuh biar latar hero di belakang kartu tetap tampil. */
+  background: transparent;
 }
 .page-asset-01 .price-card {
   background-size: cover;
@@ -194,7 +218,8 @@ const Asset01Styles = `
 .page-asset-01 .programs-section {
   max-width: 100%;
   margin: 0 auto;
-  background-color: #fff9f2;
+  /* Transparan biar warna latar halaman (#fff9f2) tembus. */
+  background-color: transparent;
   padding: 24px 20px;
   display: flex;
   flex-direction: column;
@@ -348,6 +373,7 @@ const Asset01Styles = `
 }
 .page-asset-01 .stats-grid {
   display: flex;
+  justify-content: space-between;
   border-top: 1px solid #efe7dc;
   padding-top: 12px;
   margin-top: 4px;
@@ -356,7 +382,6 @@ const Asset01Styles = `
   display: flex;
   flex-direction: column;
   gap: 4px;
-  flex: 1;
   align-items: flex-start;
 }
 .page-asset-01 .stat-label {
@@ -398,7 +423,8 @@ const Asset01Styles = `
 .page-asset-01 .faq-section {
   max-width: 100%;
   margin: 0 auto;
-  background-color: #fff9f2;
+  /* Transparan biar warna latar halaman (#fff9f2) tembus. */
+  background-color: transparent;
   padding: 6px 20px 24px 20px;
   display: flex;
   flex-direction: column;
@@ -431,11 +457,77 @@ const Asset01Styles = `
 }
 `;
 
+/* Static mockup values kept until the live gold-price sources respond. */
+const FALLBACK_PRICE_PER_GRAM = 2569270;
+const FALLBACK_CHANGE_PERCENT = 1.01;
+
+/* Fixed golongan order for the tabs and the product list (user-set):
+   Simpanan → Periode → Spesial. Categories outside the list land after
+   them, naturally sorted; matching trims/lowercases so feed quirks don't
+   break the order. */
+const GOLONGAN_ORDER = ['Simpanan', 'Periode', 'Spesial'];
+const golonganRank = (value) => {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  const index = GOLONGAN_ORDER.findIndex((name) => name.toLowerCase() === normalized);
+  return index === -1 ? GOLONGAN_ORDER.length : index;
+};
+const byGolongan = (a, b) =>
+  golonganRank(a) - golonganRank(b) || String(a ?? '').localeCompare(String(b ?? ''), 'id', { numeric: true });
+
+/* The full participant quota is a fixed 5000 (the product payload has no
+   capacity field), so the quota bar mirrors how much stock is still left —
+   a full 5000 fills the bar completely, and 0 empties it. */
+const QUOTA_CAPACITY = 5000;
+const quotaFillPercent = (stock) => {
+  const remaining = Math.max(0, Number(stock) || 0);
+  const percent = (Math.min(remaining, QUOTA_CAPACITY) / QUOTA_CAPACITY) * 100;
+  return Math.round(percent * 100) / 100;
+};
+
 function Asset01() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('Semua');
+  const [goldPrice, setGoldPrice] = useState(null);
+  /* GET /api/gold/info/ — saldo emas (balance_hold) + harga per gram untuk
+     kartu "Total Aset Emas Kamu"; loading true sampai request selesai (bar
+     skeleton tampil selama menunggu, "—" kalau gagal). */
+  const [goldInfo, setGoldInfo] = useState(null);
+  const [goldInfoLoading, setGoldInfoLoading] = useState(true);
+
+  /* Live gold price — a cached value paints instantly, then the free public
+     sources refresh it in the background (see goldPriceApi.js). */
+  useEffect(() => {
+    let active = true;
+    const cached = getCachedGoldPrice();
+    if (cached) setGoldPrice(cached);
+    fetchGoldPrice().then((live) => {
+      if (active && live) setGoldPrice(live);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  /* Total Aset Emas = balance_hold / price_per_gram dari GET /api/gold/info/
+     (sumber sama dengan halaman Emas Digital). */
+  useEffect(() => {
+    let active = true;
+    getGoldInfo()
+      .then((payload) => {
+        if (active) setGoldInfo(payload);
+      })
+      .catch(() => {
+        /* diamkan — kartu memakai fallback "—" */
+      })
+      .finally(() => {
+        if (active) setGoldInfoLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -455,14 +547,38 @@ function Asset01() {
     };
   }, []);
 
-  const tabs = ['Semua', ...new Set(products.map((product) => product.golongan).filter(isMeaningful))];
+  /* Tabs follow the fixed golongan order (Simpanan → Periode → Spesial) with
+     "Semua" pinned first — the API returns products newest-first, which would
+     shuffle the categories otherwise. */
+  const categories = [...new Set(products.map((product) => product.golongan).filter(isMeaningful))].sort(byGolongan);
+  const tabs = ['Semua', ...categories];
+  /* The "Semua" list groups cards by the same golongan order as the tabs.
+     sort() is stable, so newest-first stays intact inside each category. */
+  const orderedProducts = [...products].sort((a, b) => byGolongan(a.golongan, b.golongan));
   const visibleProducts =
     activeTab === 'Semua'
-      ? products
-      : products.filter((product) => product.golongan === activeTab);
+      ? orderedProducts
+      : orderedProducts.filter((product) => product.golongan === activeTab);
+  const hasLivePrice = Number.isFinite(goldPrice?.pricePerGram);
+  const pricePerGram = hasLivePrice ? goldPrice.pricePerGram : FALLBACK_PRICE_PER_GRAM;
+  const changePercent =
+    hasLivePrice && Number.isFinite(goldPrice.changePercent) ? goldPrice.changePercent : FALLBACK_CHANGE_PERCENT;
+  const trendUp = changePercent >= 0;
+  /* Total Aset Emas: gram = balance_hold / harga per gram; angka rupiah di
+     bawahnya adalah balance_hold itu sendiri (sama seperti halaman Emas
+     Digital). Data belum ada/gagal → "—", bukan angka dummy. */
+  const hold = Number(goldInfo?.balance_hold);
+  const infoPricePerGram = Number(goldInfo?.price_per_gram);
+  const hasGoldInfo = Number.isFinite(hold) && Number.isFinite(infoPricePerGram) && infoPricePerGram > 0;
+  const assetGramsText = hasGoldInfo
+    ? `${(hold / infoPricePerGram).toLocaleString('id-ID', { maximumFractionDigits: 3 })} gram`
+    : '—';
+  const assetFiatText = hasGoldInfo ? `≈ ${formatRupiah(hold)}` : '—';
 
+  /* Latar polos tanpa artwork — warna dipasang inline karena index.css
+     membuat wrapper .page-* transparan (background global tembus). */
   return (
-    <div className="page-asset-01">
+    <div className="page-asset-01" style={{ backgroundColor: '#fff9f2' }}>
       <style>{Asset01Styles}</style>
       <div>
               <section id="section-hero" className="hero-section">
@@ -474,8 +590,16 @@ function Asset01() {
                 </div>
                 <div className="asset-card">
                   <p className="asset-label">Total Aset Emas Kamu</p>
-                  <p className="asset-value">1,367 gram</p>
-                  <p className="asset-fiat">≈ Rp3.512.870</p>
+                  <p className="asset-value">
+                    {goldInfoLoading
+                      ? <span className="asset-metric-skeleton asset-value-skeleton" aria-hidden="true" />
+                      : assetGramsText}
+                  </p>
+                  <p className="asset-fiat">
+                    {goldInfoLoading
+                      ? <span className="asset-metric-skeleton asset-fiat-skeleton" aria-hidden="true" />
+                      : assetFiatText}
+                  </p>
                 </div>
                 <img src={S1_img_2} alt="Character" className="character-img" />
               </section>
@@ -484,11 +608,11 @@ function Asset01() {
                   <img src={img_3} alt="Gold Coin" className="gold-icon" />
                   <div className="price-info">
                     <p className="price-label">Harga Emas Hari Ini</p>
-                    <p className="price-value">Rp 2.569.270 / gram</p>
+                    <p className="price-value">{hasLivePrice ? `${formatIDR(pricePerGram)} / gram` : 'Rp 2.569.270 / gram'}</p>
                   </div>
                   <div className="price-change">
-                    <img src={img_4} alt="Up" />
-                    <span className="change-value">+ 1,01%</span>
+                    <img src={img_4} alt={trendUp ? 'Up' : 'Down'} style={trendUp ? undefined : { transform: 'rotate(180deg)' }} />
+                    <span className="change-value">{trendUp ? '+' : '-'} {formatPercentID(Math.abs(changePercent))}</span>
                   </div>
                 </div>
               </section>
@@ -498,7 +622,7 @@ function Asset01() {
                     <h2 className="section-title">Rencana Program</h2>
                     <span className="badge-live">Live</span>
                   </div>
-                  <a href="#" className="link-all" onClick={(e) => { e.preventDefault(); setActiveTab('Semua'); }}>Lihat Semua</a>
+                  <Link to="/index/assets/aset-saya-01" className="link-all">Lihat Milik Saya</Link>
                 </div>
                 <div className="tabs">
                   {tabs.map((tab) => (
@@ -538,8 +662,12 @@ function Asset01() {
                               <div className="quota-info">
                                 <span className="quota-label">Kuota Peserta Aktif</span>
                                 <span className="quota-value">
-                                  {(Number(product.stock) || 0).toLocaleString('id-ID')} tersisa
+                                  {(Number(product.stock) || 0).toLocaleString('id-ID')}/{QUOTA_CAPACITY.toLocaleString('id-ID')}
                                 </span>
+                              </div>
+                              {/* Bar width = remaining stock out of the 5000 capacity. */}
+                              <div className="progress-bar">
+                                <div className="progress-fill" style={{ width: `${quotaFillPercent(product.stock)}%` }} />
                               </div>
                             </div>
                           )}
@@ -549,17 +677,13 @@ function Asset01() {
                               <span className="stat-value highlight">{profitLabel(product)}</span>
                             </div>
                             <div className="stat-item">
-                              <span className="stat-label">Frekuensi</span>
-                              <span className="stat-value">{formatDuration(product.duration)}</span>
-                            </div>
-                            <div className="stat-item">
                               <span className="stat-label">Estimasi Biaya</span>
                               <span className="stat-value">{formatRupiah(product.price)}</span>
                             </div>
                           </div>
                         </div>
                         <Link
-                          to="/assets/asset-02"
+                          to="/index/assets/asset-02"
                           state={{ productId: product.id }}
                           className="card-footer"
                           onClick={() => sessionStorage.setItem('je_asset_product_id', String(product.id))}
@@ -575,18 +699,18 @@ function Asset01() {
               <section id="section-faq" className="faq-section">
                 <h2 className="faq-title">Seputar Investasi Emas</h2>
                 <div className="faq-list">
-                  <div className="faq-item">
+                  <Link to="/index/support/pertanyaan-umum" className="faq-item">
                     <span className="faq-question">Apa itu Investasi Emas Rutin?</span>
                     <img src={img_9} alt="Expand" />
-                  </div>
-                  <div className="faq-item">
+                  </Link>
+                  <Link to="/index/support/pertanyaan-umum" className="faq-item">
                     <span className="faq-question">Emas yang terkumpul disimpan di mana?</span>
                     <img src={img_10} alt="Expand" />
-                  </div>
-                  <div className="faq-item">
+                  </Link>
+                  <Link to="/index/support/pertanyaan-umum" className="faq-item">
                     <span className="faq-question">Bagaimana cara mengubah atau membatalkan paket?</span>
                     <img src={img_11} alt="Expand" />
-                  </div>
+                  </Link>
                 </div>
               </section>
             </div>
@@ -605,10 +729,6 @@ const Asset02Styles = `
   font-family: 'Inter', sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #fffbf4;
-  background-image:
-    radial-gradient(circle at 100% 0%, rgba(255, 201, 60, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 0% 100%, rgba(255, 159, 28, 0.1) 0%, transparent 40%);
   color: #1a1410;
   max-width: 100%;
   margin-left: auto;
@@ -737,8 +857,8 @@ const Asset02Styles = `
     color: #1a1410;
   }
 
-/* CSS for section section:Simulation */
-.page-asset-02 #simulation {
+/* CSS for section section:ProductInfo */
+.page-asset-02 #product-info {
     margin-bottom: 24px;
   }
   .page-asset-02 .section-desc {
@@ -775,7 +895,6 @@ const Asset02Styles = `
   .page-asset-02 .col.left { text-align: left; }
   .page-asset-02 .col.center { text-align: center; }
   .page-asset-02 .col.right { text-align: right; }
-  
   .page-asset-02 .table-header .col {
     font-weight: 700;
   }
@@ -820,6 +939,41 @@ const Asset02Styles = `
   text-align: center;
   padding: 32px 0 16px 0;
   line-height: 1.5;
+}
+
+/* Empty state — shown when the opened product is inactive (empty.jpg mascot) */
+.page-asset-02 .empty-state-container {
+  padding: 60px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.page-asset-02 .illustration-wrapper {
+  margin-bottom: 24px;
+}
+.page-asset-02 .illustration {
+  width: 120px;
+  height: 133px;
+  object-fit: contain;
+}
+.page-asset-02 .text-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 32px;
+}
+.page-asset-02 .empty-title {
+  color: #1a1410;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.page-asset-02 .empty-subtitle {
+  color: #a79c8f;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 280px;
 }
 
 /* CSS for section section:Action */
@@ -875,24 +1029,25 @@ function Asset02() {
   }, [productId]);
 
   const perClaim = product ? profitPerClaim(product) : 0;
-  const claims = product ? claimCount(product) : 0;
-  const days = product ? durationDays(product.duration) : 1;
-  const simulationRows = product
-    ? Array.from({ length: Math.min(claims, 4) }, (_, index) => ({
-        period: index + 1,
-        profit: perClaim,
-        total: (Number(product.price) || 0) + perClaim * (index + 1),
-      }))
-    : [];
+  /* "Pembagian / Hari" memakai angka konfigurasi produk apa adanya (sama
+     seperti kartu asset-01, ringkasan Konfirmasi, dan kartu AsetSaya):
+     random plans tampil sebagai rentang min–max, bukan dibagi jumlah hari. */
+  const perClaimRange = product ? profitRange(product) : null;
   const customFields = product
     ? Array.from({ length: 10 }, (_, index) => ({
         title: product[`custom_field_${index + 1}_title`],
         content: product[`custom_field_${index + 1}_content`],
       })).filter((field) => isMeaningful(field.title) && isMeaningful(field.content))
     : [];
+  /* Inactive products can still be opened by direct link (the detail endpoint
+     returns them regardless of status) but can't be purchased server-side, so
+     they get the empty mascot state instead of a dead-end purchase form. */
+  const productInactive = product != null && Number(product.status) === 0;
 
+  /* Latar polos tanpa artwork — warna dipasang inline karena index.css
+     membuat wrapper .page-* transparan (background global tembus). */
   return (
-    <div className="page-asset-02">
+    <div className="page-asset-02" style={{ backgroundColor: '#fff9f2' }}>
       <style>{Asset02Styles}</style>
       <div>
               <section id="header">
@@ -911,10 +1066,24 @@ function Asset02() {
               {!loading && error && (
                 <section className="container">
                   <NotifCard variant="error" title="Gagal Memuat Detail Rencana" description={error} showClose={false} />
-                  <button className="primary-btn" onClick={() => navigate('/assets/asset-01')}>Lihat Rencana Lain</button>
+                  <button className="primary-btn" onClick={() => navigate('/index/assets/asset-01')}>Lihat Rencana Lain</button>
                 </section>
               )}
-              {!loading && !error && product && (
+              {!loading && !error && productInactive && (
+                <section className="container">
+                  <div className="empty-state-container">
+                    <div className="illustration-wrapper">
+                      <img src={S2_img_3} alt="Rencana tidak tersedia" className="illustration" />
+                    </div>
+                    <div className="text-content">
+                      <h2 className="empty-title">Rencana Tidak Tersedia</h2>
+                      <p className="empty-subtitle">Rencana ini sudah tidak aktif dan tidak bisa diaktifkan lagi. Silakan pilih rencana lain yang masih tersedia ya.</p>
+                    </div>
+                    <button className="primary-btn" onClick={() => navigate('/index/assets/asset-01')}>Lihat Rencana Lain</button>
+                  </div>
+                </section>
+              )}
+              {!loading && !error && product && !productInactive && (
                 <>
               <section id="product-card" className="container">
                 <div className="card">
@@ -928,19 +1097,21 @@ function Asset02() {
                 </div>
               </section>
               <section id="package-details" className="container">
-                <h2 className="section-title">Rincian Paket</h2>
+                <h2 className="section-title">Rincian Penawaran</h2>
                 <div className="details-list">
                   <div className="detail-row">
-                    <span className="detail-label">Estimasi Biaya / Periode</span>
+                    <span className="detail-label">Harga Produk</span>
                     <span className="detail-value">{formatRupiah(product.price)}</span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Pembagian / Hari</span>
-                    <span className="detail-value">{formatRupiah((perClaim * claims) / days)}</span>
+                    <span className="detail-value">
+                      {perClaimRange ? formatRupiahRange(perClaimRange.min, perClaimRange.max) : formatRupiah(perClaim)}
+                    </span>
                   </div>
                   <div className="detail-row">
-                    <span className="detail-label">Frekuensi</span>
-                    <span className="detail-value">{claimLabel(product)}</span>
+                    <span className="detail-label">Masa berlaku simpan</span>
+                    <span className="detail-value">{`${Number(product.duration) || 0} Hari`}</span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Sumber Dana</span>
@@ -951,34 +1122,22 @@ function Asset02() {
               {customFields.length > 0 && (
               <section id="product-info" className="container">
                 <h2 className="section-title">Informasi Produk</h2>
-                <div className="details-list">
+                <div className="table-container">
+                  <div className="table-header">
+                    <div className="col center">Penjelasan</div>
+                    <div className="col right">Detail</div>
+                  </div>
+                  {/* Field rows: one row per filled custom_field pair: the
+                      title goes to the Penjelasan column, content to Detail. */}
                   {customFields.map((field) => (
-                    <div className="detail-row" key={field.title}>
-                      <span className="detail-label">{field.title}</span>
-                      <span className="detail-value">{field.content}</span>
+                    <div className="table-row" key={field.title}>
+                      <div className="col center">{field.title}</div>
+                      <div className="col right bold-text">{field.content}</div>
                     </div>
                   ))}
                 </div>
               </section>
               )}
-              <section id="simulation" className="container">
-                <h2 className="section-title">Simulasi Akumulasi</h2>
-                <p className="section-desc">Estimasi berdasarkan harga emas saat ini dan nominal tetap tiap periode.</p>
-                <div className="table-container">
-                  <div className="table-header">
-                    <div className="col left">Periode</div>
-                    <div className="col center">Profit</div>
-                    <div className="col right">Total Akumulasi</div>
-                  </div>
-                  {simulationRows.map((row) => (
-                    <div className="table-row" key={row.period}>
-                      <div className="col left">Periode {row.period}</div>
-                      <div className="col center bold-text">{formatRupiah(row.profit)}</div>
-                      <div className="col right">{formatRupiah(row.total)}</div>
-                    </div>
-                  ))}
-                </div>
-              </section>
               <section id="disclaimer" className="container">
                 <div className="info-box">
                   <div className="info-icon">
@@ -991,7 +1150,7 @@ function Asset02() {
                 </div>
               </section>
               <section id="action" className="container">
-                <button className="primary-btn" onClick={() => navigate('/assets/konfirmasi', { state: { productId: product.id } })}>Aktifkan Paket Ini</button>
+                <button className="primary-btn" onClick={() => navigate('/index/assets/konfirmasi', { state: { productId: product.id } })}>Aktifkan Paket Ini</button>
               </section>
                 </>
               )}

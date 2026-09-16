@@ -1,10 +1,16 @@
+import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { QRCodeCanvas } from 'qrcode.react';
 import img_1 from '../../../assets/images/34_305.svg';
 import img_2 from '../../../assets/images/34_313.svg';
 import img_3 from '../../../assets/images/f3c7efd176c45912c54a20b6ff3074df704d1292.png';
-import img_4 from '../../../assets/images/34_328.svg';
 import img_5 from '../../../assets/images/34_341.svg';
 import img_6 from '../../../assets/images/34_346.svg';
+/* Hasil simpan/bagikan tampil lewat halaman /notif. */
+import { useShowNotif } from '../../../lib/useShowNotif.js';
+
+/* Payload QRIS mockup — diganti payload asli saat backend menyediakannya. */
+const QRIS_PAYLOAD = 'QRIS Jelajah Emas - Pembayaran Rp 100.000';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -136,22 +142,17 @@ const styles = `
     width: auto;
     object-fit: contain;
   }
+  /* Kerangka kode QR — menampilkan QR yang digenerate di komponen. */
   .page-qris .qr-placeholder {
     width: 220px;
     height: 232px;
-    background-color: #f6f1e9;
-    border: 1px dashed rgba(26, 20, 16, 0.25);
+    background-color: #ffffff;
+    border: 1px solid #efe7dc;
     border-radius: 16px;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 8px;
     margin-bottom: 12px;
-  }
-  .page-qris .qr-placeholder p {
-    font-size: 12px;
-    color: #a79c8f;
   }
   .page-qris .billing-info {
     text-align: center;
@@ -329,6 +330,65 @@ const styles = `
 
 export default function Qris() {
   const navigate = useNavigate();
+  const showNotif = useShowNotif();
+  const qrBoxRef = useRef(null);
+
+  const getQrCanvas = () => qrBoxRef.current?.querySelector('canvas') || null;
+
+  /* "Simpan Gambar": unduh kode QR sebagai berkas PNG. */
+  const handleSaveImage = () => {
+    const canvas = getQrCanvas();
+    try {
+      if (!canvas) throw new Error('QR belum dirender');
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = 'qris-jelajah-emas.png';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showNotif({ variant: 'success', title: 'Gambar Disimpan', description: 'Kode QR disimpan ke perangkat kamu.' });
+    } catch {
+      showNotif({ title: 'Gagal Menyimpan', description: 'Tidak dapat menyimpan gambar. Coba lagi ya.' });
+    }
+  };
+
+  /* "Bagikan": pakai Web Share API — utamakan berbagi gambar QR kalau
+     didukung; kalau tidak tersedia, detail pembayaran disalin ke clipboard. */
+  const handleShare = async () => {
+    const text = 'Bayar Rp 100.000 via QRIS Jelajah Emas. Pilih menu Scan QR di e-wallet atau m-Banking, lalu pindai kodenya.';
+    const canvas = getQrCanvas();
+    let file = null;
+    if (canvas) {
+      try {
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+        if (blob) file = new File([blob], 'qris-jelajah-emas.png', { type: 'image/png' });
+      } catch {
+        /* Gambar gagal dibuat — lanjut tanpa lampiran gambar. */
+      }
+    }
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'QRIS Jelajah Emas', text });
+      } catch {
+        /* Pengguna menutup share sheet — tidak ada aksi lanjutan. */
+      }
+      return;
+    }
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'QRIS Jelajah Emas', text });
+      } catch {
+        /* Pengguna menutup share sheet — tidak ada aksi lanjutan. */
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      showNotif({ variant: 'success', title: 'Teks Dibagikan', description: 'Detail pembayaran disalin ke clipboard. Tempel di chat atau media sosial kamu.' });
+    } catch {
+      showNotif({ title: 'Gagal Membagikan', description: 'Tidak dapat membagikan detail pembayaran. Coba lagi ya.' });
+    }
+  };
 
   return (
     <div className="page-qris">
@@ -358,25 +418,24 @@ export default function Qris() {
                   <div className="logo-wrapper">
                     <img src={img_3} alt="QRIS Logo" className="qris-logo" />
                   </div>
-                  <div className="qr-placeholder">
-                    <img src={img_4} alt="QR Placeholder Icon" />
-                    <p>+ Kode QR akan tampil di sini</p>
+                  <div className="qr-placeholder" ref={qrBoxRef}>
+                    <QRCodeCanvas value={QRIS_PAYLOAD} size={196} fgColor="#1a1410" bgColor="#ffffff" level="M" />
                   </div>
                   <div className="billing-info">
                     <p className="billing-label">Total Tagihan</p>
                     <p className="billing-amount">Rp 100.000</p>
                   </div>
                   <div className="action-buttons">
-                    <button className="action-btn">
+                    <button className="action-btn" onClick={(e) => { e.preventDefault(); handleSaveImage(); }}>
                       <img src={img_5} alt="Save Icon" />
                       <span>Simpan Gambar</span>
                     </button>
-                    <button className="action-btn">
+                    <button className="action-btn" onClick={(e) => { e.preventDefault(); handleShare(); }}>
                       <img src={img_6} alt="Share Icon" />
                       <span>Bagikan</span>
                     </button>
                   </div>
-                </div>
+                </div> 
               </section>
               <section id="section-instructions">
                 <div className="instructions-wrapper">
@@ -426,8 +485,8 @@ export default function Qris() {
               </section>
               <section id="section-footer-actions">
                 <div className="actions-wrapper">
-                  <button className="btn-primary" onClick={(e) => { e.preventDefault(); navigate('/transactions/riwayat-isi-ulang'); }}>Saya sudah membayar</button>
-                  <button className="btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/support/hubungi-cs'); }}>Butuh Bantuan? Hubungi Kontak Jelajah</button>
+                  <button className="btn-primary" onClick={(e) => { e.preventDefault(); navigate('/index/transactions/riwayat-isi-ulang'); }}>Saya sudah membayar</button>
+                  <button className="btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/index/support/hubungi-cs'); }}>Butuh Bantuan? Hubungi Kontak Jelajah</button>
                 </div>
               </section>
             </div>

@@ -3,16 +3,24 @@ import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '../../components/BottomNav.jsx';
 import * as authSession from '../../lib/authSession.js';
-/* Saldo kartu "Saldo Kamu" — GET /api/auth/account-info/ (statistik penarikan,
-   komisi & berat emas aktif: GET /api/auth/balance-statistics/all-time/;
-   poin cashback: GET /api/auth/balance-cashback/; pertumbuhan sejak kemarin:
-   GET /api/auth/balance-statistics/yesterday/). */
-import { getAccountInfo, getBalanceStatistics, getBalanceCashback } from '../../lib/authApi.js';
+/* Saldo kartu "Saldo Kamu" — GET /api/auth/account-info/ (saldo utama, saldo
+   isi ulang & saldo emas digital = BALANCE HOLD; statistik penarikan:
+   GET /api/auth/balance-statistics/all-time/; poin/tiket roulette:
+   GET /api/roulette/points/; persen income hari ini vs kemarin:
+   GET /api/auth/balance-statistics/today|yesterday/; komisi undangan tingkat
+   1-3: GET /api/auth/downline-stats/). */
+import { getAccountInfo, getBalanceStatistics } from '../../lib/authApi.js';
+/* "Poin Kamu" — saldo poin/tiket roulette dari GET /api/roulette/points/. */
+import { getRoulettePoints } from '../../lib/rouletteApi.js';
+/* Komisi undangan tingkat 1-3 — sumber "Total Komisi" (perhitungan yang
+   sama dengan "Total Bonus" di halaman Tim Afiliasi). */
+import { getDownlineStats } from '../../lib/affiliateApi.js';
 import { formatRupiah, statusKind } from '../../lib/transactionFormat.js';
 /* Live "Harga Emas Hari Ini" — free public sources, cached 5 min. */
 import { fetchGoldPrice, getCachedGoldPrice, formatIDR, formatPercentID } from '../../lib/goldPriceApi.js';
 /* Notification badge — same rolling 7-day transaction feed as MenuNotifikasi. */
 import { useTransactionFeed } from '../../lib/useTransactionFeed.js';
+import { getSeenAt, isUnseen } from '../../lib/notifSeen.js';
 import img_1 from '../../assets/images/3d6fb697a044e75c7a6c789438a276b40b37b5b9.png';
 import img_2 from '../../assets/images/145_815.svg';
 import img_3 from '../../assets/images/120_3271.svg';
@@ -53,13 +61,17 @@ import img_34 from '../../assets/images/120_3373.svg';
 /* Static mockup values kept until the live gold-price sources respond. */
 const FALLBACK_PRICE_PER_GRAM = 2569270;
 const FALLBACK_CHANGE_PERCENT = -1.01;
-/* Pertumbuhan saldo mockup — dipakai sampai statistik kemarin landed. */
+/* Pertumbuhan income mockup — dipakai sampai statistik hari ini & kemarin
+   landed. */
 const FALLBACK_GROWTH_PERCENT = 1.01;
 
 /* The notification badge counts "new" items from the same feed the
    MenuNotifikasi page combines: the three transaction types, rolling 7 days.
    A transaction counts as new while it is still pending. */
 const NOTIFICATION_TYPES = ['DEPOSIT', 'WITHDRAW', 'INVESTMENTS'];
+
+/* Level downline yang dihitung untuk "Total Komisi" — tingkat 1-3 saja. */
+const TEAM_LEVELS = [1, 2, 3];
 
 /* GET /api/transactions/ date filter: rolling 7-calendar-day window
    (today + the 6 previous days), formatted as YYYY-MM-DD. */
@@ -376,6 +388,10 @@ const styles = `
 .page-profil .text-green {
   color: #2e8b57;
 }
+
+.page-profil .text-red {
+  color: #e24c4c;
+}
 .page-profil .refresh-btn {
   width: 26px;
   height: 26px;
@@ -432,6 +448,22 @@ const styles = `
   font-size: 13px;
   font-weight: 700;
   color: #1a1410;
+}
+.page-profil .skeleton-bar {
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(26, 20, 16, 0.08) 25%, rgba(26, 20, 16, 0.16) 37%, rgba(26, 20, 16, 0.08) 63%);
+  background-size: 400% 100%;
+  animation: profil-shimmer 1.4s ease infinite;
+}
+@keyframes profil-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
 }
 
 /* CSS for section section:Promo */
@@ -503,25 +535,46 @@ const styles = `
 /* Bottom navigation lives in src/components/BottomNav.jsx (styles inline in that file). */
 `;
 
+/* Skeleton shimmer untuk nilai kartu "Saldo Kamu" yang masih menunggu backend
+   — konvensi skeleton Home/Asset/CetakEmas/EmasDigital: bar inline-block
+   seukuran teks aslinya supaya layout tidak bergeser. */
+function MetricSkeleton({ width = 84, height = 12 }) {
+  return <span className="skeleton-bar" style={{ width, height }} aria-hidden="true" />;
+}
+
 export default function Profil() {
   const navigate = useNavigate();
 
-  /* Saldo dari GET /api/auth/account-info/. Kalo request-nya gagal (token
-     expired / offline), angka placeholder di bawah tetep tampil. */
+  /* Saldo dari GET /api/auth/account-info/. Selama menunggu tampil skeleton;
+     kalo request-nya gagal (token expired / offline), angka placeholder di
+     bawah tetep tampil. */
   const [account, setAccount] = useState(null);
-  /* Statistik all-time (penarikan, komisi, berat emas aktif) dari
+  /* Statistik all-time (agregat penarikan COMPLETED) dari
      GET /api/auth/balance-statistics/all-time/. */
   const [stats, setStats] = useState(null);
-  /* Saldo poin cashback deposit (1 poin = 1 Rupiah) dari
-     GET /api/auth/balance-cashback/. */
-  const [cashback, setCashback] = useState(null);
-  /* Statistik kemarin dari GET /api/auth/balance-statistics/yesterday/ —
-     sumber baris "(…% bertumbuh sejak kemarin)". */
+  /* Saldo poin/tiket roulette dari GET /api/roulette/points/ — angka
+     "Poin Kamu" (satuan poin, bukan Rupiah). */
+  const [points, setPoints] = useState(null);
+  /* Statistik kemarin (…/yesterday/) & hari ini (…/today/) — pembanding
+     pada baris "(…% bertumbuh sejak kemarin)". */
   const [yesterdayStats, setYesterdayStats] = useState(null);
+  const [todayStats, setTodayStats] = useState(null);
+  /* Statistik downline per level dari GET /api/auth/downline-stats/ —
+     sumber "Total Komisi" (hanya tingkat 1-3). */
+  const [downlineStats, setDownlineStats] = useState(null);
   /* Live "Harga Emas Hari Ini" dari goldPriceApi.js. */
   const [goldPrice, setGoldPrice] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [showBalance, setShowBalance] = useState(true);
+  /* Flag loading awal kartu "Saldo Kamu": true sampai request masing-masing
+     selesai — sukses mengisi angka, gagal jatuh ke angka mockup; dua-duanya
+     mengakhiri skeleton. Refresh manual tidak menghidupkan skeleton lagi,
+     indikatornya cukup ikon refresh yang berputar. */
+  const [accountLoading, setAccountLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [pointsLoading, setPointsLoading] = useState(true);
+  const [growthLoading, setGrowthLoading] = useState(true);
+  const [commissionLoading, setCommissionLoading] = useState(true);
 
   const loadAccount = useCallback(async () => {
     try {
@@ -529,6 +582,8 @@ export default function Profil() {
       if (data) setAccount(data);
     } catch {
       /* biarin angka placeholder */
+    } finally {
+      setAccountLoading(false);
     }
   }, []);
 
@@ -538,33 +593,53 @@ export default function Profil() {
       if (data) setStats(data);
     } catch {
       /* biarin angka placeholder */
+    } finally {
+      setStatsLoading(false);
     }
   }, []);
 
-  const loadCashback = useCallback(async () => {
+  const loadPoints = useCallback(async () => {
     try {
-      const data = await getBalanceCashback();
-      if (data) setCashback(data.balance_cashback);
+      const data = await getRoulettePoints();
+      if (data) setPoints(data.tickets);
     } catch {
       /* biarin angka placeholder */
+    } finally {
+      setPointsLoading(false);
     }
   }, []);
 
-  const loadYesterdayStats = useCallback(async () => {
+  /* Baris "(…% bertumbuh sejak kemarin)" butuh statistik kemarin DAN hari ini
+     — satu loader menunggu keduanya (allSettled) supaya skeleton baru berhenti
+     setelah kedua angka punya kesempatan landed. */
+  const loadGrowthStats = useCallback(async () => {
+    const [yesterday, today] = await Promise.allSettled([
+      getBalanceStatistics('yesterday'),
+      getBalanceStatistics('today'),
+    ]);
+    if (yesterday.status === 'fulfilled' && yesterday.value) setYesterdayStats(yesterday.value);
+    if (today.status === 'fulfilled' && today.value) setTodayStats(today.value);
+    setGrowthLoading(false);
+  }, []);
+
+  const loadDownlineStats = useCallback(async () => {
     try {
-      const data = await getBalanceStatistics('yesterday');
-      if (data) setYesterdayStats(data);
+      const data = await getDownlineStats();
+      if (data) setDownlineStats(data);
     } catch {
       /* biarin angka placeholder */
+    } finally {
+      setCommissionLoading(false);
     }
   }, []);
 
   useEffect(() => {
     loadAccount();
     loadStats();
-    loadCashback();
-    loadYesterdayStats();
-  }, [loadAccount, loadStats, loadCashback, loadYesterdayStats]);
+    loadPoints();
+    loadGrowthStats();
+    loadDownlineStats();
+  }, [loadAccount, loadStats, loadPoints, loadGrowthStats, loadDownlineStats]);
 
   /* Live gold price — a cached value paints instantly, then the free public
      sources refresh it in the background (see goldPriceApi.js). */
@@ -580,14 +655,15 @@ export default function Profil() {
     };
   }, []);
 
-  /* Notification badge — jumlah notifikasi baru (transaksi masih pending) dari
-     feed rolling 7 hari yang sama dengan MenuNotifikasi/Home. Nol pending =
-     badge-nya nggak dirender. */
+  /* Notification badge — jumlah notifikasi baru: transaksi pending yang masuk
+     setelah kunjungan terakhir ke MenuNotifikasi (patokan notifSeen) dari feed
+     rolling 7 hari yang sama dengan Home. Nol = badge-nya nggak dirender. */
+  const [seenAt] = useState(getSeenAt);
   const { items: notificationItems } = useTransactionFeed(NOTIFICATION_TYPES, {
     startDate: startDateParam(),
   });
   const newNotificationCount = notificationItems.filter(
-    (trx) => statusKind(trx.status) === 'pending'
+    (trx) => statusKind(trx.status) === 'pending' && isUnseen(trx, seenAt)
   ).length;
 
   /* Tombol refresh: tarik ulang saldo, statistik & harga emas tanpa reload
@@ -597,8 +673,9 @@ export default function Profil() {
     await Promise.all([
       loadAccount(),
       loadStats(),
-      loadCashback(),
-      loadYesterdayStats(),
+      loadPoints(),
+      loadGrowthStats(),
+      loadDownlineStats(),
       fetchGoldPrice().then((live) => {
         if (live) setGoldPrice(live);
       }),
@@ -649,10 +726,10 @@ export default function Profil() {
 
   const balanceText = account ? formatRupiah(account.balance) : 'Rp 70.934';
   const depositText = account ? formatRupiah(account.balance_deposit) : 'Rp 70.934';
-  /* "Poin Kamu" — saldo cashback deposit (1 poin = 1 Rupiah). */
+  /* "Poin Kamu" — saldo poin/tiket roulette (GET /api/roulette/points/). */
   const pointsText =
-    cashback !== null
-      ? `${Math.round(Number(cashback) || 0).toLocaleString('id-ID')} Poin`
+    points !== null
+      ? `${Math.round(Number(points) || 0).toLocaleString('id-ID')} Poin`
       : '1.250 Poin';
 
   /* Gold banner: live values once the public sources respond, mockup values
@@ -664,24 +741,49 @@ export default function Profil() {
   const trendUp = changePercent >= 0;
   const priceText = hasLivePrice ? `${formatIDR(pricePerGram)} / gram` : 'Rp 2.569.270 / gram';
 
-  /* "Berat Emas" counts the quantity of still-ACTIVE plans (server-side sum in
-     active_products); "Saldo Emas Digital" values that weight at the current
-     price. While the stats request hasn't landed, the mockup values stay. */
-  const gramTotal = stats
-    ? (stats.active_products || []).reduce((sum, item) => sum + (Number(item.total_quantity) || 0), 0)
-    : null;
-  const gramText = gramTotal === null ? '1,367 gram' : `${gramTotal.toLocaleString('id-ID')} gram`;
-  const goldValueText = gramTotal === null ? 'Rp 3.512.870' : formatRupiah(gramTotal * pricePerGram);
-  /* "Total Penarikan" / "Total Komisi" — all-time COMPLETED aggregates. */
+  /* "Saldo Emas Digital" = BALANCE HOLD (dompet emas digital, Rupiah) dan
+     "Berat Emas" = konversinya ke gram memakai harga emas per gram yang sama
+     dengan banner "Harga Emas Hari Ini" — angka gram yang sama dipakai di
+     menu Cetak Emas. Mockup dipakai sampai saldo landed. */
+  const holdValue = account ? Number(account.balance_hold) || 0 : null;
+  const gramValue = holdValue === null ? null : holdValue / pricePerGram;
+  const goldValueText = holdValue === null ? 'Rp 3.512.870' : formatRupiah(holdValue);
+  const gramText =
+    gramValue === null
+      ? '1,367 gram'
+      : `${gramValue.toLocaleString('id-ID', { maximumFractionDigits: 3 })} gram`;
+  /* "Total Penarikan" — akumulasi penarikan COMPLETED (all-time). */
   const withdrawText = stats ? formatRupiah(stats.total_withdraw_completed) : 'Rp 1.850.000';
-  const commissionText = stats ? formatRupiah(stats.total_commission) : 'Rp 85.000';
-  /* "(…% bertumbuh sejak kemarin)" — pendapatan kemarin relatif ke saldo
-     sebelum pendapatan itu masuk. Nilai mockup dipakai sampai landed. */
+  /* "Total Komisi" — akumulasi komisi undangan (profit + purchase) tingkat
+     1-3 saja, sama dengan "Total Bonus" di halaman Tim Afiliasi. Mockup
+     dipakai sampai data landed. */
+  const commissionTotal = downlineStats
+    ? (downlineStats.levels || [])
+        .filter((item) => TEAM_LEVELS.includes(item.level))
+        .reduce(
+          (sum, item) =>
+            sum + Number(item.profit_commission_amount || 0) + Number(item.purchase_commission_amount || 0),
+          0
+        )
+    : null;
+  const commissionText = commissionTotal === null ? 'Rp 85.000' : formatRupiah(commissionTotal);
+  /* "(…% bertumbuh sejak kemarin)" — persen perubahan income HARI INI (semua
+     jenis pemasukan) dibanding kemarin: (hari ini − kemarin) / kemarin,
+     konvensi yang sama dengan baris change di Home. Nilai mockup dipakai
+     sampai kedua statistik landed. */
+  const incomeToday = todayStats ? Number(todayStats.total_income) || 0 : null;
   const incomeYesterday = yesterdayStats ? Number(yesterdayStats.total_income) || 0 : null;
-  const baseYesterday =
-    incomeYesterday !== null && account ? (Number(account.balance) || 0) - incomeYesterday : null;
   const growthPercent =
-    baseYesterday !== null && baseYesterday > 0 ? (incomeYesterday / baseYesterday) * 100 : FALLBACK_GROWTH_PERCENT;
+    incomeToday === null || incomeYesterday === null
+      ? FALLBACK_GROWTH_PERCENT
+      : incomeYesterday > 0
+        ? ((incomeToday - incomeYesterday) / incomeYesterday) * 100
+        : incomeToday > 0
+          ? 100
+          : 0;
+  const growthText = `(${formatPercentID(Math.abs(growthPercent))} ${
+    growthPercent >= 0 ? 'bertumbuh sejak kemarin' : 'turun sejak kemarin'
+  })`;
 
   return (
     <div className="page-profil">
@@ -691,10 +793,10 @@ export default function Profil() {
                 <div className="app-container header-container">
                   <img src={img_1} alt="Jelajah Emas" className="logo" />
                   <div className="header-actions">
-                    <button className="icon-btn" onClick={(e) => { e.preventDefault(); navigate('/support/tentang-kami'); }}>
+                    <button className="icon-btn" onClick={(e) => { e.preventDefault(); navigate('/index/support/tentang-kami'); }}>
                       <img src={img_2} alt="Tentang Kami" />
                     </button>
-                    <button className="icon-btn" onClick={(e) => { e.preventDefault(); navigate('/profil/notifikasi'); }}>
+                    <button className="icon-btn" onClick={(e) => { e.preventDefault(); navigate('/index/profil/notifikasi'); }}>
                       <img src={img_3} alt="Notifications" />
                       {newNotificationCount > 0 && <span className="badge">{newNotificationCount}</span>}
                     </button>
@@ -705,45 +807,45 @@ export default function Profil() {
                 <div className="app-container features-container">
                   <h2 className="section-title">Fitur Lainnya</h2>
                   <div className="features-grid">
-                    <Link to="/transactions/isi-ulang" className="feature-item">
+                    <Link to="/index/transactions/isi-ulang" className="feature-item">
                       <img src={img_4} alt="Isi Ulang" />
                       <span>Isi Ulang</span>
                     </Link>
-                    <Link to="/rewards/vip" className="feature-item">
+                    <Link to="/index/rewards/vip" className="feature-item">
                       <img src={img_5} alt="VIP" />
                       <span>VIP</span>
                     </Link>
-                    <Link to="/transactions/tarik-dana-01" className="feature-item">
+                    <Link to="/index/transactions/tarik-dana-01" className="feature-item">
                       <img src={img_6} alt="Tarik Dana" />
                       <span>Tarik Dana</span>
                     </Link>
-                    <Link to="/affiliate/tim-afiliasi" className="feature-item">
+                    <Link to="/index/affiliate/tim-afiliasi" className="feature-item">
                       <img src={img_7} alt="Tim/Afiliasi" />
                       <span>Tim/Afiliasi</span>
                     </Link>
-                    <Link to="/assets/emas-digital" className="feature-item">
+                    <Link to="/index/assets/emas-digital" className="feature-item">
                       <img src={img_8} alt="Emas Digital" />
                       <span>Emas Digital</span>
                     </Link>
-                    <Link to="/rewards/absen-harian" className="feature-item">
+                    <Link to="/index/rewards/absen-harian" className="feature-item">
                       <img src={img_9} alt="Absen" />
                       <span>Absen</span>
                     </Link>
-                    <Link to="/rewards/redeem-kode" className="feature-item">
+                    <Link to="/index/rewards/redeem-kode" className="feature-item">
                       <img src={img_10} alt="Redeem Kode" />
                       <span>Redeem Kode</span>
                     </Link>
-                    <Link to="/rewards/misi" className="feature-item">
+                    <Link to="/index/rewards/misi" className="feature-item">
                       <img src={img_11} alt="Misi" />
                       <span>Misi</span>
                     </Link>
                   </div>
                   <div className="features-actions">
-                    <Link to="/support/hubungi-cs" className="action-btn">
+                    <Link to="/index/support/hubungi-cs" className="action-btn">
                       <img src={img_12} alt="Hubungi CS" />
                       <span>Hubungi CS</span>
                     </Link>
-                    <Link to="/transactions/riwayat-transaksi" className="action-btn">
+                    <Link to="/index/transactions/riwayat-transaksi" className="action-btn">
                       <img src={img_13} alt="Riwayat Transaksi" />
                       <span>Riwayat Transaksi</span>
                     </Link>
@@ -764,7 +866,7 @@ export default function Profil() {
                         <span className={trendUp ? 'positive' : ''}>{formatPercentID(Math.abs(changePercent))}</span>
                       </div>
                     </div>
-                    <button className="gold-btn" onClick={(e) => { e.preventDefault(); navigate('/assets/asset-01'); }}>Lihat penawarannya</button>
+                    <button className="gold-btn" onClick={(e) => { e.preventDefault(); navigate('/index/assets/asset-01'); }}>Lihat penawarannya</button>
                   </div>
                 </div>
               </section>
@@ -772,7 +874,7 @@ export default function Profil() {
                 <div className="app-container balance-container">
                   <div className="balance-header">
                     <h2 className="section-title">Saldo Kamu</h2>
-                    <Link to="/transactions/riwayat-transaksi" className="view-all">
+                    <Link to="/index/transactions/riwayat-transaksi" className="view-all">
                       Lihat Semua
                       <img src={img_16} alt="Arrow Right" />
                     </Link>
@@ -780,8 +882,12 @@ export default function Profil() {
                   <div className="balance-card" style={{ backgroundImage: `url(${img_30})` }}>
                     <div className="balance-card-top">
                       <div className="balance-card-title">
-                        Saldo Tersedia Ditarik<br />
-                        <span className="text-green">({formatPercentID(growthPercent)} bertumbuh sejak kemarin)</span>
+                        Saldo Tersedia<br />
+                        {growthLoading ? (
+                          <MetricSkeleton width={170} height={12} />
+                        ) : (
+                          <span className={growthPercent >= 0 ? 'text-green' : 'text-red'}>{growthText}</span>
+                        )}
                       </div>
                       <button
                         className="refresh-btn"
@@ -793,7 +899,9 @@ export default function Profil() {
                       </button>
                     </div>
                     <div className="main-balance">
-                      <span className="amount">{showBalance ? balanceText : '••••••'}</span>
+                      <span className="amount">
+                        {accountLoading ? <MetricSkeleton width={130} height={24} /> : showBalance ? balanceText : '••••••'}
+                      </span>
                       <button
                         className="eye-btn"
                         onClick={() => setShowBalance((visible) => !visible)}
@@ -805,27 +913,39 @@ export default function Profil() {
                     <div className="balance-grid">
                       <div className="balance-item">
                         <span className="item-label">Saldo Isi Ulang</span>
-                        <span className="item-value">{depositText}</span>
+                        <span className="item-value">
+                          {accountLoading ? <MetricSkeleton width={72} height={12} /> : depositText}
+                        </span>
                       </div>
                       <div className="balance-item">
                         <span className="item-label">Saldo Emas Digital</span>
-                        <span className="item-value">{goldValueText}</span>
+                        <span className="item-value">
+                          {accountLoading ? <MetricSkeleton width={80} height={12} /> : goldValueText}
+                        </span>
                       </div>
                       <div className="balance-item">
                         <span className="item-label">Berat Emas</span>
-                        <span className="item-value">{gramText}</span>
+                        <span className="item-value">
+                          {accountLoading ? <MetricSkeleton width={72} height={12} /> : gramText}
+                        </span>
                       </div>
                       <div className="balance-item">
                         <span className="item-label">Poin Kamu</span>
-                        <span className="item-value">{pointsText}</span>
+                        <span className="item-value">
+                          {pointsLoading ? <MetricSkeleton width={72} height={12} /> : pointsText}
+                        </span>
                       </div>
                       <div className="balance-item">
                         <span className="item-label">Total Penarikan</span>
-                        <span className="item-value">{withdrawText}</span>
+                        <span className="item-value">
+                          {statsLoading ? <MetricSkeleton width={84} height={12} /> : withdrawText}
+                        </span>
                       </div>
                       <div className="balance-item">
                         <span className="item-label">Total Komisi</span>
-                        <span className="item-value">{commissionText}</span>
+                        <span className="item-value">
+                          {commissionLoading ? <MetricSkeleton width={68} height={12} /> : commissionText}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -851,19 +971,19 @@ export default function Profil() {
                 <div className="app-container sub-section-container">
                   <h3 className="sub-section-title">Akun</h3>
                   <div className="icon-grid">
-                    <Link to="/profil/edit" className="icon-item">
+                    <Link to="/index/profil/edit" className="icon-item">
                       <img src={img_19} alt="Edit Profil" />
                       <span>Edit Profil</span>
                     </Link>
-                    <Link to="/profil/kartu-bank" className="icon-item">
+                    <Link to="/index/profil/kartu-bank" className="icon-item">
                       <img src={img_20} alt="Rekening Bank" />
                       <span>Rekening Bank</span>
                     </Link>
-                    <Link to="/profil/setelan" className="icon-item">
+                    <Link to="/index/profil/setelan" className="icon-item">
                       <img src={img_21} alt="Setelan" />
                       <span>Setelan</span>
                     </Link>
-                    <Link to="/landing" className="icon-item">
+                    <Link to="/index/landing" className="icon-item">
                       <img src={img_22} alt="Unduh Aplikasi" />
                       <span>Unduh Aplikasi</span>
                     </Link>
@@ -874,19 +994,19 @@ export default function Profil() {
                 <div className="app-container sub-section-container">
                   <h3 className="sub-section-title">Bantuan &amp; Info</h3>
                   <div className="icon-grid">
-                    <Link to="/support/pertanyaan-umum" className="icon-item">
+                    <Link to="/index/support/pertanyaan-umum" className="icon-item">
                       <img src={img_23} alt="Pusat Bantuan" />
                       <span>Pusat Bantuan</span>
                     </Link>
-                    <Link to="/support/hubungi-cs" className="icon-item">
+                    <Link to="/index/support/hubungi-cs" className="icon-item">
                       <img src={img_24} alt="Hubungi CS" />
                       <span>Hubungi CS</span>
                     </Link>
-                    <Link to="/support/tentang-kami" className="icon-item">
+                    <Link to="/index/support/tentang-kami" className="icon-item">
                       <img src={img_25} alt="Tentang Kami" />
                       <span>Tentang Kami</span>
                     </Link>
-                    <Link to="/support/syarat-dan-ketentuan" className="icon-item">
+                    <Link to="/index/support/syarat-dan-ketentuan" className="icon-item">
                       <img src={img_26} alt="Syarat & Ketentuan" />
                       <span>Syarat &amp;<br />Ketentuan</span>
                     </Link>
@@ -897,11 +1017,11 @@ export default function Profil() {
                 <div className="app-container sub-section-container">
                   <h3 className="sub-section-title">Lainnya</h3>
                   <div className="icon-grid">
-                    <Link to="/profil/beri-rating" className="icon-item">
+                    <Link to="/index/profil/beri-rating" className="icon-item">
                       <img src={img_27} alt="Beri Rating" />
                       <span>Beri Rating</span>
                     </Link>
-                    <Link to="/auth/login" className="icon-item danger" onClick={() => authSession.clear()}>
+                    <Link to="/index/auth/login" className="icon-item danger" onClick={() => authSession.clear()}>
                       <img src={img_28} alt="Keluar" />
                       <span>Keluar</span>
                     </Link>

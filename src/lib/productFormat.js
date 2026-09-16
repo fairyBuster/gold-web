@@ -29,13 +29,27 @@ export function durationDays(hours) {
   return Math.max(1, Math.round((Number(hours) || 0) / 24));
 }
 
-/* Profit credited per claim (rupiah). */
+/* Random plans credit a random amount per claim between min and max. Returns
+   that range, or null for every other profit type (and for invalid data). */
+export function profitRange(product) {
+  if (product.profit_type !== 'random') return null;
+  const min = Number(product.profit_random_min) || 0;
+  const max = Number(product.profit_random_max) || 0;
+  if (min <= 0 || max < min) return null;
+  return { min, max };
+}
+
+/* "Rp6.250 – Rp10.350" when the ends differ, a single "Rp8.300" otherwise. */
+export function formatRupiahRange(min, max) {
+  return min === max ? formatRupiah(min) : `${formatRupiah(min)} – ${formatRupiah(max)}`;
+}
+
+/* Profit credited per claim (rupiah); random plans use the range midpoint. */
 export function profitPerClaim(product) {
   const rate = Number(product.profit_rate) || 0;
   if (product.profit_type === 'percentage') return ((Number(product.price) || 0) * rate) / 100;
-  if (product.profit_type === 'random') {
-    return ((Number(product.profit_random_min) || 0) + (Number(product.profit_random_max) || 0)) / 2;
-  }
+  const range = profitRange(product);
+  if (range) return (range.min + range.max) / 2;
   return rate;
 }
 
@@ -51,7 +65,10 @@ export function claimCount(product) {
 
 export function profitLabel(product) {
   const rate = Number(product.profit_rate) || 0;
-  return product.profit_type === 'percentage' ? `${rate}%` : formatRupiah(rate);
+  if (product.profit_type === 'percentage') return `${rate}%`;
+  const range = profitRange(product);
+  if (range) return formatRupiahRange(range.min, range.max);
+  return formatRupiah(rate);
 }
 
 export function claimLabel(product) {

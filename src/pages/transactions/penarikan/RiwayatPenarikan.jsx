@@ -18,7 +18,8 @@ const styles = `
   font-family: 'Inter', sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f0f2f5;
+  /* Opaque canvas on the root so it stays full-bleed on desktop. */
+  background-image: linear-gradient(#fffbf4, #fffbf4);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
@@ -33,7 +34,6 @@ const styles = `
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
-  background-color: #fffbf4;
 }
 
 /* ---- inline section styles ---- */
@@ -220,12 +220,33 @@ const HISTORY_PAGE_SIZE = 8;
 /* Status group → right-hand pill label. */
 const STATUS_LABELS = { success: 'Sukses', pending: 'Diproses', failed: 'Gagal' };
 
-/* Two-line card detail: time + masked bank account, then the service used. */
+/* Real fee / net amount from the linked Withdrawal row (withdrawal_fee and
+   withdrawal_net_amount on TransactionSerializer); net falls back to
+   amount - fee. Withdrawals without a Withdrawal row yield null for both. */
+function feeOf(trx) {
+  return trx.withdrawal_fee != null ? Number(trx.withdrawal_fee) : null;
+}
+
+function netOf(trx) {
+  if (trx.withdrawal_net_amount != null) return Number(trx.withdrawal_net_amount);
+  const fee = feeOf(trx);
+  return fee == null ? null : (Number(trx.amount) || 0) - fee;
+}
+
+/* Card detail: time + masked destination account, the service used, then the
+   amount breakdown (gross / fee / net) once the payout row exists. */
 function buildDetail(trx) {
   const account = trx.bank_account_number ? `••${String(trx.bank_account_number).slice(-4)}` : '';
   const bank = [trx.bank_name, account].filter(Boolean).join(' ');
   const lines = [`${formatTime(trx.created_at)}${bank ? ` • ${bank}` : ''}`.trim()];
   if (trx.withdrawal_service_name) lines.push(`Layanan ${trx.withdrawal_service_name}`);
+  const fee = feeOf(trx);
+  const net = netOf(trx);
+  if (fee != null && net != null) {
+    lines.push(`Nominal sebelum potongan: ${formatRupiah(trx.amount)}`);
+    lines.push(`Biaya: ${formatRupiah(fee)}`);
+    lines.push(`Nominal sebenarnya: ${formatRupiah(net)}`);
+  }
   return lines.filter(Boolean).join('\n');
 }
 
@@ -236,7 +257,7 @@ export default function RiwayatPenarikan() {
 
   /* Tapping a card opens the detail page for that withdrawal. */
   const openDetail = (trx) => {
-    navigate('/transactions/detail-penarikan', { state: { trx } });
+    navigate('/index/transactions/detail-penarikan', { state: { trx } });
   };
 
   /* Totals for the current calendar month. */
@@ -254,7 +275,7 @@ export default function RiwayatPenarikan() {
       <div>
               <section id="section-header" className="app-section">
                 <header className="header-content">
-                  <a href="#" className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); navigate('/home'); }}>
+                  <a href="#" className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); navigate('/index/home'); }}>
                     <img src={img_1} alt="" />
                   </a>
                   <h1 className="page-title">Riwayat Penarikan</h1>

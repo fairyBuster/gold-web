@@ -11,6 +11,10 @@ const styles = `
   margin: 0;
   padding: 0;
   background-color: #e5e5e5; /* Darker background for desktop viewing */
+  /* Full-bleed page canvas — the opaque radial (warm glow fading into the
+     base color) is painted on the root so it survives the global
+     transparent-root rule. */
+  background-image: radial-gradient(circle at 50% 0%, #ffe8c2 0%, #fffbf4 45%);
   display: flex;
   justify-content: center;
   min-height: 100vh;
@@ -36,9 +40,6 @@ const styles = `
     width: 100%;
     max-width: 100%;
     min-height: 100vh;
-    background-color: #fffbf4;
-    /* Approximating the complex radial gradients from Figma with a simpler, visually similar gradient */
-    background-image: radial-gradient(circle at 50% 0%, #ffe8c2 0%, #fffbf4 45%);
     display: flex;
     flex-direction: column;
     padding: 36px 22px 24px 22px;
@@ -205,8 +206,8 @@ export default function DetailRiwayatPoin() {
               </section>
               <div className="spacer" />
               <section id="section-actions" className="actions-section">
-                <button className="btn btn-primary" onClick={(e) => { e.preventDefault(); navigate('/rewards/riwayat-poin'); }}>Kembali ke Riwayat Poin</button>
-                <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/rewards/poin-mall-01'); }}>Tukar Poin Lainnya</button>
+                <button className="btn btn-primary" onClick={(e) => { e.preventDefault(); navigate('/index/rewards/riwayat-poin'); }}>Kembali ke Riwayat Poin</button>
+                <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/index/rewards/poin-mall-01'); }}>Tukar Poin Lainnya</button>
               </section>
             </main>
 

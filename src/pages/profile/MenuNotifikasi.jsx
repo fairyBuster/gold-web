@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import NotifCard from '../../components/NotifCard.jsx';
 import ListPagination from '../../components/ListPagination.jsx';
 import ListState from '../../components/ListState.jsx';
 import { useTransactionFeed } from '../../lib/useTransactionFeed.js';
 import { formatRupiah, formatTime, groupByDay, statusKind } from '../../lib/transactionFormat.js';
+import { getSeenAt, isUnseen, markSeenUpTo } from '../../lib/notifSeen.js';
 import img_1 from '../../assets/images/156_1523.svg';
 import img_2 from '../../assets/images/f9c5183ac158cef9ca41f24d7c27c0a86cc4e6fd.png';
 import img_3 from '../../assets/images/0e9552200559b01fbf7792e280655b0f9c3b5705.png';
@@ -211,6 +212,14 @@ export default function MenuNotifikasi() {
   });
   const [visibleCount, setVisibleCount] = useState(NOTIFICATION_PAGE_SIZE);
 
+  /* Unseen watermark frozen at entry: the dot flags pending items that came
+     in after the previous visit. Once the list has been displayed the
+     watermark moves up (effect below), so those dots clear next visit. */
+  const [seenAt] = useState(getSeenAt);
+  useEffect(() => {
+    if (!loading && !error) markSeenUpTo(items);
+  }, [loading, error, items]);
+
   /* Newest-first items collapsed into consecutive day groups. */
   const groups = groupByDay(items.slice(0, visibleCount));
 
@@ -253,7 +262,7 @@ export default function MenuNotifikasi() {
                                 </div>
                                 <p className="card-desc">{buildDescription(trx, kind)}</p>
                               </div>
-                              {kind === 'pending' && <div className="unread-dot" />}
+                              {kind === 'pending' && isUnseen(trx, seenAt) && <div className="unread-dot" />}
                             </div>
                           );
                         })}

@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import img_1 from '../../../assets/images/36_421.svg';
 import img_2 from '../../../assets/images/34_313.svg';
 import img_3 from '../../../assets/images/ce5e15fdc0235c8752e5673a09627b9fdbe74d46.png';
+/* Page background artwork — assigned inline on the root node (see styles). */
+import img_4 from '../../../assets/images/083535.png';
+/* Hasil salin tampil lewat halaman /notif kalau clipboard diblokir browser. */
+import { useShowNotif } from '../../../lib/useShowNotif.js';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -15,10 +19,11 @@ const styles = `
   padding: 0;
   max-width: 100%;
   background-color: #fffbf4;
-  background-image: 
-    radial-gradient(circle at 76.9% 11.5%, rgba(255, 201, 60, 0.28) 0%, rgba(255, 201, 60, 0) 70%),
-    radial-gradient(circle at 111.1% 25.5%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 70%),
-    radial-gradient(circle at 90.9% -40.9%, rgba(255, 159, 28, 0.38) 0%, rgba(255, 159, 28, 0) 70%);
+  /* Background artwork (assigned inline from the imported asset) is a
+     full-page image with glows anchored to the top/bottom — stretch it. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
   box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
   min-height: 100vh;
   position: relative;
@@ -309,6 +314,9 @@ const styles = `
 }
 `;
 
+/* Nomor Virtual Account — satu sumber untuk tampilan dan tombol Salin. */
+const VA_NUMBER = '8808 1234 5678 90';
+
 /* Payment channels shown as tabs, with the instruction steps per channel. */
 const PAYMENT_METHODS = [
   {
@@ -349,10 +357,24 @@ const PAYMENT_METHODS = [
 export default function VirtualAccount() {
   const navigate = useNavigate();
   const [activeMethod, setActiveMethod] = useState(PAYMENT_METHODS[0].id);
+  const [copied, setCopied] = useState(false);
+  const showNotif = useShowNotif();
   const method = PAYMENT_METHODS.find((item) => item.id === activeMethod) || PAYMENT_METHODS[0];
 
+  /* "Salin" menyalin nomor Virtual Account ke clipboard; label tombol berubah
+     sesaat sebagai umpan balik (mengikuti pola halaman Misi). */
+  const handleCopyNumber = async () => {
+    try {
+      await navigator.clipboard.writeText(VA_NUMBER);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      showNotif({ title: 'Gagal Menyalin', description: 'Tidak dapat menyalin nomor. Salin manual ya.' });
+    }
+  };
+
   return (
-    <div className="page-virtual-account">
+    <div className="page-virtual-account" style={{ backgroundImage: `url(${img_4})` }}>
       <style>{styles}</style>
       <div>
               <section id="section-header">
@@ -383,8 +405,10 @@ export default function VirtualAccount() {
                   <div className="account-section">
                     <div className="label">Nomor Virtual Account</div>
                     <div className="number-box">
-                      <span className="number">8808 1234 5678 90</span>
-                      <button className="copy-btn">Salin</button>
+                      <span className="number">{VA_NUMBER}</span>
+                      <button className="copy-btn" onClick={(e) => { e.preventDefault(); handleCopyNumber(); }}>
+                        {copied ? 'Tersalin!' : 'Salin'}
+                      </button>
                     </div>
                   </div>
                   <div className="total-section">
@@ -429,11 +453,12 @@ export default function VirtualAccount() {
                 </ul>
               </section>
               <section id="section-actions">
-                <button className="btn-primary" onClick={(e) => { e.preventDefault(); navigate('/transactions/riwayat-isi-ulang'); }}>Saya sudah membayar</button>
-                <button className="btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/support/hubungi-cs'); }}>Butuh Bantuan? Hubungi Kontak Jelajah</button>
+                <button className="btn-primary" onClick={(e) => { e.preventDefault(); navigate('/index/transactions/riwayat-isi-ulang'); }}>Saya sudah membayar</button>
+                <button className="btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/index/support/hubungi-cs'); }}>Butuh Bantuan? Hubungi Kontak Jelajah</button>
               </section>
             </div>
 
     </div>
   );
 }
+ 

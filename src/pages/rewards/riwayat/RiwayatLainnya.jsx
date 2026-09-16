@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import img_1 from '../../../assets/images/109_2784.svg';
 import img_2 from '../../../assets/images/3996294870fd174373ab40264b02a36e21eea57f.png';
 import NotifCard from '../../../components/NotifCard.jsx';
@@ -16,7 +17,8 @@ const styles = `
   font-family: 'Inter', sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f5f5f5;
+  /* Opaque canvas on the root so it stays full-bleed on desktop. */
+  background-image: linear-gradient(#fffbf4, #fffbf4);
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -31,7 +33,6 @@ const styles = `
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
-  background-color: #fffbf4;
 }
 
 /* ---- inline section styles ---- */
@@ -152,6 +153,22 @@ const styles = `
   text-overflow: ellipsis;
 }
 
+.page-riwayat-lainnya .card-subtitle span {
+  display: inline-block;
+}
+
+/* Teks yang lebih panjang dari kartunya berjalan bolak-balik (bukan
+   terpotong) — jarak geser (--slide) dihitung dari overflow di JS. */
+.page-riwayat-lainnya .card-subtitle.is-marquee span {
+  animation: rlain-subtitle-slide 8s ease-in-out infinite;
+}
+
+@keyframes rlain-subtitle-slide {
+  0%, 12% { transform: translateX(0); }
+  46%, 58% { transform: translateX(var(--slide, 0px)); }
+  92%, 100% { transform: translateX(0); }
+}
+
 .page-riwayat-lainnya .card-action {
   display: flex;
   flex-direction: column;
@@ -182,7 +199,7 @@ const styles = `
 `;
 
 /* The page merges the reward & balance transaction types into one feed. */
-const OTHER_TYPES = ['ATTENDANCE', 'TRANSFER', 'CASHBACK_DEPOSIT', 'BONUS', 'CREDIT', 'REJECT', 'RETURN', 'VOUCHER', 'MISSIONS'];
+const OTHER_TYPES = ['ATTENDANCE', 'TRANSFER', 'CASHBACK_DEPOSIT', 'BONUS', 'CREDIT', 'REJECT', 'RETURN', 'VOUCHER', 'MISSIONS', 'SWAP'];
 
 /* "Muat Lebih Banyak" reveals the next batch of this many loaded items. */
 const HISTORY_PAGE_SIZE = 8;
@@ -190,18 +207,20 @@ const HISTORY_PAGE_SIZE = 8;
 /* Status group → right-hand label. */
 const STATUS_LABELS = { success: 'Berhasil', pending: 'Diproses', failed: 'Gagal' };
 
-/* Card title per type — the design names for each reward/balance category
-   (the raw backend descriptions are system strings, not display copy). */
+/* Card title per type — app copy for each reward/balance category (the raw
+   backend descriptions are system strings, not display copy). TRANSFER and
+   RETURN keep their existing labels; every other type uses the app wording. */
 const TYPE_TITLES = {
-  ATTENDANCE: 'Attendance',
+  ATTENDANCE: 'Absensi Jelajah Emas',
+  VOUCHER: 'Menukarkan Kode',
+  CREDIT: 'Ditambahkan Saldo',
+  MISSIONS: 'Menyelesaikan Tugas',
+  CASHBACK_DEPOSIT: 'Mendapatkan Poin Isi Ulang',
+  BONUS: 'Menukarkan Poin',
+  REJECT: 'Dikembalikan ke Saldo',
   TRANSFER: 'Tukar poin',
-  CASHBACK_DEPOSIT: 'Dapat poin',
-  BONUS: 'Dapat poin',
-  CREDIT: 'Add balance',
-  REJECT: 'Refund',
   RETURN: 'Refund',
-  VOUCHER: 'Voucher',
-  MISSIONS: 'Mission',
+  SWAP: 'Tukar Emas',
 };
 
 /* Short status sentence shown after the time in the subtitle. */
@@ -215,25 +234,68 @@ const TYPE_NOTES = {
   RETURN: { success: 'Refund berhasil diterima', pending: 'Refund sedang diproses', failed: 'Refund tidak berhasil' },
   VOUCHER: { success: 'Voucher berhasil diproses', pending: 'Voucher sedang diproses', failed: 'Voucher tidak berhasil' },
   MISSIONS: { success: 'Reward misi berhasil diterima', pending: 'Reward misi sedang diproses', failed: 'Reward misi tidak berhasil' },
+  SWAP: { success: 'Penukaran emas berhasil', pending: 'Penukaran emas sedang diproses', failed: 'Penukaran emas tidak berhasil' },
 };
 
-/* Card title per type — the design label (not the raw backend description). */
+/* Card title per type — the design label (not the raw backend description).
+   A swap posts two rows: the gold value debited from balance_hold and the
+   swap fee debited from balance_deposit — the fee row gets its own label. */
 function buildTitle(trx) {
+  if (trx.type === 'SWAP' && trx.wallet_type === 'BALANCE_DEPOSIT') return 'Biaya Tukar Emas';
   return TYPE_TITLES[trx.type] || 'Transaksi';
+}
+
+/* Swap rows carry no gram field — the amount lives inside the backend
+   description ("Tukar 0.5000 gram emas ..." / "... tukar emas 0.5000 gram
+   ..."), so it is parsed out for display, like RiwayatIsiUlang parses the
+   deposit provider. "0.5000" renders as "0,5 gram" (trailing zeros trimmed). */
+function swapGramLabel(trx) {
+  if (trx.type !== 'SWAP') return '';
+  const match = String(trx.description || '').match(/(\d+(?:\.\d+)?)\s*gram/i);
+  const grams = match ? Number(match[1]) : NaN;
+  if (!Number.isFinite(grams) || grams <= 0) return '';
+  return `${String(grams).replace('.', ',')} gram`;
 }
 
 function buildSubtitle(trx, kind) {
   const note = TYPE_NOTES[trx.type] ? TYPE_NOTES[trx.type][kind] : '';
-  return [formatTime(trx.created_at), note].filter(Boolean).join(' • ');
+  return [formatTime(trx.created_at), swapGramLabel(trx), note].filter(Boolean).join(' • ');
 }
 
 export default function RiwayatLainnya() {
   const { items, loading, error } = useTransactionFeed(OTHER_TYPES);
   const [visibleCount, setVisibleCount] = useState(HISTORY_PAGE_SIZE);
   const groups = groupByDay(items.slice(0, visibleCount));
+  const rootRef = useRef(null);
+
+  /* Teks subtitel yang melebihi lebar kartunya berjalan bolak-balik (bukan
+     terpotong "...") — pola yang sama dengan RiwayatTransaksi. Diukur ulang
+     saat daftar berubah (feed masuk bertahap / Muat Lebih Banyak), saat
+     resize, dan setelah font Inter selesai dimuat. */
+  useEffect(() => {
+    const measure = () => {
+      const subtitles = rootRef.current?.querySelectorAll('.card-subtitle') ?? [];
+      subtitles.forEach((el) => {
+        const span = el.firstElementChild;
+        if (!span) return;
+        const overflow = el.scrollWidth - el.clientWidth;
+        if (overflow > 0) {
+          span.style.setProperty('--slide', `${-overflow}px`);
+          el.classList.add('is-marquee');
+        } else {
+          el.classList.remove('is-marquee');
+          span.style.removeProperty('--slide');
+        }
+      });
+    };
+    measure();
+    document.fonts?.ready.then(measure);
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [items, visibleCount]);
 
   return (
-    <div className="page-riwayat-lainnya">
+    <div className="page-riwayat-lainnya" ref={rootRef}>
       <style>{styles}</style>
       <div>
               <section id="section-header" className="app-section header-section">
@@ -260,13 +322,27 @@ export default function RiwayatLainnya() {
                           <div className="cards-container">
                             {group.items.map((trx) => {
                               const kind = statusKind(trx.status);
-                              const amount = Number(trx.amount) || 0;
+                              /* A swap debits both wallets (gold value + swap
+                                 fee), so it reads "-" in black even though the
+                                 backend stores the amount positive. */
+                              const raw = Number(trx.amount) || 0;
+                              const amount = trx.type === 'SWAP' && raw > 0 ? -raw : raw;
+                              /* Baris SWAP membuka detail pesanan cetak emas
+                                 (layar step 3 CetakEmas): gold_order_id dari
+                                 backend menunjuk order yang sama untuk baris
+                                 nilai emas maupun baris biaya. */
+                              const swapOrderId = trx.type === 'SWAP' && trx.gold_order_id != null ? trx.gold_order_id : null;
+                              const CardTag = swapOrderId ? Link : 'div';
                               return (
-                                <div className="history-card" key={trx.id ?? `${trx.type}-${trx.created_at}`}>
+                                <CardTag
+                                  {...(swapOrderId ? { to: '/index/assets/cetak-emas-03', state: { goldOrderId: swapOrderId } } : {})}
+                                  className="history-card"
+                                  key={trx.id ?? `${trx.type}-${trx.created_at}`}
+                                >
                                   <img src={img_2} alt={buildTitle(trx)} className="card-icon" />
                                   <div className="card-content">
                                     <h3 className="card-title">{buildTitle(trx)}</h3>
-                                    <p className="card-subtitle">{buildSubtitle(trx, kind)}</p>
+                                    <p className="card-subtitle"><span>{buildSubtitle(trx, kind)}</span></p>
                                   </div>
                                   <div className="card-action">
                                     <span className={`amount ${amount < 0 ? 'negative' : 'positive'}`}>
@@ -274,7 +350,7 @@ export default function RiwayatLainnya() {
                                     </span>
                                     <span className="status">{STATUS_LABELS[kind]}</span>
                                   </div>
-                                </div>
+                                </CardTag>
                               );
                             })}
                           </div>

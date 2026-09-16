@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ASSET-STATS-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="asset-stats-metrics">pending</pre>
+  <script type="module">
+    /* Verifikasi layout "between" pada .stats-grid kartu produk asset-01:
+       dua stat-item (Pembagian & Estimasi Biaya) harus menempel di tepi
+       kiri/kanan grid dengan ruang kosong besar di tengahnya.
+       Stub /api/products/ mengembalikan 1 produk valid (salt-encoded). */
+    const metrics = { errors: [] };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+    const encodeSalted = (obj) => {
+      const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+      return { data: [...(base64 + SALT)].reverse().join('') };
+    };
+    const jsonResponse = (status, payload) => new Response(JSON.stringify(payload), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const PRODUCT = {
+      id: 1,
+      name: 'Rencana Uji',
+      golongan: 'Simpanan',
+      specifications: 'Simulasi 30 hari',
+      description: 'Deskripsi uji',
+      price: 500000,
+      profit_type: 'percentage',
+      profit_rate: 2.5,
+      duration: 720,
+      claim_reset_mode: 'at_00',
+      stock_enabled: true,
+      stock: 4000,
+      balance_source: 'balance',
+    };
+
+    window.fetch = (input) => {
+      const url = typeof input === 'string' ? input : (input?.url || '');
+      if (url.includes('/api/products/')) {
+        return Promise.resolve(jsonResponse(200, encodeSalted({ count: 1, results: [PRODUCT] })));
+      }
+      /* Endpoint lain (gold info, harga emas live, ...) cukup 404 — kartu
+         produk tetap dirender dari stub products di atas. */
+      return Promise.resolve(jsonResponse(404, {}));
+    };
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, timeout = 8000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const value = fn();
+        if (value) return value;
+        await sleep(50);
+      }
+      return null;
+    };
+
+    history.replaceState(null, '', '/index/assets/asset-01');
+    await import('/src/main.jsx');
+
+    const grid = await waitFor(() => document.querySelector('.page-asset-01 .stats-grid'));
+    const items = grid ? [...grid.querySelectorAll('.stat-item')] : [];
+    if (grid) metrics.gridFound = true;
+    metrics.itemCount = items.length;
+    if (grid && items.length === 2) {
+      const gridRect = grid.getBoundingClientRect();
+      const first = items[0].getBoundingClientRect();
+      const second = items[1].getBoundingClientRect();
+      metrics.justifyContent = getComputedStyle(grid).justifyContent;
+      metrics.firstLeftGap = Math.round(first.left - gridRect.left);
+      metrics.secondRightGap = Math.round(gridRect.right - second.right);
+      metrics.middleGap = Math.round(second.left - first.right);
+      metrics.firstLabel = items[0].querySelector('.stat-label')?.textContent || '';
+      metrics.secondLabel = items[1].querySelector('.stat-label')?.textContent || '';
+      metrics.firstValue = items[0].querySelector('.stat-value')?.textContent || '';
+      metrics.secondValue = items[1].querySelector('.stat-value')?.textContent || '';
+    }
+    metrics.allPassed =
+      !!grid &&
+      items.length === 2 &&
+      metrics.justifyContent === 'space-between' &&
+      Math.abs(metrics.firstLeftGap) <= 1 &&
+      Math.abs(metrics.secondRightGap) <= 1 &&
+      metrics.middleGap > 20 &&
+      metrics.firstLabel === 'Pembagian' &&
+      metrics.secondLabel === 'Estimasi Biaya' &&
+      metrics.errors.length === 0;
+    document.getElementById('asset-stats-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'ASSET-STATS-DONE ' + JSON.stringify({ allPassed: metrics.allPassed });
+  </script>
+</body>
+</html>

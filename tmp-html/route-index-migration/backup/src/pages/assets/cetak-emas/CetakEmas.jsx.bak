@@ -1,0 +1,1567 @@
+/* ============================================================================
+   CetakEmas.jsx — single-file implementation of the physical gold printing wizard.
+   All steps of this flow live in this one file; the <CetakEmas step={n} />
+   element passed by App.jsx selects the active step. URL per step:
+     1 -> /assets/cetak-emas-01
+     2 -> /assets/cetak-emas-02
+     3 -> /assets/cetak-emas-03
+   ============================================================================ */
+
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import NotifCard from '../../../components/NotifCard.jsx';
+import { listAddresses } from '../../../lib/addressApi.js';
+/* Tukar emas (balance_hold → emas fisik): harga emas, tarif cetak, ongkir,
+   dan saldo semuanya dari backend (GET /api/gold/info/); order dibuat via
+   POST /api/gold/swap/; detail order lama dibuka dari riwayat via
+   GET /api/gold/orders/<id>/. Tidak ada harga dari API publik di alur ini. */
+import { getGoldInfo, getGoldOrder, swapGold } from '../../../lib/goldApi.js';
+import { parseDate, formatTime } from '../../../lib/transactionFormat.js';
+import { useShowNotif } from '../../../lib/useShowNotif.js';
+
+/* Step 1 imports (renamed to avoid collisions with other steps) */
+import S1_img_1 from '../../../assets/images/36_668.svg';
+import S1_img_2 from '../../../assets/images/4ff45e57bc897e30533b9ea96068fac470c7dbbe.png';
+import S1_img_3 from '../../../assets/images/97196130a1fd8b9d5ad63809c0373395554691fe.png';
+
+/* Step 2 imports (renamed to avoid collisions with other steps) */
+import S2_img_1 from '../../../assets/images/34_305.svg';
+import S2_img_2 from '../../../assets/images/97196130a1fd8b9d5ad63809c0373395554691fe.png';
+import S2_img_3 from '../../../assets/images/gold.png';
+
+/* Step 3 imports (renamed to avoid collisions with other steps) */
+import S3_img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.png';
+import S3_img_2 from '../../../assets/images/40_904.svg';
+import S3_img_3 from '../../../assets/images/40_904.svg';
+
+/* Background artwork shared by all Cetak Emas steps (assigned inline in JSX). */
+import pageBg from '../../../assets/images/083535.png';
+
+
+/* ================= Step 1 — /assets/cetak-emas-01 (was CetakEmas01.jsx) ================= */
+
+const CetakEmas01Styles = `
+/* Scoped styles for CetakEmas01 — converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-cetak-emas-01 to isolate this page. */
+
+.page-cetak-emas-01 {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #e0e0e0;
+    display: flex;
+    justify-content: center;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  width: 100%;
+  /* Background artwork (assigned inline in JSX on the root) is a full-page
+     image with glows anchored to the top/bottom — stretch it. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
+}
+
+.page-cetak-emas-01 .app-container {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
+    box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-cetak-emas-01 .section-container {
+    padding: 0 20px;
+    margin-bottom: 20px;
+}
+
+.page-cetak-emas-01 h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1410;
+    margin: 0 0 8px 0;
+}
+
+.page-cetak-emas-01 p {
+    margin: 0;
+}
+
+.page-cetak-emas-01, .page-cetak-emas-01 * {
+    box-sizing: border-box;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Header */
+.page-cetak-emas-01 .header {
+        display: flex;
+        align-items: center;
+        padding: 20px;
+        gap: 14px;
+    }
+    .page-cetak-emas-01 .back-btn {
+        background-color: #f6f1e9;
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 18px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        padding: 0;
+    }
+    .page-cetak-emas-01 .page-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #1a1410;
+        margin: 0;
+    }
+
+/* CSS for section section:Balance */
+.page-cetak-emas-01 .balance-card {
+        background: radial-gradient(circle at 41% 50%, #241c16 0%, #1a1410 55%, #120d09 100%);
+        border-radius: 10px;
+        padding: 18px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+        min-height: 91px;
+    }
+    .page-cetak-emas-01 .balance-info {
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .page-cetak-emas-01 .balance-label {
+        color: rgba(255, 249, 242, 0.55);
+        font-size: 12px;
+    }
+    .page-cetak-emas-01 .balance-amount {
+        color: #fff9f2;
+        font-size: 24px;
+        font-weight: 700;
+    }
+    .page-cetak-emas-01 .balance-img {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        height: 90px;
+        width: 85px;
+        object-fit: cover;
+        z-index: 1;
+    }
+
+/* CSS for section section:WeightSelection */
+.page-cetak-emas-01 .subtitle {
+        color: #a79c8f;
+        font-size: 12px;
+        line-height: 1.4;
+        margin-bottom: 14px;
+    }
+    .page-cetak-emas-01 .weight-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+    .page-cetak-emas-01 .weight-option {
+        background-color: #ffffff;
+        border: 1px solid #efe7dc;
+        border-radius: 14px;
+        padding: 14px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        cursor: pointer;
+        height: 66px;
+    }
+    .page-cetak-emas-01 .weight-option.selected {
+        border-color: #e8790c;
+        box-shadow: 0px 0px 0px 3px rgba(232, 121, 12, 0.1);
+        position: relative;
+    }
+    .page-cetak-emas-01 .weight-val {
+        color: #1a1410;
+        font-weight: 700;
+        font-size: 14px;
+    }
+    .page-cetak-emas-01 .weight-status {
+        color: #a79c8f;
+        font-size: 10px;
+    }
+
+/* CSS for section section:PrintDetails */
+.page-cetak-emas-01 .details-card {
+        background-color: #ffffff;
+        border: 1px solid #efe7dc;
+        border-radius: 16px;
+        padding: 4px 16px;
+        display: flex;
+        flex-direction: column;
+    }
+    .page-cetak-emas-01 .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #efe7dc;
+    }
+    .page-cetak-emas-01 .detail-row.no-border {
+        border-bottom: none;
+    }
+    .page-cetak-emas-01 .detail-label {
+        color: #a79c8f;
+        font-size: 12px;
+    }
+    .page-cetak-emas-01 .detail-value {
+        color: #1a1410;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+/* CSS for section section:ShippingAddress */
+.page-cetak-emas-01 .address-card {
+        background-color: #ffffff;
+        border: 1px solid #efe7dc;
+        border-radius: 16px;
+        padding: 15px 17px;
+        display: flex;
+        align-items: flex-start;
+        gap: 17px;
+    }
+    .page-cetak-emas-01 .address-icon {
+        width: 48px;
+        height: 48px;
+        object-fit: contain;
+    }
+    .page-cetak-emas-01 .address-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding-top: 2px;
+    }
+    .page-cetak-emas-01 .address-name {
+        color: #1a1410;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .page-cetak-emas-01 .address-text {
+        color: #a79c8f;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+    .page-cetak-emas-01 .address-change {
+        color: #e8790c;
+        font-size: 12px;
+        font-weight: 700;
+        text-decoration: none;
+        align-self: center;
+    }
+
+/* CSS for section section:Summary */
+.page-cetak-emas-01 .summary-card {
+        background-color: #f6f1e9;
+        border-radius: 16px;
+        padding: 16px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .page-cetak-emas-01 .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .page-cetak-emas-01 .summary-label {
+        color: #514840;
+        font-size: 12px;
+    }
+    .page-cetak-emas-01 .summary-value {
+        color: #1a1410;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .page-cetak-emas-01 .summary-divider {
+        border-top: 1px dashed rgba(26, 20, 16, 0.18);
+        margin: 2px 0;
+    }
+    .page-cetak-emas-01 .total-row {
+        margin-top: 2px;
+    }
+    .page-cetak-emas-01 .total-label {
+        color: #1a1410;
+        font-weight: 700;
+    }
+    .page-cetak-emas-01 .total-value {
+        color: #e8790c;
+        font-size: 14px;
+    }
+
+/* CSS for section section:Notes */
+.page-cetak-emas-01 .notes-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .page-cetak-emas-01 .notes-list li {
+        color: #a79c8f;
+        font-size: 11px;
+        line-height: 1.5;
+        position: relative;
+        padding-left: 16px;
+    }
+    .page-cetak-emas-01 .notes-list li::before {
+        content: "•";
+        position: absolute;
+        left: 4px;
+        top: 0;
+        color: #a79c8f;
+        font-size: 14px;
+    }
+
+/* CSS for section section:Footer */
+.page-cetak-emas-01 .primary-btn {
+        background-color: #f1b04a;
+        color: #1a1410;
+        font-weight: 700;
+        font-size: 14px;
+        border: none;
+        border-radius: 5px;
+        width: 100%;
+        padding: 15px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+    .page-cetak-emas-01 .primary-btn:hover {
+        background-color: #e5a33d;
+    }
+    .page-cetak-emas-01 .primary-btn:disabled {
+        background-color: #efe7dc;
+        color: #a79c8f;
+        cursor: not-allowed;
+    }
+    .page-cetak-emas-01 .footer-note {
+        margin-top: 10px;
+        color: #a79c8f;
+        font-size: 12px;
+        text-align: center;
+    }
+    .page-cetak-emas-01 .balance-sub {
+        color: rgba(255, 249, 242, 0.55);
+        font-size: 11px;
+    }
+`;
+
+/* Berat cetak yang dipilih di step 1 dibawa ke step 2/3 via location.state +
+   sessionStorage (fallback hard-refresh). */
+const PRINT_WEIGHTS = [0.5, 1, 2, 5, 10, 25];
+const GRAM_KEY = 'je_gold_swap_gram';
+const ORDER_KEY = 'je_gold_order';
+/* Kutipan harga (harga/gram + biaya) saat step 1 lanjut — step 2 memakai
+   kutipan yang sama supaya "Nilai Emas" di kedua layar identik walau harga
+   live bergerak antar-fetch. */
+const QUOTE_KEY = 'je_gold_swap_quote';
+
+/* Peta status order tukar emas (diubah admin di BE) → label + warna badge. */
+const STATUS_META = {
+  PENDING: { label: 'Menunggu Diproses', className: 'pending' },
+  PROCESSING: { label: 'Sedang Diproses', className: 'processing' },
+  SHIPPED: { label: 'Dikirim', className: 'shipped' },
+  COMPLETED: { label: 'Selesai', className: 'completed' },
+  CANCELLED: { label: 'Dibatalkan', className: 'cancelled' },
+};
+
+/* "0,5" / "2" — Indonesian decimal comma for gram labels. */
+const formatGrams = (grams) => String(grams).replace('.', ',');
+const formatRupiah = (value) => `Rp ${Math.round(value).toLocaleString('id-ID')}`;
+
+/* Decimal uang dari backend berupa string — jangan di-parseFloat; Number()
+   hanya untuk format tampilan (pembulatan rupiah oleh formatRupiah). */
+const money = (value) =>
+  value === null || value === undefined || value === '' ? '—' : formatRupiah(Number(value) || 0);
+
+/* Alamat tersimpan user (GET /api/auth/address/, alamat utama lebih dulu —
+   backend mengurutkan -is_primary, -created_at) untuk kartu "Alamat
+   Pengiriman" di step 1 dan 2. undefined = masih memuat / gagal memuat;
+   null = termuat tapi user belum punya alamat — alur tukar emas memakainya
+   untuk mengarahkan otomatis ke halaman alamat. */
+function usePrimaryAddress() {
+  const [address, setAddress] = useState(undefined);
+  useEffect(() => {
+    let active = true;
+    listAddresses()
+      .then((payload) => {
+        if (!active) return;
+        setAddress(Array.isArray(payload?.results) ? payload.results[0] || null : null);
+      })
+      .catch(() => { /* Biarkan placeholder tampil jika gagal memuat. */ });
+    return () => {
+      active = false;
+    };
+  }, []);
+  return address;
+}
+
+/* Info tukar emas dari backend (GET /api/gold/info/): harga emas per gram,
+   tarif cetak per gram, ongkir, dan saldo balance_hold/balance_deposit —
+   satu-satunya sumber angka di alur ini. Preview di FE hanya cerminan rumus;
+   hitungan resmi tetap di server saat POST /api/gold/swap/. */
+function useGoldInfo() {
+  const [info, setInfo] = useState(null);
+  useEffect(() => {
+    let active = true;
+    getGoldInfo()
+      .then((payload) => {
+        if (active && payload) setInfo(payload);
+      })
+      .catch(() => { /* Biarkan placeholder tampil jika gagal memuat. */ });
+    return () => {
+      active = false;
+    };
+  }, []);
+  return info;
+}
+
+/* "Saldo Emas Tersedia" — balance_hold ÷ harga emas per gram dari backend. */
+function holdGramsText(info) {
+  const price = Number(info?.price_per_gram);
+  const hold = Number(info?.balance_hold);
+  if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(hold)) return '2,145 gram';
+  return `${(hold / price).toLocaleString('id-ID', { maximumFractionDigits: 3 })} gram`;
+}
+
+/* Salinan error tukar emas yang ditulis FE — teks mentah backend tidak pernah
+   ditampilkan; err.payload dicek programatik untuk memilih salinan. */
+function swapErrorNotif(err) {
+  const raw = JSON.stringify(err?.payload || '').toLowerCase();
+  if (err?.status === 503 || raw.includes('real-time sedang tidak tersedia')) {
+    return { variant: 'error', title: 'Harga Tidak Tersedia', description: 'Harga emas sedang tidak tersedia. Coba beberapa saat lagi.' };
+  }
+  if (raw.includes('tidak aktif') || raw.includes('belum dikonfigurasi')) {
+    return { variant: 'error', title: 'Fitur Tidak Aktif', description: 'Fitur tukar emas sedang tidak aktif.' };
+  }
+  if (raw.includes('balance_hold tidak cukup')) {
+    return { variant: 'error', title: 'Saldo Emas Tidak Cukup', description: 'Saldo emas kamu tidak mencukupi untuk penukaran ini.' };
+  }
+  if (raw.includes('balance_deposit tidak cukup')) {
+    return { variant: 'error', title: 'Saldo Deposit Tidak Cukup', description: 'Saldo deposit kamu tidak mencukupi untuk biaya cetak dan ongkir.' };
+  }
+  if (raw.includes('gram') || raw.includes('address_id')) {
+    return { variant: 'error', title: 'Pesanan Tidak Valid', description: 'Data pesanan tidak valid. Ulangi pemilihan berat & alamat.' };
+  }
+  return { variant: 'error', title: 'Penukaran Gagal', description: err?.message || 'Tukar emas gagal. Coba lagi.' };
+}
+
+function CetakEmas01() {
+  const navigate = useNavigate();
+  const showNotif = useShowNotif();
+  const [weight, setWeight] = useState(() => {
+    const saved = Number(sessionStorage.getItem(GRAM_KEY));
+    return PRINT_WEIGHTS.includes(saved) ? saved : 1;
+  });
+  const address = usePrimaryAddress();
+  const info = useGoldInfo();
+
+  const pricePerGram = Number(info?.price_per_gram) || 0;
+  const printingFeePerGram = Number(info?.printing_fee_per_gram) || 0;
+  const shippingCost = Number(info?.shipping_cost) || 0;
+  const holdBalance = Number(info?.balance_hold) || 0;
+  const depositBalance = Number(info?.balance_deposit) || 0;
+
+  /* Preview lokal (cerminan rumus backend): nilai emas memotong balance_hold;
+     biaya cetak + ongkir memotong balance_deposit. */
+  const goldValue = weight * pricePerGram;
+  const printingFee = weight * printingFeePerGram;
+  const totalFee = printingFee + shippingCost;
+
+  /* Tombol lanjut mati selama fitur OFF / harga belum tersedia dari backend. */
+  const blockedReason = info && !info.is_active
+    ? 'Fitur tukar emas sedang tidak aktif.'
+    : info && !info.price_available
+      ? 'Harga emas sedang tidak tersedia. Coba beberapa saat lagi.'
+      : '';
+
+  const handleContinue = (e) => {
+    e.preventDefault();
+    if (blockedReason) {
+      showNotif({ variant: 'error', title: 'Belum Bisa Lanjut', description: blockedReason });
+      return;
+    }
+    /* Belum punya alamat tersimpan → otomatis ke halaman alamat; halaman itu
+       kembali ke step 1 setelah alamat disimpan. */
+    if (address === null) {
+      navigate('/assets/alamat-pengiriman');
+      return;
+    }
+    /* Validasi saldo di FE hanyalah pre-check — backend tetap menghitung
+       ulang dan menolak bila tidak cukup. */
+    if (info && holdBalance < goldValue) {
+      showNotif({ variant: 'error', title: 'Saldo Emas Tidak Cukup', description: 'Saldo emas kamu tidak mencukupi untuk berat ini. Pilih berat lain.' });
+      return;
+    }
+    if (info && depositBalance < totalFee) {
+      showNotif({ variant: 'error', title: 'Saldo Deposit Tidak Cukup', description: 'Saldo deposit kamu tidak mencukupi untuk biaya cetak dan ongkir.' });
+      return;
+    }
+    /* Kutipan harga ikut dibawa ke step 2 supaya angka di kedua layar sama —
+       harga live bisa bergerak beberapa ribu rupiah antar-fetch. */
+    const quote = {
+      price_per_gram: info?.price_per_gram ?? null,
+      printing_fee_per_gram: info?.printing_fee_per_gram ?? null,
+      shipping_cost: info?.shipping_cost ?? null,
+    };
+    sessionStorage.setItem(GRAM_KEY, String(weight));
+    sessionStorage.setItem(QUOTE_KEY, JSON.stringify(quote));
+    navigate('/assets/cetak-emas-02', { state: { gram: weight, quote } });
+  };
+
+  return (
+    <div className="page-cetak-emas-01" style={{ backgroundImage: `url(${pageBg}), linear-gradient(#fffbf4, #fffbf4)` }}>
+      <style>{CetakEmas01Styles}</style>
+      <div className="app-container">
+              <section id="section-header">
+                <header className="header">
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <img src={S1_img_1} alt="" />
+                  </button>
+                  <h1 className="page-title">Cetak Emas</h1>
+                </header>
+              </section>
+              <section id="section-balance" className="section-container">
+                <div className="balance-card">
+                  <div className="balance-info">
+                    <p className="balance-label">Saldo Emas Tersedia</p>
+                    <p className="balance-amount">{holdGramsText(info)}</p>
+                    <p className="balance-sub">Saldo Deposit {money(info?.balance_deposit)}</p>
+                  </div>
+                  <img className="balance-img" src={S1_img_2} alt="Character holding gold" />
+                </div>
+              </section>
+              <section id="section-weight" className="section-container">
+                <h2>Pilih Berat Cetak</h2>
+                <p className="subtitle">Pilih berat emas fisik yang ingin kamu cetak dari saldo emas yang tersedia.</p>
+                <div className="weight-grid">
+                  {PRINT_WEIGHTS.map((grams) => (
+                    <div
+                      className={`weight-option${grams === weight ? ' selected' : ''}`}
+                      key={grams}
+                      onClick={() => setWeight(grams)}
+                    >
+                      <span className="weight-val">{formatGrams(grams)} gr</span>
+                      <span className="weight-status">Tersedia</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+              <section id="section-details" className="section-container">
+                <h2>Detail Pencetakan</h2>
+                <div className="details-card">
+                  <div className="detail-row">
+                    <span className="detail-label">Berat Dicetak</span>
+                    <span className="detail-value">{formatGrams(weight)} gram</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Harga Emas / gram</span>
+                    <span className="detail-value">{info ? money(info.price_per_gram) : '—'}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Tarif Cetak / gram</span>
+                    <span className="detail-value">{info ? money(info.printing_fee_per_gram) : '—'}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Estimasi Proses</span>
+                    <span className="detail-value">30–40 hari kerja</span>
+                  </div>
+                  <div className="detail-row no-border">
+                    <span className="detail-label">Sertifikat Keaslian</span>
+                    <span className="detail-value">Disertakan</span>
+                  </div>
+                </div>
+              </section>
+              <section id="section-address" className="section-container">
+                <h2>Alamat Pengiriman</h2>
+                <div className="address-card">
+                  <img className="address-icon" src={S1_img_3} alt="Map Pin" />
+                  <div className="address-info">
+                    <span className="address-name">{address?.recipient_name || '[Nama Penerima]'}</span>
+                    <span className="address-text">{address?.address_details || 'Jl. [Nama Jalan] No. [123], [Kecamatan], [Kota], [Kode Pos]'}</span>
+                  </div>
+                  <Link to="/assets/alamat-pengiriman" className="address-change">Ubah</Link>
+                </div>
+              </section>
+              <section id="section-summary" className="section-container">
+                <h2>Ringkasan</h2>
+                <div className="summary-card">
+                  <div className="summary-row">
+                    <span className="summary-label">Nilai Emas ({formatGrams(weight)} gr)</span>
+                    <span className="summary-value">{info ? money(goldValue) : '—'}</span>
+                  </div>
+                  <div className="summary-row">
+                    <span className="summary-label">Biaya Cetak</span>
+                    <span className="summary-value">{info ? money(printingFee) : '—'}</span>
+                  </div>
+                  <div className="summary-row">
+                    <span className="summary-label">Ongkos Kirim</span>
+                    <span className="summary-value">{info ? money(shippingCost) : '—'}</span>
+                  </div>
+                  <div className="summary-divider" />
+                  <div className="summary-row total-row">
+                    <span className="summary-label total-label">Total Biaya</span>
+                    <span className="summary-value total-value">{info ? money(totalFee) : '—'}</span>
+                  </div>
+                </div>
+              </section>
+              <section id="section-notes" className="section-container">
+                <h2>Catatan Penting</h2>
+                <ul className="notes-list">
+                  <li>Saldo emas kamu akan otomatis terpotong sesuai berat yang dicetak begitu pesanan dikonfirmasi.</li>
+                  <li>Emas fisik akan dikirim dalam kemasan tersegel lengkap dengan sertifikat keaslian.</li>
+                  <li>Proses pencetakan tidak dapat dibatalkan setelah pembayaran biaya cetak berhasil dikonfirmasi.</li>
+                  <li>Pastikan alamat pengiriman sudah benar sebelum melanjutkan pesanan.</li>
+                </ul>
+              </section>
+              <section id="section-footer" className="section-container" style={{marginTop: 'auto', paddingBottom: 20}}>
+                <button className="primary-btn" disabled={!!blockedReason} onClick={handleContinue}>Lanjutkan Pencetakan</button>
+                {blockedReason ? <p className="footer-note">{blockedReason}</p> : null}
+              </section>
+            </div> {/* Close app-container */}
+
+    </div>
+  );
+}
+
+/* ================= Step 2 — /assets/cetak-emas-02 (was CetakEmas02.jsx) ================= */
+
+const CetakEmas02Styles = `
+/* Scoped styles for CetakEmas02 — converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-cetak-emas-02 to isolate this page. */
+
+.page-cetak-emas-02 {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #fffbf4;
+  /* Background artwork (assigned inline on the root via JSX) — stretch it. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  width: 100%;
+}
+.page-cetak-emas-02 .mobile-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  /* Transparan biar artwork latar halaman tembus. */
+  background-color: transparent;
+  box-sizing: border-box;
+  padding: 0 20px;
+}
+.page-cetak-emas-02 h2.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1410;
+  margin: 0 0 10px 0;
+}
+.page-cetak-emas-02 .card {
+  background-color: #ffffff;
+  border: 1px solid #efe7dc;
+  border-radius: 16px;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Header */
+.page-cetak-emas-02 .header-container {
+  padding-top: 20px;
+  padding-bottom: 14px;
+  /* Glow gradient lama diganti artwork latar halaman — dibuat transparan. */
+  background-color: transparent;
+}
+.page-cetak-emas-02 .header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.page-cetak-emas-02 .back-btn {
+  width: 36px;
+  height: 36px;
+  background-color: #f6f1e9;
+  border-radius: 11px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.page-cetak-emas-02 .page-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1410;
+  margin: 0;
+}
+
+/* CSS for section section:DetailEmas */
+.page-cetak-emas-02 .detail-emas-container {
+  padding-bottom: 18px;
+}
+.page-cetak-emas-02 .detail-emas-card {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+}
+.page-cetak-emas-02 .emas-icon {
+  width: 56px;
+  height: 56px;
+  background-color: #f6f1e9;
+  border: 1px solid rgba(26, 20, 16, 0.22);
+  border-radius: 14px;
+  flex-shrink: 0;
+  /* gold.png (1254×1254, opaque) fills the framed icon slot. */
+  object-fit: cover;
+}
+.page-cetak-emas-02 .emas-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.page-cetak-emas-02 .emas-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1410;
+}
+.page-cetak-emas-02 .emas-desc {
+  font-size: 12px;
+  color: #a79c8f;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+.page-cetak-emas-02 .emas-tag {
+  background-color: rgba(255, 159, 28, 0.12);
+  color: #e8790c;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 8px;
+  align-self: flex-start;
+}
+
+/* CSS for section section:DetailPencetakan */
+.page-cetak-emas-02 .detail-pencetakan-container {
+  padding-bottom: 18px;
+}
+.page-cetak-emas-02 .detail-pencetakan-card {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+}
+.page-cetak-emas-02 .detail-pencetakan-card .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid #efe7dc;
+}
+.page-cetak-emas-02 .detail-pencetakan-card .row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.page-cetak-emas-02 .detail-pencetakan-card .row:first-child {
+  padding-top: 0;
+}
+.page-cetak-emas-02 .detail-pencetakan-card .label {
+  font-size: 12px;
+  color: #a79c8f;
+}
+.page-cetak-emas-02 .detail-pencetakan-card .value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a1410;
+}
+
+/* CSS for section section:AlamatPengiriman */
+.page-cetak-emas-02 .alamat-container {
+  padding-bottom: 18px;
+}
+.page-cetak-emas-02 .alamat-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  position: relative;
+}
+.page-cetak-emas-02 .map-icon {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.page-cetak-emas-02 .alamat-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 40px;
+}
+.page-cetak-emas-02 .alamat-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a1410;
+}
+.page-cetak-emas-02 .alamat-detail {
+  font-size: 12px;
+  color: #a79c8f;
+  line-height: 1.4;
+}
+.page-cetak-emas-02 .ubah-btn {
+  background: none;
+  border: none;
+  color: #e8790c;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* CSS for section section:RincianBiaya */
+.page-cetak-emas-02 .rincian-container {
+  padding-bottom: 18px;
+}
+.page-cetak-emas-02 .rincian-card {
+  background-color: #f6f1e9;
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+}
+.page-cetak-emas-02 .rincian-card .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+.page-cetak-emas-02 .rincian-card .label-dark {
+  font-size: 12px;
+  color: #514840;
+}
+.page-cetak-emas-02 .rincian-card .value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a1410;
+}
+.page-cetak-emas-02 .rincian-card .divider {
+  height: 0;
+  border-top: 1px dashed rgba(26, 20, 16, 0.18);
+  margin: 10px 0;
+}
+.page-cetak-emas-02 .rincian-card .total-row {
+  padding-top: 10px;
+  padding-bottom: 0;
+}
+.page-cetak-emas-02 .rincian-card .total-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1410;
+}
+.page-cetak-emas-02 .rincian-card .total-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e8790c;
+}
+
+/* CSS for section section:Footer */
+.page-cetak-emas-02 .footer-container {
+  padding-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.page-cetak-emas-02 .terms-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.page-cetak-emas-02 .checkbox {
+  width: 18px;
+  height: 18px;
+  background-color: #e8790c;
+  border-radius: 2.5px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.page-cetak-emas-02 .checkbox::after {
+  content: '';
+  width: 4px;
+  height: 8px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  margin-bottom: 2px;
+}
+.page-cetak-emas-02 .terms-text {
+  font-size: 12px;
+  color: #514840;
+  line-height: 1.5;
+}
+.page-cetak-emas-02 .terms-text .highlight {
+  color: #e8790c;
+  font-weight: 700;
+}
+.page-cetak-emas-02 .btn-primary {
+  background-color: #f1b04a;
+  color: #1a1410;
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  border-radius: 5px;
+  padding: 15px;
+  width: 100%;
+  cursor: pointer;
+  text-align: center;
+}
+.page-cetak-emas-02 .btn-secondary {
+  background-color: transparent;
+  color: #514840;
+  font-size: 14px;
+  font-weight: 700;
+  border: 1px solid #efe7dc;
+  border-radius: 14px;
+  padding: 13px;
+  width: 100%;
+  cursor: pointer;
+  text-align: center;
+}
+.page-cetak-emas-02 .btn-primary:disabled,
+.page-cetak-emas-02 .btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+`;
+
+function CetakEmas02() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const showNotif = useShowNotif();
+  const address = usePrimaryAddress();
+  const info = useGoldInfo();
+  const [submitting, setSubmitting] = useState(false);
+
+  /* Berat dibawa dari step 1 (location.state) — fallback sessionStorage untuk
+     hard-refresh. */
+  const savedGram = Number(location.state?.gram ?? sessionStorage.getItem(GRAM_KEY));
+  const gram = PRINT_WEIGHTS.includes(savedGram) ? savedGram : 1;
+
+  /* Angka rincian memakai kutipan step 1 dulu supaya "Nilai Emas" di sini
+     persis sama dengan layar sebelumnya (harga live bergerak antar-fetch).
+     Tanpa kutipan (halaman dibuka langsung), fallback ke info hasil fetch. */
+  const carriedQuote = location.state?.quote ?? (() => {
+    try { return JSON.parse(sessionStorage.getItem(QUOTE_KEY)); } catch { return null; }
+  })();
+  const pricePerGram = Number(carriedQuote?.price_per_gram ?? info?.price_per_gram) || 0;
+  const printingFeePerGram = Number(carriedQuote?.printing_fee_per_gram ?? info?.printing_fee_per_gram) || 0;
+  const shippingCost = Number(carriedQuote?.shipping_cost ?? info?.shipping_cost) || 0;
+  const holdBalance = Number(info?.balance_hold) || 0;
+  const depositBalance = Number(info?.balance_deposit) || 0;
+
+  /* Preview lokal — angka final tetap dihitung backend saat POST. */
+  const goldValue = gram * pricePerGram;
+  const printingFee = gram * printingFeePerGram;
+  const totalFee = printingFee + shippingCost;
+
+  const handlePay = (e) => {
+    e.preventDefault();
+    if (submitting) return;
+    if (!info) {
+      showNotif({ variant: 'error', title: 'Data Belum Termuat', description: 'Data tukar emas belum termuat. Coba beberapa saat lagi.' });
+      return;
+    }
+    if (!info.is_active) {
+      showNotif({ variant: 'error', title: 'Fitur Tidak Aktif', description: 'Fitur tukar emas sedang tidak aktif.' });
+      return;
+    }
+    if (!info.price_available) {
+      showNotif({ variant: 'error', title: 'Harga Tidak Tersedia', description: 'Harga emas sedang tidak tersedia. Coba beberapa saat lagi.' });
+      return;
+    }
+    /* Belum punya alamat tersimpan → otomatis ke halaman alamat, bukan error;
+       notif hanya untuk keadaan data alamat belum termuat/gagal. */
+    if (address === null) {
+      navigate('/assets/alamat-pengiriman');
+      return;
+    }
+    if (!address?.id) {
+      showNotif({ variant: 'error', title: 'Alamat Belum Ada', description: 'Tambahkan alamat pengiriman dulu sebelum menukar emas.' });
+      return;
+    }
+    /* Pre-check saldo (backend tetap validasi ulang saat swap). */
+    if (holdBalance < goldValue) {
+      showNotif({ variant: 'error', title: 'Saldo Emas Tidak Cukup', description: 'Saldo emas kamu tidak mencukupi untuk berat ini. Pilih berat lain.' });
+      return;
+    }
+    if (depositBalance < totalFee) {
+      showNotif({ variant: 'error', title: 'Saldo Deposit Tidak Cukup', description: 'Saldo deposit kamu tidak mencukupi untuk biaya cetak dan ongkir.' });
+      return;
+    }
+    setSubmitting(true);
+    swapGold(gram, address.id)
+      .then((payload) => {
+        sessionStorage.setItem(ORDER_KEY, JSON.stringify(payload));
+        navigate('/assets/cetak-emas-03', { state: { orderPayload: payload } });
+      })
+      .catch((err) => {
+        showNotif(swapErrorNotif(err));
+        setSubmitting(false);
+      });
+  };
+
+  return (
+    <div className="page-cetak-emas-02" style={{ backgroundImage: `url(${pageBg})` }}>
+      <style>{CetakEmas02Styles}</style>
+      <div>
+              <section id="section-header" style={{width: '100%', display: 'flex', justifyContent: 'center'}}>
+                <div className="mobile-container header-container">
+                  <header className="header">
+                    <button className="back-btn" aria-label="Back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                      <img src={S2_img_1} alt="Back Icon" />
+                    </button>
+                    <h1 className="page-title">Ringkasan Pesanan</h1>
+                  </header>
+                </div>
+              </section>
+              <section id="section-detail-emas" style={{width: '100%', display: 'flex', justifyContent: 'center'}}>
+                <div className="mobile-container detail-emas-container">
+                  <h2 className="section-title">Detail Emas</h2>
+                  <div className="card detail-emas-card">
+                    <img className="emas-icon" src={S2_img_3} alt="Emas" />
+                    <div className="emas-info">
+                      <div className="emas-title">Emas Cetak {formatGrams(gram)} gram</div>
+                      <div className="emas-desc">Emas fisik {formatGrams(gram)} gram dengan kadar dan spesifikasi sesuai produk yang dipilih.</div>
+                      <div className="emas-tag">Sertifikat Disertakan</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section id="section-detail-pencetakan" style={{width: '100%', display: 'flex', justifyContent: 'center'}}>
+                <div className="mobile-container detail-pencetakan-container">
+                  <h2 className="section-title">Detail Pencetakan</h2>
+                  <div className="card detail-pencetakan-card">
+                    <div className="row">
+                      <span className="label">Berat Dicetak</span>
+                      <span className="value">{formatGrams(gram)} gram</span>
+                    </div>
+                    <div className="row">
+                      <span className="label">Estimasi Proses</span>
+                      <span className="value">30–40 hari kerja</span>
+                    </div>
+                    <div className="row">
+                      <span className="label">Estimasi Tiba</span>
+                      <span className="value">Setelah pesanan dikirim</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section id="section-alamat" style={{width: '100%', display: 'flex', justifyContent: 'center'}}>
+                <div className="mobile-container alamat-container">
+                  <h2 className="section-title">Alamat Pengiriman</h2>
+                  <div className="card alamat-card">
+                    <img src={S2_img_2} alt="Map Icon" className="map-icon" />
+                    <div className="alamat-info">
+                      <div className="alamat-name">{address?.recipient_name || '[Nama Penerima]'}</div>
+                      <div className="alamat-detail">{address?.address_details || 'Jl. [Nama Jalan] No. [123], [Kecamatan], [Kota], [Kode Pos]'}</div>
+                    </div>
+                    <button className="ubah-btn" onClick={(e) => { e.preventDefault(); navigate('/assets/alamat-pengiriman'); }}>Ubah</button>
+                  </div>
+                </div>
+              </section>
+              <section id="section-rincian-biaya" style={{width: '100%', display: 'flex', justifyContent: 'center'}}>
+                <div className="mobile-container rincian-container">
+                  <h2 className="section-title">Rincian Biaya</h2>
+                  <div className="rincian-card">
+                    <div className="row">
+                      <span className="label-dark">Nilai Emas ({formatGrams(gram)} gr)</span>
+                      <span className="value">{info ? money(goldValue) : '—'}</span>
+                    </div>
+                    <div className="row">
+                      <span className="label-dark">Biaya Cetak</span>
+                      <span className="value">{info ? money(printingFee) : '—'}</span>
+                    </div>
+                    <div className="row">
+                      <span className="label-dark">Ongkos Kirim</span>
+                      <span className="value">{info ? money(shippingCost) : '—'}</span>
+                    </div>
+                    <div className="divider" />
+                    <div className="row total-row">
+                      <span className="total-label">Total Dibayar</span>
+                      <span className="total-value">{info ? money(totalFee) : '—'}</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section id="section-footer" style={{width: '100%', display: 'flex', justifyContent: 'center'}}>
+                <div className="mobile-container footer-container">
+                  <div className="terms-container">
+                    <div className="checkbox" />
+                    <div className="terms-text">
+                      Saya telah memeriksa detail pesanan dan menyetujui <Link to="/support/syarat-dan-ketentuan" className="highlight">Syarat &amp; Ketentuan</Link> pencetakan emas.
+                    </div>
+                  </div>
+                  <button className="btn-primary" disabled={submitting} onClick={handlePay}>{submitting ? 'Memproses...' : 'Bayar Sekarang'}</button>
+                  <button className="btn-secondary" disabled={submitting} onClick={(e) => { e.preventDefault(); navigate('/assets/cetak-emas-01'); }}>Kembali &amp; Ubah Pesanan</button>
+                </div>
+              </section>
+            </div>
+
+    </div>
+  );
+}
+
+/* ================= Step 3 — /assets/cetak-emas-03 (was CetakEmas03.jsx) ================= */
+
+const CetakEmas03Styles = `
+/* Scoped styles for CetakEmas03 — converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-cetak-emas-03 to isolate this page. */
+
+.page-cetak-emas-03 {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: #fffbf4;
+  /* Background artwork (assigned inline on the root via JSX) — stretch it. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-cetak-emas-03, .page-cetak-emas-03 * {
+  box-sizing: border-box;
+}
+
+/* Utility classes for typography */
+.page-cetak-emas-03 .text-dark { color: #1a1410; }
+.page-cetak-emas-03 .text-medium { color: #514840; }
+.page-cetak-emas-03 .text-light { color: #a79c8f; }
+.page-cetak-emas-03 .text-success { color: #3fa66b; }
+
+.page-cetak-emas-03 .font-bold { font-weight: 700; }
+.page-cetak-emas-03 .font-semibold { font-weight: 600; }
+.page-cetak-emas-03 .font-medium { font-weight: 500; }
+.page-cetak-emas-03 .font-regular { font-weight: 400; }
+
+.page-cetak-emas-03 .text-center { text-align: center; }
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Hero */
+.page-cetak-emas-03 #section-hero {
+    max-width: 100%;
+    margin: 0 auto;
+    /* Transparan biar artwork latar halaman tembus (glow radial lama dihapus). */
+    background-color: transparent;
+    padding: 40px 22px 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .page-cetak-emas-03 .hero-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  .page-cetak-emas-03 .hero-image {
+    width: 120px;
+    height: 125px;
+    object-fit: contain;
+    margin-bottom: 16px;
+  }
+
+  .page-cetak-emas-03 .hero-title {
+    font-size: 20px;
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+    text-align: center;
+  }
+
+  .page-cetak-emas-03 .hero-subtitle {
+    font-size: 14px;
+    margin: 0;
+    line-height: 1.5;
+    text-align: center;
+    max-width: 320px;
+  }
+
+/* CSS for section section:OrderDetails */
+.page-cetak-emas-03 #section-order-details {
+    max-width: 100%;
+    margin: 0 auto;
+    /* Transparan biar artwork latar halaman tembus. */
+    background-color: transparent;
+    padding: 0 22px 16px;
+  }
+
+  .page-cetak-emas-03 .order-card {
+    background-color: #ffffff;
+    border: 1px solid #efe7dc;
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page-cetak-emas-03 .order-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+  }
+
+  .page-cetak-emas-03 .order-row.border-bottom {
+    border-bottom: 1px solid #efe7dc;
+  }
+
+  .page-cetak-emas-03 .order-row:first-child {
+    padding-top: 0;
+  }
+
+  .page-cetak-emas-03 .order-row:last-child {
+    padding-bottom: 0;
+  }
+
+  .page-cetak-emas-03 .row-label {
+    font-size: 13px;
+  }
+
+  .page-cetak-emas-03 .row-value {
+    font-size: 13px;
+  }
+
+  .page-cetak-emas-03 .status-badge {
+    background-color: rgba(63, 166, 107, 0.14);
+    padding: 4px 10px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .page-cetak-emas-03 .status-badge span {
+    font-size: 12px;
+  }
+
+  /* Warna badge per status order (PENDING→COMPLETED) + CANCELLED. */
+  .page-cetak-emas-03 .status-badge.pending { background-color: rgba(241, 176, 74, 0.18); }
+  .page-cetak-emas-03 .status-badge.pending span { color: #b97a10; }
+  .page-cetak-emas-03 .status-badge.processing { background-color: rgba(47, 111, 208, 0.14); }
+  .page-cetak-emas-03 .status-badge.processing span { color: #2f6fd0; }
+  .page-cetak-emas-03 .status-badge.shipped { background-color: rgba(124, 77, 255, 0.14); }
+  .page-cetak-emas-03 .status-badge.shipped span { color: #7c4dff; }
+  .page-cetak-emas-03 .status-badge.completed { background-color: rgba(63, 166, 107, 0.14); }
+  .page-cetak-emas-03 .status-badge.completed span { color: #3fa66b; }
+  .page-cetak-emas-03 .status-badge.cancelled { background-color: rgba(226, 76, 76, 0.14); }
+  .page-cetak-emas-03 .status-badge.cancelled span { color: #e24c4c; }
+
+/* CSS for section section:Tracking */
+.page-cetak-emas-03 #section-tracking {
+    max-width: 100%;
+    margin: 0 auto;
+    /* Transparan biar artwork latar halaman tembus. */
+    background-color: transparent;
+    padding: 0 22px 20px;
+  }
+
+  .page-cetak-emas-03 .tracking-card {
+    background-color: #f6f1e9;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .page-cetak-emas-03 .tracking-title {
+    font-size: 14px;
+    margin: 0;
+  }
+
+  .page-cetak-emas-03 .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .page-cetak-emas-03 .timeline-item {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .page-cetak-emas-03 .timeline-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .page-cetak-emas-03 .timeline-icon.active {
+    background-color: #e8790c;
+  }
+
+  .page-cetak-emas-03 .timeline-icon.inactive {
+    background-color: #efe7dc;
+  }
+
+  .page-cetak-emas-03 .timeline-icon img {
+    width: 10px;
+    height: 10px;
+  }
+
+  .page-cetak-emas-03 .timeline-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .page-cetak-emas-03 .item-title {
+    font-size: 13px;
+  }
+
+  .page-cetak-emas-03 .item-desc {
+    font-size: 12px;
+  }
+
+/* CSS for section section:Actions */
+.page-cetak-emas-03 #section-actions {
+    max-width: 100%;
+    margin: 0 auto;
+    /* Transparan biar artwork latar halaman tembus. */
+    background-color: transparent;
+    padding: 0 22px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    /* Ensure it covers the bottom of the screen if content is short */
+    min-height: calc(100vh - 600px); 
+  }
+
+  .page-cetak-emas-03 .btn {
+    width: 100%;
+    border: none;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    transition: opacity 0.2s ease;
+  }
+
+  .page-cetak-emas-03 .btn:active {
+    opacity: 0.8;
+  }
+
+  .page-cetak-emas-03 .btn-primary {
+    background-color: #f1b04a;
+    color: #1a1410;
+    padding: 15px;
+    border-radius: 5px;
+  }
+
+  .page-cetak-emas-03 .btn-secondary {
+    background-color: transparent;
+    border: 1px solid #efe7dc;
+    color: #514840;
+    padding: 13px;
+    border-radius: 14px;
+  }
+`;
+
+/* Order untuk layar step 3 — sumbernya salah satu dari:
+   1. handoff riwayat (location.state.goldOrderId) → fetch detail asli dari
+      backend (status terbaru apa adanya);
+   2. payload POST step 2 (location.state.orderPayload);
+   3. sessionStorage untuk hard-refresh setelah swap.
+   Id handoff menang atas payload supaya membuka order lama dari riwayat tidak
+   tertukar dengan order terakhir yang masih tersimpan di sesi. */
+function useDisplayOrder() {
+  const location = useLocation();
+  const handoffId = location.state?.goldOrderId ?? null;
+  const payloadOrder = (() => {
+    const payload = location.state?.orderPayload
+      || (() => { try { return JSON.parse(sessionStorage.getItem(ORDER_KEY)); } catch { return null; } })();
+    return payload?.order || null;
+  })();
+  const [order, setOrder] = useState(handoffId == null ? payloadOrder : null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (handoffId == null) return undefined;
+    let active = true;
+    getGoldOrder(handoffId)
+      .then((data) => {
+        if (active && data) setOrder(data);
+      })
+      .catch((err) => {
+        if (active) setError(err?.message || 'Gagal memuat detail pesanan.');
+      });
+    return () => {
+      active = false;
+    };
+  }, [handoffId]);
+
+  return { order, error };
+}
+
+function CetakEmas03() {
+  const navigate = useNavigate();
+  const { order, error } = useDisplayOrder();
+  const statusMeta = STATUS_META[order?.status] || null;
+
+  /* Progres timeline: PENDING(1) → PROCESSING(2) → SHIPPED(3) → COMPLETED(4);
+     CANCELLED (0) → semua langkah non-aktif. */
+  const rank = { PENDING: 1, PROCESSING: 2, SHIPPED: 3, COMPLETED: 4 }[order?.status] || 0;
+
+  const createdText = order?.created_at
+    ? `${parseDate(order.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}, ${formatTime(order.created_at)} WIB`
+    : 'Baru saja';
+
+  /* Baris "Tanggal Pesanan" di kartu order — dd/mm/yyyy hh:mm (pola detail
+     row yang sama dengan DetailPenarikan). */
+  const orderedText = order?.created_at
+    ? `${parseDate(order.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${formatTime(order.created_at)}`
+    : '—';
+
+  /* Gagal memuat order dari riwayat (mis. 404) → notif, bukan layar kosong. */
+  if (error) {
+    return (
+      <div className="page-cetak-emas-03" style={{ backgroundImage: `url(${pageBg})` }}>
+        <style>{CetakEmas03Styles}</style>
+        <div>
+          <section id="section-hero">
+            <div className="hero-container">
+              <NotifCard variant="error" title="Gagal Memuat Pesanan" description={error} />
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-cetak-emas-03" style={{ backgroundImage: `url(${pageBg})` }}>
+      <style>{CetakEmas03Styles}</style>
+      <div>
+              <section id="section-hero">
+                <div className="hero-container">
+                  <img src={S3_img_1} alt="Success Illustration" className="hero-image" />
+                  <h1 className="hero-title text-dark font-bold">Pesanan Berhasil Dibuat</h1>
+                  <p className="hero-subtitle text-medium font-regular">Pembayaran kamu telah kami<br />terima. Pesanan cetak emas kamu sedang diproses.</p>
+                </div>
+              </section>
+              <section id="section-order-details">
+                <div className="order-card">
+                  <div className="order-row border-bottom">
+                    <span className="row-label text-light font-regular">Tanggal Pesanan</span>
+                    <span className="row-value text-dark font-bold">{orderedText}</span>
+                  </div>
+                  <div className="order-row border-bottom">
+                    <span className="row-label text-light font-regular">Emas Dicetak</span>
+                    <span className="row-value text-dark font-bold">{order ? `${formatGrams(Number(order.gram))} gram` : '—'}</span>
+                  </div>
+                  <div className="order-row border-bottom">
+                    <span className="row-label text-light font-regular">Total Dibayar</span>
+                    <span className="row-value text-dark font-bold">{money(order?.total_fee)}</span>
+                  </div>
+                  <div className="order-row">
+                    <span className="row-label text-light font-regular">Status</span>
+                    <div className={`status-badge${statusMeta ? ` ${statusMeta.className}` : ''}`}>
+                      <span className="text-success font-semibold">{statusMeta?.label || '—'}</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section id="section-tracking">
+                <div className="tracking-card">
+                  <h2 className="tracking-title text-dark font-bold">Status Pesanan</h2>
+                  <div className="timeline">
+                    {/* Item 1 */}
+                    <div className="timeline-item">
+                      <div className={`timeline-icon ${order ? 'active' : 'inactive'}`}>
+                        {order ? <img src={S3_img_2} alt="Check" /> : null}
+                      </div>
+                      <div className="timeline-content">
+                        <div className="item-title text-dark font-semibold">Pembayaran Diterima</div>
+                        <div className="item-desc text-light font-regular">{createdText}</div>
+                      </div>
+                    </div>
+                    {/* Item 2 */}
+                    <div className="timeline-item">
+                      <div className={`timeline-icon ${rank >= 2 ? 'active' : 'inactive'}`}>
+                        {rank >= 2 ? <img src={S3_img_3} alt="Check" /> : null}
+                      </div>
+                      <div className="timeline-content">
+                        <div className="item-title text-dark font-semibold">Emas Sedang Dicetak</div>
+                        <div className="item-desc text-light font-regular">{rank >= 2 ? 'Estimasi selesai 30–40 hari kerja' : 'Menunggu diproses admin'}</div>
+                      </div>
+                    </div>
+                    {/* Item 3 */}
+                    <div className="timeline-item">
+                      <div className={`timeline-icon ${rank >= 3 ? 'active' : 'inactive'}`}>
+                        {rank >= 3 ? <img src={S3_img_3} alt="Check" /> : null}
+                      </div>
+                      <div className="timeline-content">
+                        <div className="item-title text-light font-semibold">Dikirim ke Alamat Kamu</div>
+                        <div className="item-desc text-light font-regular">{order?.tracking_number ? `No. resi ${order.tracking_number}` : 'Estimasi tiba setelah pesanan dikirim'}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section id="section-actions">
+                <button className="btn btn-primary font-bold" onClick={(e) => { e.preventDefault(); navigate('/home'); }}>Kembali ke Beranda</button>
+                <button className="btn btn-secondary font-bold" onClick={(e) => { e.preventDefault(); navigate('/rewards/riwayat-lainnya'); }}>Lihat Detail Pesanan</button>
+              </section>
+            </div>
+
+    </div>
+  );
+}
+
+const STEP_COMPONENTS = { 1: CetakEmas01, 2: CetakEmas02, 3: CetakEmas03 };
+
+export default function CetakEmas({ step = 1 }) {
+  const Step = STEP_COMPONENTS[step] ?? STEP_COMPONENTS[1];
+  return <Step />;
+}
+ 

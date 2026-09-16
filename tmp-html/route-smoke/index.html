@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ROUTE-SMOKE-RUNNING</title>
+  <style>#rs-metrics { display: none; }</style>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="rs-metrics">pending</pre>
+  <script type="module">
+    /* Smoke test migrasi /index: kunjungi SETIAP route dari pages-data.js lalu
+       pastikan (1) pathname akhir = yang diharapkan (redirect guard dihitung),
+       dan (2) document.title = "<label> · Jelajah Emas" milik path akhir.
+       Fetch distub 404 + sesi palsu: tidak ada panggilan jaringan nyata. */
+    const metrics = { errors: [], routes: [], summary: {} };
+    let currentPath = '(startup)';
+    window.addEventListener('error', (e) => metrics.errors.push({ at: currentPath, msg: String(e.message) }));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push({ at: currentPath, msg: String(e.reason) }));
+
+    /* Semua request API distub (404 JSON) supaya sweep 74 route tidak menyentuh backend. */
+    window.fetch = () => Promise.resolve(new Response('{}', {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    const { pages } = await import('/src/pages-data.js');
+    const labelByPath = Object.fromEntries(pages.map((p) => [p.path, p.label]));
+
+    /* Redirect guard yang memang disengaja (diverifikasi dari kode halaman
+       dan hasil run pertama).
+       - konfirmasi : POP-only -> pantul ke asset-02
+       - poin-mall-03 (!result) -> poin-mall-01
+       - register-02/03 & lupa-password-02/03 : flow store kosong -> step 1
+       - tarik-dana-04 (!amount) -> tarik-dana-01 */
+    const EXPECT = {
+      '/index/assets/konfirmasi': '/index/assets/asset-02',
+      '/index/rewards/poin-mall-03': '/index/rewards/poin-mall-01',
+      '/index/auth/register-02': '/index/auth/register-01',
+      '/index/auth/register-03': '/index/auth/register-01',
+      '/index/auth/lupa-password-02': '/index/auth/lupa-password',
+      '/index/auth/lupa-password-03': '/index/auth/lupa-password',
+      '/index/transactions/tarik-dana-04': '/index/transactions/tarik-dana-01',
+    };
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    history.replaceState(null, '', '/index/auth/welcome');
+    await import('/src/main.jsx');
+    await sleep(300);
+
+    async function settle() {
+      /* Tunggu pathname stabil (guard redirect bisa terjadi beberapa tick kemudian). */
+      let last = window.location.pathname;
+      for (let i = 0; i < 12; i++) {
+        await sleep(120);
+        if (window.location.pathname === last && i >= 1) return window.location.pathname;
+        last = window.location.pathname;
+      }
+      return window.location.pathname;
+    }
+
+    async function visit(path, expected) {
+      currentPath = path;
+      history.pushState(null, '', path);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      await sleep(150);
+      const finalPath = await settle();
+      const label = labelByPath[finalPath];
+      const expectedTitle = label ? label + ' \u00b7 Jelajah Emas' : 'Jelajah Emas';
+      metrics.routes.push({
+        path,
+        expected,
+        finalPath,
+        pathOk: finalPath === expected,
+        title: document.title,
+        expectedTitle,
+        titleOk: document.title === expectedTitle,
+      });
+    }
+
+    for (const page of pages) {
+      await visit(page.path, EXPECT[page.path] ?? page.path);
+    }
+
+    /* Kasus tambahan: entry /index, path lama (redirect kompatibilitas ke
+       /index), dan 404. */
+    await visit('/index', '/index/auth/welcome');
+    await visit('/home', '/index/home');
+    await visit('/auth/login', '/index/auth/login');
+    await visit('/auth/register-02', '/index/auth/register-01');
+    await visit('/auth/welcome', '/index/auth/welcome');
+    await visit('/index/halaman-tidak-ada', '/index/auth/welcome');
+
+    const failed = metrics.routes.filter((r) => !r.pathOk || !r.titleOk);
+    metrics.summary = {
+      total: metrics.routes.length,
+      failed: failed.length,
+      errorCount: metrics.errors.length,
+    };
+    metrics.allPassed = failed.length === 0;
+
+    document.getElementById('rs-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'ROUTE-SMOKE-DONE';
+  </script>
+</body>
+</html>

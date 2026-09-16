@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QUOTA-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="quota-metrics">pending</pre>
+  <script type="module">
+    /* E2E probe for the Asset-01 quota bar: the fill must mirror the remaining
+       stock out of the fixed 5000 capacity — full stock = 100%, half = 50%,
+       empty = 0%, overshoot capped at 100% — and stock_enabled: false hides
+       the whole quota block. */
+    const metrics = { errors: [], cards: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const product = (id, name, stock, stockEnabled) => ({
+      id,
+      name,
+      golongan: 'Simpanan',
+      price: '100000',
+      profit_type: 'percentage',
+      profit_rate: '5',
+      duration: 24,
+      stock,
+      stock_enabled: stockEnabled,
+    });
+    const feed = [
+      product(1, 'Rencana Kuota Penuh', 5000, true),
+      product(2, 'Rencana Kuota Separuh', 2500, true),
+      product(3, 'Rencana Kuota Habis', 0, true),
+      product(4, 'Rencana Kuota Lewat', 6000, true),
+      product(5, 'Rencana Tanpa Kuota', 123, false),
+    ];
+
+    const json = (data, status = 200) => new Response(JSON.stringify(data), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    window.fetch = (url) => {
+      const target = String(url);
+      if (target.includes('/api/products/')) return Promise.resolve(json({ count: feed.length, results: feed }));
+      return Promise.resolve(json({}, 404));
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const writeMetrics = (passed) => {
+      metrics.allPassed = passed;
+      document.getElementById('quota-metrics').textContent = JSON.stringify(metrics, null, 2);
+      document.title = 'QUOTA-DONE';
+    };
+    const waitFor = async (selector, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+
+    history.replaceState(null, '', '/assets/asset-01');
+    await import('/src/main.jsx');
+
+    await waitFor('.page-asset-01 .program-card');
+    [...document.querySelectorAll('.page-asset-01 .program-card')].forEach((card) => {
+      const name = card.querySelector('.product-name')?.textContent.trim();
+      metrics.cards[name] = {
+        quotaValue: card.querySelector('.quota-value')?.textContent.trim() ?? null,
+        fillWidth: card.querySelector('.progress-fill')?.style.width ?? null,
+        hasBar: !!card.querySelector('.progress-bar'),
+      };
+    });
+
+    const c = metrics.cards;
+    const passed = c['Rencana Kuota Penuh']?.fillWidth === '100%'
+      && c['Rencana Kuota Penuh']?.quotaValue === '5.000/5.000 tersisa'
+      && c['Rencana Kuota Separuh']?.fillWidth === '50%'
+      && c['Rencana Kuota Separuh']?.quotaValue === '2.500/5.000 tersisa'
+      && c['Rencana Kuota Habis']?.fillWidth === '0%'
+      && c['Rencana Kuota Habis']?.quotaValue === '0/5.000 tersisa'
+      && c['Rencana Kuota Lewat']?.fillWidth === '100%'
+      && c['Rencana Kuota Lewat']?.quotaValue === '6.000/5.000 tersisa'
+      && c['Rencana Tanpa Kuota']?.hasBar === false
+      && c['Rencana Tanpa Kuota']?.quotaValue === null
+      && metrics.errors.length === 0;
+    writeMetrics(passed);
+  </script>
+</body>
+</html>

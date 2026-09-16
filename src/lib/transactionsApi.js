@@ -21,15 +21,19 @@ export function listTransactions({ type, status, walletType, startDate, endDate,
 
 /* Fetches every page of GET /api/transactions/ for the given filters by
    following DRF page-number pagination (`next`), capped at maxPages so the
-   request count stays bounded. Returns the flat list of results. A later
-   page may fail transiently (e.g. a gateway 502); the pages already loaded
-   are kept instead of failing the whole feed. Only a first-page failure
-   throws (there is nothing to show in that case). */
-export async function listAllTransactions(filters = {}, maxPages = 10) {
+   request count stays bounded. Returns the flat list of results. An optional
+   `onPage(rows)` callback fires as soon as each page lands so callers can
+   render what already arrived instead of waiting for the full history. A
+   later page may fail transiently (e.g. a gateway 502); the pages already
+   loaded are kept instead of failing the whole feed. Only a first-page
+   failure throws (there is nothing to show in that case). */
+export async function listAllTransactions(filters = {}, { maxPages = 10, onPage } = {}) {
   const results = [];
   let page = 1;
   let payload = await listTransactions({ ...filters, page });
-  results.push(...(Array.isArray(payload?.results) ? payload.results : []));
+  let rows = Array.isArray(payload?.results) ? payload.results : [];
+  results.push(...rows);
+  onPage?.(rows);
   while (payload?.next && page < maxPages) {
     page += 1;
     try {
@@ -37,7 +41,9 @@ export async function listAllTransactions(filters = {}, maxPages = 10) {
     } catch {
       break;
     }
-    results.push(...(Array.isArray(payload?.results) ? payload.results : []));
+    rows = Array.isArray(payload?.results) ? payload.results : [];
+    results.push(...rows);
+    onPage?.(rows);
   }
   return results;
 }

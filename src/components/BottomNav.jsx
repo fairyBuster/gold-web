@@ -47,13 +47,24 @@ const styles = `
   color: #e8790c;
   font-weight: 600;
 }
+
+/* Desktop: match the centered app column used by every page (index.css). */
+@media (min-width: 768px) {
+  .bottom-nav {
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 480px;
+    border-left: 1px solid #efe7dc;
+    border-right: 1px solid #efe7dc;
+  }
+}
 `;
 
 const ITEMS = [
-  { key: 'home', label: 'Home', to: '/home', icon: iconHome, iconActive: iconHomeActive },
-  { key: 'aset', label: 'Aset', to: '/assets/asset-01', icon: iconAset, iconActive: iconAsetActive },
-  { key: 'voucher', label: 'Voucher', to: '/rewards/poin-mall-01', icon: iconVoucher, iconActive: iconVoucherActive },
-  { key: 'profil', label: 'Profil', to: '/profil', icon: iconProfil, iconActive: iconProfilActive },
+  { key: 'home', label: 'Home', to: '/index/home', icon: iconHome, iconActive: iconHomeActive },
+  { key: 'aset', label: 'Aset', to: '/index/assets/asset-01', icon: iconAset, iconActive: iconAsetActive },
+  { key: 'voucher', label: 'Voucher', to: '/index/rewards/poin-mall-01', icon: iconVoucher, iconActive: iconVoucherActive },
+  { key: 'profil', label: 'Profil', to: '/index/profil', icon: iconProfil, iconActive: iconProfilActive },
 ];
 
 /**

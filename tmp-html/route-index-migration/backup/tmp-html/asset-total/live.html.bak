@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ASSET-TOTAL-LIVEAPI-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="at-live-metrics">pending</pre>
+  <script type="module">
+    /* Live probe: /assets/asset-01 terhadap API asli (tanpa stub fetch).
+       Expected kartu "Total Aset Emas Kamu" dihitung dari GET /api/gold/info/
+       lewat client aplikasi: gram = balance_hold / price_per_gram (id-ID,
+       maks 3 desimal + " gram"), fiat = "≈ " + formatRupiah(balance_hold). */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const session = await (await fetch('/e2e-token.json')).json();
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: session.access }));
+    metrics.state.tokenUser = session.user;
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, timeout = 15000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        if (fn()) return true;
+        await sleep(100);
+      }
+      return false;
+    };
+
+    let expected = null;
+    try {
+      const { getGoldInfo } = await import('/src/lib/goldApi.js');
+      const info = await getGoldInfo();
+      metrics.state.liveInfo = info;
+      const hold = Number(info?.balance_hold);
+      const price = Number(info?.price_per_gram);
+      expected = {
+        grams: `${(hold / price).toLocaleString('id-ID', { maximumFractionDigits: 3 })} gram`,
+        fiat: `≈ Rp${Math.abs(hold).toLocaleString('id-ID', { maximumFractionDigits: 0 })}`,
+      };
+    } catch (err) {
+      metrics.state.infoError = String(err?.message || err);
+    }
+
+    history.replaceState(null, '', '/assets/asset-01');
+    await import('/src/main.jsx');
+
+    await waitFor(() =>
+      expected != null
+      && document.querySelector('.page-asset-01 .asset-value')?.textContent.trim() === expected.grams);
+    await sleep(200);
+
+    const text = (selector) => document.querySelector(selector)?.textContent.trim() ?? '(missing)';
+    metrics.state.assetValue = text('.page-asset-01 .asset-value');
+    metrics.state.assetFiat = text('.page-asset-01 .asset-fiat');
+    metrics.state.skeletonGone = !document.querySelector('.page-asset-01 .asset-value-skeleton');
+
+    const bodyText = document.querySelector('.page-asset-01').textContent;
+    metrics.state.dummyLeftovers = ['1,367', 'Rp3.512.870'].filter((s) => bodyText.includes(s));
+
+    const passed = expected != null
+      && metrics.state.assetValue === expected.grams
+      && metrics.state.assetFiat === expected.fiat
+      && metrics.state.skeletonGone === true
+      && metrics.state.dummyLeftovers.length === 0
+      && metrics.errors.length === 0;
+
+    metrics.state.expected = expected;
+    metrics.allPassed = passed;
+    document.getElementById('at-live-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'ASSET-TOTAL-LIVEAPI-DONE';
+  </script>
+</body>
+</html>

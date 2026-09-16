@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { listSupportLinks } from '../../lib/supportLinksApi.js';
 import img_1 from '../../assets/images/102_1724.svg';
 import img_2 from '../../assets/images/7f43db77fdc0a54172b923d3fc56ba8f36714aa6.png';
 import img_3 from '../../assets/images/105_2312.svg';
@@ -226,7 +228,36 @@ const styles = `
 }
 `;
 
+/* Entri tujuan kartu channel di GET /api/support/links/ (ganti id bila entri
+   di backend berubah): id 11 "Layanan Bantuan" → Call Center & CS Jelajah,
+   id 13 "Saluran Telegram" → Saluran Komunitas, id 12 "Saluran WhatsApp" →
+   WhatsApp. */
+const HELP_LINK_ID = 11;
+const COMMUNITY_LINK_ID = 13;
+const WHATSAPP_LINK_ID = 12;
+
 export default function HubungiCs() {
+  const [supportLinks, setSupportLinks] = useState([]);
+
+  /* Kanal bantuan dari backend; sampai termuat (atau bila gagal) kartu channel
+     tetap memakai href '#' seperti mockup. */
+  useEffect(() => {
+    let active = true;
+    listSupportLinks()
+      .then((links) => {
+        if (active) setSupportLinks(links);
+      })
+      .catch(() => { /* biarkan fallback '#' */ });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  /* id 11 dipakai dua kartu (Call Center & CS Jelajah) — satu hasil find. */
+  const helpLink = supportLinks.find((item) => item.id === HELP_LINK_ID && item.is_active !== false);
+  const communityLink = supportLinks.find((item) => item.id === COMMUNITY_LINK_ID && item.is_active !== false);
+  const whatsappLink = supportLinks.find((item) => item.id === WHATSAPP_LINK_ID && item.is_active !== false);
+
   return (
     <div className="page-hubungi-cs">
       <style>{styles}</style>
@@ -253,7 +284,7 @@ export default function HubungiCs() {
               <section id="section-channels">
                 <h3 className="section-title">Pilih Channel</h3>
                 <div className="channel-list">
-                  <a href="#" className="channel-card">
+                  <a href={communityLink?.url || '#'} className="channel-card">
                     <img className="channel-icon" src={img_4} alt="Saluran Komunitas" />
                     <div className="channel-info">
                       <h4>Saluran Komunitas</h4>
@@ -261,7 +292,7 @@ export default function HubungiCs() {
                     </div>
                     <img className="icon-arrow" src={img_5} alt="" />
                   </a>
-                  <a href="#" className="channel-card">
+                  <a href={whatsappLink?.url || '#'} className="channel-card">
                     <img className="channel-icon" src={img_6} alt="WhatsApp" />
                     <div className="channel-info">
                       <h4>WhatsApp</h4>
@@ -269,7 +300,7 @@ export default function HubungiCs() {
                     </div>
                     <img className="icon-arrow" src={img_7} alt="" />
                   </a>
-                  <a href="#" className="channel-card">
+                  <a href={helpLink?.url || '#'} className="channel-card">
                     <img className="channel-icon" src={img_8} alt="CS Jelajah" />
                     <div className="channel-info">
                       <h4>CS Jelajah</h4>
@@ -277,7 +308,7 @@ export default function HubungiCs() {
                     </div>
                     <img className="icon-arrow" src={img_9} alt="" />
                   </a>
-                  <Link to="/support/livechat" className="channel-card">
+                  <Link to="/index/support/livechat" className="channel-card">
                     <img className="channel-icon" src={img_2} alt="Live Chat di Aplikasi" />
                     <div className="channel-info">
                       <h4>Live Chat di Aplikasi</h4>
@@ -289,15 +320,15 @@ export default function HubungiCs() {
                     <img className="channel-icon" src={img_11} alt="Email" />
                     <div className="channel-info">
                       <h4>Email</h4>
-                      <p>cs@jelajahemas.co.id</p>
+                      <p>cs@jelajahemas.com</p>
                     </div>
                     <img className="icon-arrow" src={img_12} alt="" />
                   </a>
-                  <a href="#" className="channel-card">
+                  <a href={helpLink?.url || '#'} className="channel-card">
                     <img className="channel-icon" src={img_13} alt="Call Center" />
                     <div className="channel-info">
                       <h4>Call Center</h4>
-                      <p>1500-123 • Tarif sesuai operator</p>
+                      <p>Tarif sesuai operator</p>
                     </div>
                     <img className="icon-arrow" src={img_14} alt="" />
                   </a>
@@ -306,15 +337,15 @@ export default function HubungiCs() {
               <section id="section-faq">
                 <h3 className="section-title">Pertanyaan Umum</h3>
                 <div className="faq-list">
-                  <Link to="/support/pertanyaan-umum" className="faq-item">
+                  <Link to="/index/support/pertanyaan-umum" className="faq-item">
                     <span className="faq-text">Bagaimana cara isi ulang saldo?</span>
                     <img src={img_15} alt="" className="icon-arrow" />
                   </Link>
-                  <Link to="/support/pertanyaan-umum" className="faq-item">
+                  <Link to="/index/support/pertanyaan-umum" className="faq-item">
                     <span className="faq-text">Berapa lama proses tarik dana?</span>
                     <img src={img_16} alt="" className="icon-arrow" />
                   </Link>
-                  <Link to="/support/pertanyaan-umum" className="faq-item">
+                  <Link to="/index/support/pertanyaan-umum" className="faq-item">
                     <span className="faq-text">Apakah emas digital aman?</span>
                     <img src={img_17} alt="" className="icon-arrow" />
                   </Link>

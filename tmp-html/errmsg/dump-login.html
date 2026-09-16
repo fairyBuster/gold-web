@@ -1,0 +1,770 @@
+﻿<!DOCTYPE html>
+<html lang="id"><head>
+  <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+  <script type="module" src="/@vite/client"></script>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ERRMSG-DONE {"allPassed":true,"errors":0}</title>
+<style type="text/css" data-vite-dev-id="D:/webbaru/src/index.css">/* ============================================================
+
+   App shell styles shared by all converted pages.
+
+   Global resets below match the originals found in every
+
+   global.css, so individual page CSS files only need to carry
+
+   their page-specific (already scoped) rules.
+
+   ============================================================ */
+
+
+
+* {
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0;
+
+  -webkit-tap-highlight-color: transparent;
+
+}
+
+
+
+html,
+
+body,
+
+#root {
+
+  width: 100%;
+
+  min-height: 100vh;
+
+  margin: 0;
+
+  padding: 0;
+
+}
+
+
+
+/* Each converted page renders a single wrapper div below its page root
+
+   (e.g. #root > .page-x > div). The original mobile mockups sized that
+
+   wrapper by its content, which produced narrow centered columns on
+
+   desktop; force it to span the full width so pages have no side gaps. */
+
+#root > div > div {
+
+  width: 100%;
+
+}
+
+
+
+body {
+
+  font-family: 'Inter', sans-serif;
+
+  background-color: #f0e9df;
+
+  /* App-wide background image ΓÇö every page shows it through the
+
+     transparency rule below. */
+
+  background-image: url('/src/assets/images/background.jpg');
+
+  background-size: cover;
+
+  background-position: center top;
+
+  background-repeat: no-repeat;
+
+  background-attachment: fixed;
+
+  color: #1a1410;
+
+  min-height: 100vh;
+
+}
+
+
+
+/* Page wrappers paint their own opaque canvas; make them transparent so
+
+   the shared background image is visible on all pages. */
+
+#root > [class^="page-"] {
+
+  background-color: transparent;
+
+}
+
+
+
+a {
+
+  text-decoration: none;
+
+  color: inherit;
+
+}
+
+
+
+button {
+
+  border: none;
+
+  background: none;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+}
+
+
+
+input,
+
+textarea,
+
+select {
+
+  font-family: inherit;
+
+}
+
+
+
+/* ============================================================
+
+   Screen directory (route "/")
+
+   ============================================================ */
+
+
+
+.screen-index {
+
+  max-width: 1080px;
+
+  margin: 0 auto;
+
+  padding: 48px 24px 80px;
+
+}
+
+
+
+.screen-index__header {
+
+  text-align: center;
+
+  margin-bottom: 36px;
+
+}
+
+
+
+.screen-index__title {
+
+  font-size: 32px;
+
+  font-weight: 700;
+
+  color: #1a1410;
+
+  margin-bottom: 8px;
+
+}
+
+
+
+.screen-index__title span {
+
+  color: #e8790c;
+
+}
+
+
+
+.screen-index__subtitle {
+
+  font-size: 14px;
+
+  color: #8a7d6d;
+
+  margin-bottom: 24px;
+
+}
+
+
+
+.screen-index__search {
+
+  width: 100%;
+
+  max-width: 420px;
+
+  padding: 13px 18px;
+
+  font-size: 14px;
+
+  border: 1px solid #e2d8c8;
+
+  border-radius: 12px;
+
+  background-color: #fffbf4;
+
+  color: #1a1410;
+
+  outline: none;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__search:focus {
+
+  border-color: #e8790c;
+
+  box-shadow: 0 0 0 3px rgba(232, 121, 12, 0.15);
+
+}
+
+
+
+.screen-index__grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+
+  gap: 12px;
+
+}
+
+
+
+.screen-index__card {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  padding: 16px 18px;
+
+  background-color: #fffbf4;
+
+  border: 1px solid #e9dfd1;
+
+  border-radius: 14px;
+
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__card:hover {
+
+  border-color: #e8790c;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 10px 24px rgba(26, 20, 16, 0.08);
+
+}
+
+
+
+.screen-index__card-label {
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  color: #1a1410;
+
+}
+
+
+
+.screen-index__card-path {
+
+  font-size: 12px;
+
+  color: #b3a795;
+
+  font-family: 'SFMono-Regular', Consolas, monospace;
+
+}
+
+
+
+.screen-index__empty {
+
+  grid-column: 1 / -1;
+
+  text-align: center;
+
+  padding: 40px 0;
+
+  color: #b3a795;
+
+  font-size: 14px;
+
+}
+
+
+
+.screen-index__group {
+
+  margin-bottom: 32px;
+
+}
+
+
+
+.screen-index__group-title {
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  color: #8a7d6d;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+
+  margin-bottom: 12px;
+
+}
+
+
+
+/* ============================================================
+
+   Desktop layout (ΓëÑ768px) for all app screens.
+
+   Below 768px every page keeps its original mobile layout as-is.
+
+   From 768px up the page content renders as a centered app column
+
+   while backgrounds stay full-bleed on the page root, so no
+
+   phone-frame edges or side gaps appear. The landing page has its
+
+   own desktop layout (see LandingPagePerusahaan.jsx).
+
+   ============================================================ */
+
+
+
+@media (min-width: 768px) {
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > div,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > main,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > section {
+
+    max-width: 480px;
+
+    margin-left: auto;
+
+    margin-right: auto;
+
+    box-shadow: none;
+
+  }
+
+}
+
+
+
+/* Inner full-page containers keep a mobile drop shadow; drop it on desktop
+
+   too (they sit below the capped element, so the rule above does not reach
+
+   them). Selectors carry the #root prefix so they outrank the per-page
+
+   \3c style> blocks injected later in the document. */
+
+@media (min-width: 768px) {
+
+  #root .page-register-01 .app-container,
+
+  #root .page-register-04 .mobile-container,
+
+  #root .page-notifikasi-login .screen-container,
+
+  #root .page-notif-screen .screen-container,
+
+  #root .page-kartu-bank .mobile-app-container,
+
+  #root .page-beri-rating section:first-of-type,
+
+  #root .page-beri-rating section:last-of-type,
+
+  #root .page-livechat .input-container {
+
+    box-shadow: none;
+
+  }
+
+}
+
+</style></head>
+<body>
+  <div id="root"><div class="page-login" style="background-image: url(&quot;/src/assets/images/all_bg.png&quot;), linear-gradient(rgb(252, 249, 244), rgb(252, 249, 244));"><style>
+/* Scoped styles for Login ΓÇö converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-login to isolate this page. */
+
+.page-login {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: #e5e5e5;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+  /* all_bg.png artwork (assigned inline in JSX on the root) is the full-page
+     artwork (warm glows anchored to the top and bottom edges) ΓÇö stretch it so
+     it backs the entire page, not just a crop. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
+}
+
+.page-login .app-layout {
+  width: 100%;
+  max-width: 100%;
+  min-height: 1020px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-login, .page-login * {
+  box-sizing: border-box;
+}
+
+.page-login button,.page-login  input {
+  font-family: 'Inter', sans-serif;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Hero */
+.page-login .hero-section {
+    position: relative;
+    height: 460px;
+    background: radial-gradient(circle at 50% 0%, #241c16 0%, #1a1410 55%, #120d09 100%);
+    padding: 96px 28px 0;
+  }
+
+  /* Idle float for the decorative hero circles. */
+  @keyframes login-circle-float {
+    0% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(-4px, -9px, 0); }
+    100% { transform: translate3d(0, 0, 0); }
+  }
+  .page-login .bg-circle {
+    position: absolute;
+    border-radius: 50%;
+    animation: login-circle-float 3.6s ease-in-out infinite;
+  }
+  .page-login .circle-1 { width: 22px; height: 22px; background-color: #ffc93c; top: 100px; right: 32px; }
+  .page-login .circle-2 { width: 22px; height: 22px; background-color: #ffc93c; top: 37px; right: 137px; animation-duration: 4.4s; animation-delay: -1.2s; }
+  .page-login .circle-3 { width: 30px; height: 30px; background-color: #ff9f1c; top: 330px; right: 16px; animation-duration: 5.2s; animation-delay: -2.4s; }
+  .page-login .circle-4 { width: 22px; height: 22px; background-color: #ffc93c; top: 222px; right: 92px; animation-duration: 4s; animation-delay: -0.6s; }
+  
+  .page-login .bg-gradient-glow {
+    position: absolute;
+    width: 190px;
+    height: 190px;
+    background: radial-gradient(50% 50% at 50% 50%, #ff9f1c 0%, rgba(255, 159, 28, 0) 72%);
+    opacity: 0.3;
+    top: 110px;
+    left: -100px;
+    border-radius: 50%;
+  }
+
+  .page-login .hero-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-login .version-text {
+    color: rgba(255, 249, 242, 0.42);
+    font-size: 12px;
+    margin: 0 0 40px 0;
+  }
+
+  .page-login .greeting-text {
+    color: #fff9f2;
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 2px 0;
+  }
+
+  .page-login .hero-logo {
+    width: 210px;
+    height: 80px;
+    object-fit: contain;
+    margin-bottom: 16px;
+  }
+
+  .page-login .hero-description {
+    color: rgba(255, 249, 242, 0.68);
+    font-size: 14px;
+    line-height: 1.5;
+    max-width: 270px;
+    margin: 0;
+  }
+
+/* CSS for section section:Login */
+.page-login .login-section {
+    padding: 0 24px;
+    margin-top: -54px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .page-login .login-card {
+    background-color: #ffffff;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0px 16px 34px 0px rgba(26, 20, 16, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .page-login .input-group {
+    background-color: #f6f1e9;
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .page-login .input-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .page-login .toggle-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin-left: auto;
+  }
+
+  .page-login .input-field {
+    border: none;
+    background: transparent;
+    outline: none;
+    flex: 1;
+    color: #1a1410;
+    font-size: 14px;
+    width: 100%;
+  }
+  
+  .page-login .input-field::placeholder {
+    color: #a79c8f;
+  }
+
+  .page-login .forgot-password-container {
+    display: flex;
+    justify-content: flex-end;
+    padding: 4px 0;
+  }
+
+  .page-login .forgot-password-link {
+    color: #e8790c;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .page-login .btn-login {
+    background-color: #f1b04a;
+    color: #1a1410;
+    border: none;
+    border-radius: 5px;
+    padding: 16px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  .page-login .btn-login:disabled {
+    opacity: 0.7;
+    cursor: default;
+  }
+
+  .page-login .login-disclaimer {
+    color: #a79c8f;
+    font-size: 10px;
+    text-align: center;
+    margin: 8px 0 0 0;
+    line-height: 1.4;
+  }
+
+/* CSS for section section:Footer */
+.page-login .footer-section {
+  padding: 24px 24px 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.page-login .divider-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.page-login .divider-line {
+  flex: 1;
+  height: 1px;
+  background-color: #efe7dc;
+}
+
+.page-login .divider-text {
+  color: #a79c8f;
+  font-size: 12px;
+}
+
+.page-login .btn-register {
+  background-color: #231b15;
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  padding: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.page-login .terms-text {
+  color: #a79c8f;
+  font-size: 11px;
+  text-align: center;
+  margin: 0 0 24px 0;
+}
+
+.page-login .terms-link {
+  color: #e8790c;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.page-login .partner-logos {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.page-login .logo-ojk {
+  height: 17px;
+  width: 40px;
+  object-fit: contain;
+}
+
+.page-login .logo-bappebti {
+  height: 17px;
+  width: 50px;
+  object-fit: contain;
+}
+
+.page-login .footer-links {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.page-login .footer-links a {
+  color: #514840;
+  font-size: 11px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.page-login .footer-links .dot {
+  color: #a79c8f;
+  font-size: 11px;
+}
+
+.page-login .company-details {
+  color: #a79c8f;
+  font-size: 10px;
+  text-align: center;
+  line-height: 1.6;
+  margin: 0;
+}
+</style><div class="app-layout"><section id="section-hero" class="hero-section"><div class="bg-circle circle-1"></div><div class="bg-circle circle-2"></div><div class="bg-circle circle-3"></div><div class="bg-circle circle-4"></div><div class="bg-gradient-glow"></div><div class="hero-content"><p class="version-text">Jelajah Emas v1.0.0</p><h1 class="greeting-text">Halo dari</h1><img class="hero-logo" src="/src/assets/images/151642bbb8cff080998656ba33ae0e9d91b5e580.png" alt="Jelajah Emas Logo"><p class="hero-description">Semua tentang emas dimulai dari rasa ingin tahu. Temukan informasi, pengetahuan, dan berbagai hal menarik untuk kamu lihat di sini.</p></div></section><section id="section-login" class="login-section"><div class="login-card"><div class="input-group"><img src="data:image/svg+xml,%3csvg%20width='20'%20height='20'%20viewBox='0%200%2020%2020'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M10.0001%209.99992C11.841%209.99992%2013.3334%208.50753%2013.3334%206.66659C13.3334%204.82564%2011.841%203.33325%2010.0001%203.33325C8.15913%203.33325%206.66675%204.82564%206.66675%206.66659C6.66675%208.50753%208.15913%209.99992%2010.0001%209.99992Z'%20stroke='%23A79C8F'%20stroke-width='1.5'/%3e%3cpath%20d='M3.33325%2016.6667C3.33325%2013.7501%206.24992%2011.6667%209.99992%2011.6667C13.7499%2011.6667%2016.6666%2013.7501%2016.6666%2016.6667'%20stroke='%23A79C8F'%20stroke-width='1.5'%20stroke-linecap='round'/%3e%3c/svg%3e" alt="User Icon" class="input-icon"><input type="text" placeholder="Email atau nomor ponsel" class="input-field" value="user@example.com"></div><div class="input-group"><img src="data:image/svg+xml,%3csvg%20width='20'%20height='20'%20viewBox='0%200%2020%2020'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M14.1667%208.33325H5.83341C4.91294%208.33325%204.16675%209.07944%204.16675%209.99992V14.9999C4.16675%2015.9204%204.91294%2016.6666%205.83341%2016.6666H14.1667C15.0872%2016.6666%2015.8334%2015.9204%2015.8334%2014.9999V9.99992C15.8334%209.07944%2015.0872%208.33325%2014.1667%208.33325Z'%20stroke='%23A79C8F'%20stroke-width='1.5'/%3e%3cpath%20d='M6.66675%208.33333V5.83333C6.66675%204.94928%207.01794%204.10143%207.64306%203.47631C8.26818%202.85119%209.11603%202.5%2010.0001%202.5C10.8841%202.5%2011.732%202.85119%2012.3571%203.47631C12.9822%204.10143%2013.3334%204.94928%2013.3334%205.83333V8.33333'%20stroke='%23A79C8F'%20stroke-width='1.5'/%3e%3c/svg%3e" alt="Lock Icon" class="input-icon"><input type="password" placeholder="Password" class="input-field" value="salah123"><button type="button" class="toggle-btn" aria-label="Tampilkan password"><img src="data:image/svg+xml,%3csvg%20width='20'%20height='20'%20viewBox='0%200%2020%2020'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M1.66675%2010.0001C1.66675%2010.0001%204.66675%204.16675%2010.0001%204.16675C15.3334%204.16675%2018.3334%2010.0001%2018.3334%2010.0001C18.3334%2010.0001%2015.3334%2015.8334%2010.0001%2015.8334C4.66675%2015.8334%201.66675%2010.0001%201.66675%2010.0001Z'%20stroke='%23E8790C'%20stroke-width='1.5'/%3e%3cpath%20d='M9.99992%2012.1666C11.1965%2012.1666%2012.1666%2011.1965%2012.1666%209.99992C12.1666%208.8033%2011.1965%207.83325%209.99992%207.83325C8.8033%207.83325%207.83325%208.8033%207.83325%209.99992C7.83325%2011.1965%208.8033%2012.1666%209.99992%2012.1666Z'%20stroke='%23E8790C'%20stroke-width='1.5'/%3e%3cpath%20d='M3.33325%2016.6666L16.6666%203.33325'%20stroke='%23E8790C'%20stroke-width='1.5'%20stroke-linecap='round'/%3e%3c/svg%3e" alt="Toggle Visibility" class="input-icon"></button></div><div class="forgot-password-container"><a class="forgot-password-link" href="/auth/lupa-password">Lupa Password?</a></div><button class="btn-login">Masuk</button><p class="login-disclaimer">Data yang kamu masukkan hanya digunakan untuk keperluan login.</p></div></section><section id="section-footer" class="footer-section"><div class="divider-wrapper"><div class="divider-line"></div><span class="divider-text">atau</span><div class="divider-line"></div></div><button class="btn-register">Buat Akun</button><p class="terms-text">Dengan melanjutkan, kamu menyetujui <a class="terms-link" href="/support/syarat-dan-ketentuan">Syarat &amp; Ketentuan</a> kami.</p><div class="partner-logos"><img src="/src/assets/images/a.png" alt="OJK Logo" class="logo-ojk"><img src="/src/assets/images/b.png" alt="BAPPEBTI Logo" class="logo-bappebti"></div><div class="footer-links"><a href="/support/kebijakan-privasi">Legal</a><span class="dot">ΓÇó</span><a href="/support/tentang-kami">Tentang Kami</a><span class="dot">ΓÇó</span><a href="/landing">Website Resmi</a></div><p class="company-details">JelajahEmas dikelola oleh PT JELAJAH EMAS DIGITAL INDONESIA<br>AHU: AHU-A11995.AH.01.30 tahun 2026 ΓÇó NPWP: 1000000011096252</p></section></div></div></div>
+  <pre id="errmsg-metrics">{
+  "suite": "login",
+  "errors": [],
+  "scenarios": {
+    "login401": {
+      "backendBody": "{\"detail\":\"No active account found with the given credentials\"}",
+      "shownTitle": "Login Gagal",
+      "shownDesc": "Email/nomor ponsel atau password salah.",
+      "variant": "error",
+      "expectedDesc": "Email/nomor ponsel atau password salah.",
+      "descMatches": true,
+      "leakedBackendPhrases": [],
+      "passed": true
+    }
+  },
+  "fetchUrls": [
+    "https://backend.scagerwebsite.uk/api/auth/jwt/identifier-login/"
+  ],
+  "pageRendered": true,
+  "pathAfterLogin": "/auth/login",
+  "allPassed": true
+}</pre>
+  <script type="module" src="/tmp-html/errmsg/index.html?html-proxy&amp;index=0.js"></script>
+
+
+</body></html>

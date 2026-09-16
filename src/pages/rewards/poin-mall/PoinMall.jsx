@@ -5,10 +5,20 @@
      1 -> /rewards/poin-mall-01
      2 -> /rewards/poin-mall-02
      3 -> /rewards/poin-mall-03
+   Data: GET /api/roulette/redeem/ drives the catalog, GET /api/roulette/points/
+   supplies the hero "Poin Kamu" balance ("tickets"), and POST
+   /api/roulette/redeem/ performs the exchange. The selected prize id travels
+   to step 2 via Link state + sessionStorage, and the redeem receipt travels
+   to step 3 the same way.
    ============================================================================ */
 
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import BottomNav from '../../../components/BottomNav.jsx';
+import NotifCard from '../../../components/NotifCard.jsx';
+import { useShowNotif } from '../../../lib/useShowNotif.js';
+import { getRedeemCatalog, getRoulettePoints, redeemPrize } from '../../../lib/rouletteApi.js';
+import { formatRupiah, parseDate } from '../../../lib/transactionFormat.js';
 import img_3 from '../../../assets/images/88_973.svg';
 
 /* Step 1 imports (renamed to avoid collisions with other steps) */
@@ -18,9 +28,38 @@ import S1_img_2 from '../../../assets/images/cd4321a034b318f75c488cf1f2e3603c65c
 /* Step 2 imports (renamed to avoid collisions with other steps) */
 import S2_img_1 from '../../../assets/images/67_135.svg';
 import S2_img_2 from '../../../assets/images/88_1102.svg';
+/* Mascot illustration for the not-redeemable hint (shared empty.jpg). */
+import S2_img_3 from '../../../assets/images/empty.jpg';
 
 /* Step 3 imports (renamed to avoid collisions with other steps) */
 import S3_img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.png';
+
+
+/* ---- shared display helpers for the steps ---- */
+
+/* prize_type → label; balance prizes carry the name of the wallet they fill. */
+const PRIZE_TYPE_LABELS = {
+  BALANCE: 'Saldo JelajahEmas',
+  BALANCE_DEPOSIT: 'Saldo Deposit',
+  NONE: 'Hadiah Fisik',
+};
+
+function prizeTypeLabel(type) {
+  return PRIZE_TYPE_LABELS[String(type || '').toUpperCase()] || 'Hadiah Spesial';
+}
+
+/* "1.417" — points are integers shown with Indonesian separators. */
+function formatPoints(value) {
+  return (Number(value) || 0).toLocaleString('id-ID');
+}
+
+/* "10/09/2026 17:32:01" — receipt timestamp format of the success screen. */
+function formatDateTime(iso) {
+  const date = parseDate(iso);
+  if (Number.isNaN(date.getTime())) return '-';
+  const pad = (value) => String(value).padStart(2, '0');
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
 
 
 /* ================= Step 1 — /rewards/poin-mall-01 (was PoinMall01.jsx) ================= */
@@ -34,6 +73,9 @@ const PoinMall01Styles = `
   padding: 0;
   font-family: 'Inter', sans-serif;
   background-color: #e5e5e5; /* Darker background for desktop viewing */
+  /* Full-bleed page canvas — the opaque base is applied as a background-image
+     layer so it survives the global transparent-root rule. */
+  background-image: linear-gradient(#fffbf4, #fffbf4);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -45,7 +87,6 @@ const PoinMall01Styles = `
 .page-poin-mall-01 .app-container {
   width: 100%;
   max-width: 100%;
-  background-color: #fffbf4;
   box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
   min-height: 100vh;
   position: relative;
@@ -220,6 +261,12 @@ const PoinMall01Styles = `
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
   }
+  .page-poin-mall-01 .status-text {
+    color: #a79c8f;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 4px 2px;
+  }
   .page-poin-mall-01 .catalog-card {
     background-color: #ffffff;
     border: 1px solid #efe7dc;
@@ -272,6 +319,49 @@ const PoinMall01Styles = `
 `;
 
 function PoinMall01() {
+  const [catalog, setCatalog] = useState(null);
+  const [catalogError, setCatalogError] = useState('');
+  /* Saldo poin/tiket hero dari GET /api/roulette/points/ (null = belum termuat). */
+  const [points, setPoints] = useState(null);
+
+  /* GET /api/roulette/redeem/ — redeemable prizes; GET /api/roulette/points/
+     — saldo "tickets" untuk hero "Poin Kamu". */
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const payload = await getRedeemCatalog();
+        if (!cancelled) {
+          setCatalog(payload || null);
+          setCatalogError('');
+        }
+      } catch (err) {
+        if (!cancelled) setCatalogError(err?.message || 'Katalog gagal dimuat. Silakan coba lagi.');
+      }
+    }
+    /* Ringkasan poin gagal → hero jatuh ke `tickets` katalog (dua endpoint
+       membaca wallet tiket yang sama). */
+    async function loadPoints() {
+      try {
+        const payload = await getRoulettePoints();
+        if (!cancelled && payload) setPoints(payload.tickets);
+      } catch {
+        /* biarin null — render memakai saldo katalog sebagai cadangan */
+      }
+    }
+    load();
+    loadPoints();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const isActive = catalog ? catalog.is_active !== false : true;
+  const tickets = Number(catalog?.tickets) || 0;
+  /* Hero pakai saldo GET /api/roulette/points/; katalog cuma cadangan. */
+  const heroTickets = points !== null ? Number(points) || 0 : (catalog ? tickets : null);
+  const prizes = Array.isArray(catalog?.prizes) ? catalog.prizes : [];
+
   return (
     <div className="page-poin-mall-01">
       <style>{PoinMall01Styles}</style>
@@ -282,7 +372,7 @@ function PoinMall01() {
                     <img src={S1_img_1} alt="Back" />
                   </button>
                   <h1 className="page-title">Tukar Poin</h1>
-                  <Link to="/rewards/riwayat-poin" className="history-link">Riwayat</Link>
+                  <Link to="/index/rewards/riwayat-poin" className="history-link">Riwayat</Link>
                 </header>
               </section>
               <section id="section-hero" className="app-section">
@@ -291,13 +381,13 @@ function PoinMall01() {
                     <div className="hero-content">
                       <p className="hero-label">Poin Kamu</p>
                       <div className="hero-points">
-                        <span className="points-value">1.250</span>
+                        <span className="points-value">{heroTickets === null ? '' : formatPoints(heroTickets)}</span>
                         <span className="points-text">Poin</span>
                       </div>
                     </div>
                     <div className="hero-exchange-rate">
                       <span className="rate-label">Nilai Tukar</span>
-                      <span className="rate-value">1 Poin = Rp100</span>
+                      <span className="rate-value">1 Poin = Rp1000</span>
                     </div>
                     <img src={S1_img_2} alt="Mascot" className="hero-image" />
                   </div>
@@ -314,74 +404,40 @@ function PoinMall01() {
               <section id="section-catalog" className="app-section">
                 <div className="catalog-wrapper">
                   <h2 className="catalog-title">Katalog Penukaran</h2>
-                  <div className="catalog-grid">
-                    {/* Card 1 */}
-                    <div className="catalog-card">
-                      <div className="card-image-placeholder" />
-                      <div className="card-content">
-                        <span className="card-category">Mall Belanja</span>
-                        <h3 className="card-title">Voucher Belanja Rp50.000</h3>
-                        <div className="card-points">
-                          <span>500 Poin</span>
-                        </div>
-                      </div>
+                  {catalogError ? (
+                    <NotifCard variant="error" title="Gagal Memuat Katalog" description={catalogError} />
+                  ) : !isActive ? (
+                    <p className="status-text">Penukaran poin sedang tidak aktif. Coba lagi nanti ya.</p>
+                  ) : catalog === null ? (
+                    <p className="status-text">Memuat hadiah...</p>
+                  ) : prizes.length === 0 ? (
+                    <p className="status-text">Belum ada hadiah yang bisa ditukar saat ini. Kumpulkan poin terus ya.</p>
+                  ) : (
+                    <div className="catalog-grid">
+                      {prizes.map((prize) => (
+                        /* The chosen prize travels to step 2 via Link state;
+                           sessionStorage keeps a hard reload of step 2 working. */
+                        <Link
+                          key={prize.id}
+                          to="/index/rewards/poin-mall-02"
+                          state={{ prizeId: prize.id }}
+                          className="catalog-card"
+                          onClick={() => sessionStorage.setItem('je_poinmall_prize_id', String(prize.id))}
+                        >
+                          {/* Prize artwork stays a placeholder — media files
+                              are not reachable on the local backend. */}
+                          <div className="card-image-placeholder" />
+                          <div className="card-content">
+                            <span className="card-category">{prizeTypeLabel(prize.prize_type)}</span>
+                            <h3 className="card-title">{prize.name}</h3>
+                            <div className="card-points">
+                              <span>{`${formatPoints(prize.points_cost)} Poin`}</span>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
                     </div>
-                    {/* Card 2 */}
-                    <div className="catalog-card">
-                      <div className="card-image-placeholder" />
-                      <div className="card-content">
-                        <span className="card-category">Mall Belanja</span>
-                        <h3 className="card-title">Voucher Belanja Rp100.000</h3>
-                        <div className="card-points">
-                          <span>950 Poin</span>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Card 3 */}
-                    <div className="catalog-card">
-                      <div className="card-image-placeholder" />
-                      <div className="card-content">
-                        <span className="card-category">JelajahEmas</span>
-                        <h3 className="card-title">Potongan Biaya Cetak</h3>
-                        <div className="card-points">
-                          <span>300 Poin</span>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Card 4 */}
-                    <div className="catalog-card">
-                      <div className="card-image-placeholder" />
-                      <div className="card-content">
-                        <span className="card-category">JelajahEmas</span>
-                        <h3 className="card-title">Emas 0,01 Gram Gratis</h3>
-                        <div className="card-points">
-                          <span>1.000 Poin</span>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Card 5 */}
-                    <div className="catalog-card">
-                      <div className="card-image-placeholder" />
-                      <div className="card-content">
-                        <span className="card-category">Pulsa Semua Operator</span>
-                        <h3 className="card-title">Pulsa Rp25.000</h3>
-                        <div className="card-points">
-                          <span>280 Poin</span>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Card 6 */}
-                    <div className="catalog-card">
-                      <div className="card-image-placeholder" />
-                      <div className="card-content">
-                        <span className="card-category">Paket Data</span>
-                        <h3 className="card-title">Kuota Internet 5GB</h3>
-                        <div className="card-points">
-                          <span>650 Poin</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </section>
               <BottomNav active="voucher" />
@@ -593,6 +649,33 @@ const PoinMall02Styles = `
   font-size: 16px;
   font-weight: 700;
 }
+.page-poin-mall-02 .status-text {
+  color: #a79c8f;
+  font-size: 14px;
+  text-align: center;
+  padding: 28px 20px;
+}
+.page-poin-mall-02 .notice-margin {
+  padding: 8px 20px;
+}
+/* Not-redeemable hint with the shared empty.jpg mascot. */
+.page-poin-mall-02 .hint-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: -10px;
+}
+.page-poin-mall-02 .hint-illustration {
+  width: 96px;
+  height: 106px;
+  object-fit: contain;
+}
+.page-poin-mall-02 .hint-text {
+  color: #a79c8f;
+  font-size: 12px;
+  text-align: center;
+}
 .page-poin-mall-02 .btn-primary {
   background-color: #f1b04a;
   color: #1a1410;
@@ -611,10 +694,77 @@ const PoinMall02Styles = `
 .page-poin-mall-02 .btn-primary:active {
   background-color: #d99a35;
 }
+.page-poin-mall-02 .btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f1b04a;
+}
 `;
 
 function PoinMall02() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const showNotif = useShowNotif();
+  const [catalog, setCatalog] = useState(null);
+  const [error, setError] = useState('');
+  const [redeeming, setRedeeming] = useState(false);
+
+  /* Prize id travels via Link state; sessionStorage keeps hard reloads working. */
+  const prizeId = location.state?.prizeId || Number(sessionStorage.getItem('je_poinmall_prize_id')) || 0;
+
+  useEffect(() => {
+    if (!prizeId) {
+      setError('Pilih hadiah terlebih dahulu dari katalog penukaran.');
+      return undefined;
+    }
+    let cancelled = false;
+    async function load() {
+      try {
+        const payload = await getRedeemCatalog();
+        if (!cancelled) {
+          setCatalog(payload || null);
+          setError('');
+        }
+      } catch (err) {
+        if (!cancelled) setError(err?.message || 'Detail hadiah gagal dimuat. Silakan coba lagi.');
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [prizeId]);
+
+  const prizes = Array.isArray(catalog?.prizes) ? catalog.prizes : [];
+  const prize = prizes.find((item) => Number(item.id) === Number(prizeId)) || null;
+  const tickets = Number(catalog?.tickets) || 0;
+  const isActive = catalog ? catalog.is_active !== false : true;
+  /* A prize can vanish from the catalog (deactivated or points_cost reset),
+     so a loaded catalog without it is the same dead end as a missing id. */
+  const notFound = !error && catalog !== null && !prize;
+  const loading = !error && catalog === null;
+  const description = String(prize?.description || '').trim();
+  const insufficient = prize ? tickets < (Number(prize.points_cost) || 0) : false;
+
+  /* Tukar: POST /api/roulette/redeem/ — success stashes the receipt for step 3
+     and moves on; failures (400/404) open the shared /notif screen. */
+  const handleRedeem = async () => {
+    if (redeeming || !prize || insufficient || !isActive) return;
+    setRedeeming(true);
+    try {
+      const data = await redeemPrize({ prizeId: prize.id });
+      sessionStorage.setItem('je_poinmall_result', JSON.stringify({ ...data, redeemed_at: new Date().toISOString() }));
+      navigate('/index/rewards/poin-mall-03');
+    } catch (err) {
+      showNotif({
+        variant: 'error',
+        title: 'Penukaran Gagal',
+        description: err?.message || 'Hadiah gagal ditukar. Silakan coba lagi.',
+      });
+    } finally {
+      setRedeeming(false);
+    }
+  };
 
   return (
     <div className="page-poin-mall-02">
@@ -628,52 +778,85 @@ function PoinMall02() {
                   <h1 className="header-title">Detail Penukaran</h1>
                 </header>
               </section>
-              <section id="section-hero">
-                <div className="hero-container">
-                  <div className="image-placeholder">
-                    {/* Placeholder for product image */}
-                    <span className="placeholder-text">+ Gambar Produk</span>
-                  </div>
+              {error || notFound ? (
+                <div className="notice-margin">
+                  <NotifCard
+                    variant="error"
+                    title="Hadiah Tidak Tersedia"
+                    description={error || 'Hadiah ini sudah tidak bisa ditukar. Pilih hadiah lain dari katalog ya.'}
+                  />
                 </div>
-              </section>
-              <section id="section-product-title">
-                <div className="title-container">
-                  <p className="subtitle">Mall Belanja</p>
-                  <h2 className="main-title">Voucher Belanja Rp100.000</h2>
-                  <div className="points-badge">
-                    <img src={S2_img_2} alt="Star icon" />
-                    <span className="points-text">950 Poin</span>
-                  </div>
-                </div>
-              </section>
-              <section id="section-description">
-                <div className="desc-container">
-                  <h3 className="section-heading">Deskripsi</h3>
-                  <p className="desc-text">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Voucher belanja senilai Rp100.000 yang dapat digunakan di seluruh gerai mitra Mall Belanja seluruh Indonesia.
-                  </p>
-                </div>
-              </section>
-              <section id="section-terms">
-                <div className="terms-container">
-                  <h3 className="section-heading">Syarat &amp; Ketentuan</h3>
-                  <ul className="terms-list">
-                    <li>Hadiah yang sudah ditukar akan berlaku 30 hari sejak tanggal penukaran.</li>
-                    <li>Segera hubungi layanan pelanggan untuk menukarkan hadiah maksimal dalam 1x24 jam.</li>
-                    <li>Voucher tidak dapat digabung dengan promo lain.</li>
-                    <li>Poin yang sudah ditukar tidak dapat dikembalikan.</li>
-                  </ul>
-                </div>
-              </section>
-              <section id="section-footer">
-                <div className="footer-container">
-                  <div className="current-points">
-                    <span className="points-label">Poin Kamu Saat Ini</span>
-                    <span className="points-value">1.250 Poin</span>
-                  </div>
-                  <button className="btn-primary" onClick={(e) => { e.preventDefault(); navigate('/rewards/poin-mall-03'); }}>Tukar Sekarang</button>
-                </div>
-              </section>
+              ) : loading ? (
+                <p className="status-text">Memuat detail hadiah...</p>
+              ) : (
+                <>
+                  <section id="section-hero">
+                    <div className="hero-container">
+                      <div className="image-placeholder">
+                        {/* Prize artwork stays a placeholder — media files
+                            are not reachable on the local backend. */}
+                        <span className="placeholder-text">+ Gambar Produk</span>
+                      </div>
+                    </div>
+                  </section>
+                  <section id="section-product-title">
+                    <div className="title-container">
+                      <p className="subtitle">{prizeTypeLabel(prize.prize_type)}</p>
+                      <h2 className="main-title">{prize.name}</h2>
+                      <div className="points-badge">
+                        <img src={S2_img_2} alt="Star icon" />
+                        <span className="points-text">{`${formatPoints(prize.points_cost)} Poin`}</span>
+                      </div>
+                    </div>
+                  </section>
+                  {description && (
+                    <section id="section-description">
+                      <div className="desc-container">
+                        <h3 className="section-heading">Deskripsi</h3>
+                        <p className="desc-text">{description}</p>
+                      </div>
+                    </section>
+                  )}
+                  <section id="section-terms">
+                    <div className="terms-container">
+                      <h3 className="section-heading">Syarat &amp; Ketentuan</h3>
+                      <ul className="terms-list">
+                        <li>Hadiah yang sudah ditukar akan berlaku 30 hari sejak tanggal penukaran.</li>
+                        <li>Segera hubungi layanan pelanggan untuk menukarkan hadiah maksimal dalam 1x24 jam.</li>
+                        <li>Voucher tidak dapat digabung dengan promo lain.</li>
+                        <li>Poin yang sudah ditukar tidak dapat dikembalikan.</li>
+                      </ul>
+                    </div>
+                  </section>
+                  <section id="section-footer">
+                    <div className="footer-container">
+                      <div className="current-points">
+                        <span className="points-label">Poin Kamu Saat Ini</span>
+                        <span className="points-value">{`${formatPoints(tickets)} Poin`}</span>
+                      </div>
+                      <button
+                        className="btn-primary"
+                        disabled={redeeming || !isActive || insufficient}
+                        onClick={handleRedeem}
+                      >
+                        {redeeming ? 'Menukar...' : 'Tukar Sekarang'}
+                      </button>
+                      {!isActive || insufficient ? (
+                        /* Not-redeemable hint with the shared empty.jpg mascot —
+                           roulette inactive or points short of the prize cost. */
+                        <div className="hint-empty">
+                          {/* <img src={S2_img_3} alt="Hadiah belum dapat ditukar" className="hint-illustration" /> */}
+                          <p className="hint-text">
+                            {!isActive
+                              ? 'Penukaran poin sedang tidak aktif. Coba lagi nanti ya.'
+                              : 'Poin kamu belum cukup untuk hadiah ini.'}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                  </section>
+                </>
+              )}
             </div>
 
     </div>
@@ -691,6 +874,12 @@ const PoinMall03Styles = `
   padding: 0;
   font-family: 'Inter', sans-serif;
   background-color: #f5f5f5; /* Darker background outside the app container to make it stand out on desktop */
+  /* Full-bleed page canvas — glow layers + opaque base so the artwork
+     survives the global transparent-root rule. */
+  background-image:
+    radial-gradient(circle at top right, rgba(255, 201, 60, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at bottom left, rgba(255, 159, 28, 0.15) 0%, transparent 50%),
+    linear-gradient(#fffbf4, #fffbf4);
   display: flex;
   justify-content: center;
   min-height: 100vh;
@@ -703,10 +892,6 @@ const PoinMall03Styles = `
 .page-poin-mall-03 .app-container {
     width: 100%;
     max-width: 100%;
-    background-color: #fffbf4;
-    background-image: 
-      radial-gradient(circle at top right, rgba(255, 201, 60, 0.15) 0%, transparent 50%),
-      radial-gradient(circle at bottom left, rgba(255, 159, 28, 0.15) 0%, transparent 50%);
     box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
     display: flex;
     flex-direction: column;
@@ -832,6 +1017,30 @@ const PoinMall03Styles = `
 
 function PoinMall03() {
   const navigate = useNavigate();
+  /* The redeem receipt is stashed by step 2; without it there is nothing to
+     show, so send the user back to the catalog. */
+  const [result] = useState(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem('je_poinmall_result') || 'null');
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (!result) navigate('/index/rewards/poin-mall-01', { replace: true });
+  }, [navigate, result]);
+
+  if (!result) return null;
+
+  const resultType = String(result.prize_type || '').toUpperCase();
+  /* Balance prizes are credited instantly, so the copy swaps the "contact
+     customer service" instructions for the wallet credit confirmation. */
+  const walletLabel =
+    resultType === 'BALANCE' || resultType === 'BALANCE_DEPOSIT' ? PRIZE_TYPE_LABELS[resultType] : '';
+  const successDesc = walletLabel
+    ? `Hadiah saldo ${formatRupiah(result.prize_amount)} sudah ditambahkan ke ${walletLabel} kamu ya!`
+    : 'Simpan tangkapan layar ini dan kirim ke layanan pelanggan Jelajah Emas untuk menukarnya ya!';
 
   return (
     <div className="page-poin-mall-03">
@@ -840,31 +1049,31 @@ function PoinMall03() {
               <section id="success-message" className="success-section">
                 <img src={S3_img_1} alt="Penukaran Berhasil" className="success-image" />
                 <h1 className="success-title">Penukaran Berhasil</h1>
-                <p className="success-desc">Simpan tangkapan layar ini dan kirim ke layanan pelanggan Jelajah Emas untuk menukarnya ya!</p>
+                <p className="success-desc">{successDesc}</p>
               </section>
               <section id="transaction-details" className="details-section">
                 <div className="details-card">
                   <div className="detail-row">
                     <span className="detail-label">Item</span>
-                    <span className="detail-value">Voucher Belanja Rp100.000</span>
+                    <span className="detail-value">{result.prize_name || '-'}</span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Poin Digunakan</span>
-                    <span className="detail-value">950 Poin</span>
+                    <span className="detail-value">{`${formatPoints(result.points_spent)} Poin`}</span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Sisa Poin</span>
-                    <span className="detail-value">300 Poin</span>
+                    <span className="detail-value">{`${formatPoints(result.tickets_after)} Poin`}</span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Tanggal Penukaran</span>
-                    <span className="detail-value">10/09/2026 17:32:01</span>
+                    <span className="detail-value">{formatDateTime(result.redeemed_at)}</span>
                   </div>
                 </div>
               </section>
               <section id="actions" className="actions-section">
-                <button className="btn btn-primary" onClick={(e) => { e.preventDefault(); navigate('/home'); }}>Kembali ke Beranda</button>
-                <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/rewards/poin-mall-01'); }}>Tukar Poin Lainnya</button>
+                <button className="btn btn-primary" onClick={(e) => { e.preventDefault(); navigate('/index/home'); }}>Kembali ke Beranda</button>
+                <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/index/rewards/poin-mall-01'); }}>Tukar Poin Lainnya</button>
               </section>
             </main>
 

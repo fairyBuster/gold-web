@@ -17,6 +17,7 @@ import { useEffect, useState } from 'react';
 /* API layer — used by the register flow (step 3 submits POST /api/auth/register/). */
 import { registerUser } from '../../../lib/authApi.js';
 import * as registerFlow from '../../../lib/registerFlow.js';
+import { useShowNotif } from '../../../lib/useShowNotif.js';
 import NotifCard from '../../../components/NotifCard.jsx';
 
 /* Step 1 imports (renamed to avoid collisions with other steps) */
@@ -48,6 +49,12 @@ const Register01Styles = `
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   width: 100%;
+  /* Full-bleed page canvas — glows + opaque base so the artwork survives the
+     global transparent-root rule. */
+  background-image: 
+    radial-gradient(circle at 85% 5%, rgba(255, 201, 60, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 15% 95%, rgba(255, 159, 28, 0.12) 0%, transparent 45%),
+    linear-gradient(#fffbf4, #fffbf4);
 }
 
 .page-register-01, .page-register-01 * {
@@ -68,11 +75,6 @@ const Register01Styles = `
 .page-register-01 .app-container {
   width: 100%;
   max-width: 100%;
-  background-color: #fffbf4;
-  /* Approximating the complex radial gradients from the design */
-  background-image: 
-    radial-gradient(circle at 85% 5%, rgba(255, 201, 60, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 15% 95%, rgba(255, 159, 28, 0.12) 0%, transparent 45%);
   box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
   display: flex;
   flex-direction: column;
@@ -307,13 +309,6 @@ const Register01Styles = `
   margin-top: auto;
   font-family: inherit;
 }
-
-.page-register-01 .form-error {
-  color: #e24c4c;
-  font-size: 12px;
-  line-height: 1.4;
-  margin: 0 0 12px 0;
-}
 `;
 
 /* Referral links (e.g. /auth/register-01?ref=KODE) pre-fill the promo code;
@@ -329,40 +324,56 @@ function readReferralFromLink() {
 
 function Register01() {
   const navigate = useNavigate();
+  const showNotif = useShowNotif();
   const stored = registerFlow.get();
+  const [fullName, setFullName] = useState(stored.fullName || '');
   const [email, setEmail] = useState(stored.email || '');
   const [phone, setPhone] = useState((stored.phone || '').replace(/^62/, ''));
   const [referralCode, setReferralCode] = useState(() => readReferralFromLink() || stored.referralCode || '');
   const [referralLocked] = useState(() => Boolean(readReferralFromLink()) || Boolean(stored.referralLocked));
   const [captchaChecked, setCaptchaChecked] = useState(false);
-  const [error, setError] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const digits = phone.replace(/\D/g, '').replace(/^0+/, '');
-    if (!email.trim()) {
-      setError('Masukkan alamat email kamu.');
+    const name = fullName.trim();
+    if (!name) {
+      showNotif({ title: 'Lengkapi Data', description: 'Masukkan nama pengguna kamu.' });
+      return;
+    }
+    if (!/^[A-Za-z0-9 ]+$/.test(name)) {
+      showNotif({ title: 'Lengkapi Data', description: 'Nama pengguna hanya boleh berisi huruf, angka, dan spasi.' });
+      return;
+    }
+    const emailValue = email.trim();
+    if (!emailValue) {
+      showNotif({ title: 'Lengkapi Data', description: 'Masukkan alamat email kamu.' });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+$/.test(emailValue)) {
+      showNotif({ title: 'Lengkapi Data', description: 'Masukkan alamat email yang valid.' });
       return;
     }
     if (digits.length < 9 || digits.length > 13) {
-      setError('Masukkan nomor ponsel yang valid.');
+      showNotif({ title: 'Lengkapi Data', description: 'Masukkan nomor ponsel yang valid.' });
       return;
     }
     if (!referralCode.trim()) {
-      setError('Masukkan kode referral kamu.');
+      showNotif({ title: 'Lengkapi Data', description: 'Masukkan kode referral kamu.' });
       return;
     }
     if (!captchaChecked) {
-      setError('Centang "Saya bukan robot" dulu ya.');
+      showNotif({ title: 'Lengkapi Data', description: 'Centang "Saya bukan robot" dulu ya.' });
       return;
     }
     registerFlow.save({
-      email: email.trim(),
+      fullName: name,
+      email: emailValue,
       phone: `62${digits}`,
       referralCode: referralCode.trim(),
       referralLocked,
     });
-    navigate('/auth/register-02');
+    navigate('/index/auth/register-02');
   };
 
   return (
@@ -387,13 +398,22 @@ function Register01() {
                 <div className="content-container">
                   <div className="step-text">Langkah 1 dari 3</div>
                   <h2 className="main-title">Ayo buat akun kamu</h2>
-                  <p className="subtitle">Masukkan alamat email dan nomor ponsel kamu yang aktif untuk melanjutkan pendaftaran.</p>
-                  <form onSubmit={handleSubmit} className="register-form">
+                  <p className="subtitle">Masukkan nama pengguna, alamat email, dan nomor ponsel kamu yang aktif untuk melanjutkan pendaftaran.</p>
+                  {/* noValidate: validation messages always come from the frontend
+                      notif, not the browser bubble for the type="email" input. */}
+                  <form onSubmit={handleSubmit} className="register-form" noValidate>
+                    {/* Nama Pengguna Input */}
+                    <div className="form-group">
+                      <label className="form-label">Nama Pengguna</label>
+                      <div className="input-wrapper">
+                        <input type="text" className="form-input" placeholder="Contoh: Budi Santoso" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                      </div>
+                    </div>
                     {/* Email Input */}
                     <div className="form-group">
                       <label className="form-label">Email</label>
                       <div className="input-wrapper">
-                        <input type="email" className="form-input" placeholder="contoh@email.com" value={email} onChange={(e) => { setEmail(e.target.value); setError(''); }} />
+                        <input type="email" className="form-input" placeholder="contoh@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
                       </div>
                     </div>
                     {/* Phone Input */}
@@ -401,7 +421,7 @@ function Register01() {
                       <label className="form-label">Nomor Ponsel</label>
                       <div className="input-wrapper">
                         <span className="phone-prefix">+62</span>
-                        <input type="tel" className="form-input" placeholder="Nomor ponsel" value={phone} onChange={(e) => { setPhone(e.target.value); setError(''); }} />
+                        <input type="tel" className="form-input" placeholder="Nomor ponsel" value={phone} onChange={(e) => setPhone(e.target.value)} />
                       </div>
                     </div>
                     {/* Promo Code Input */}
@@ -418,12 +438,11 @@ function Register01() {
                         role="checkbox"
                         aria-checked={captchaChecked}
                         tabIndex={0}
-                        onClick={() => { setCaptchaChecked((checked) => !checked); setError(''); }}
+                        onClick={() => setCaptchaChecked((checked) => !checked)}
                         onKeyDown={(e) => {
                           if (e.key === ' ' || e.key === 'Enter') {
                             e.preventDefault();
                             setCaptchaChecked((checked) => !checked);
-                            setError('');
                           }
                         }}
                       >
@@ -437,9 +456,8 @@ function Register01() {
                     </div>
                     {/* Terms and Conditions */}
                     <p className="terms-text">
-                      Dengan melanjutkan, saya setuju bahwa aplikasi ini dapat menggunakan data pribadi saya sesuai dengan <Link to="/support/kebijakan-privasi" className="terms-link">Kebijakan Privasi</Link>.
+                      Dengan melanjutkan, saya setuju bahwa aplikasi ini dapat menggunakan data pribadi saya sesuai dengan <Link to="/index/support/kebijakan-privasi" className="terms-link">Kebijakan Privasi</Link>.
                     </p>
-                    {error && <p className="form-error">{error}</p>}
                     {/* Submit Button */}
                     <button type="submit" className="submit-btn">Lanjut</button>
                   </form>
@@ -479,6 +497,12 @@ const Register02Styles = `
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Full-bleed page canvas — glows + opaque base so the artwork survives the
+     global transparent-root rule. */
+  background-image: 
+    radial-gradient(circle at 85% 5%, rgba(255, 201, 60, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 15% 95%, rgba(255, 159, 28, 0.12) 0%, transparent 45%),
+    linear-gradient(#fffbf4, #fffbf4);
 }
 
 .page-register-02, .page-register-02 * {
@@ -504,11 +528,6 @@ const Register02Styles = `
     width: 100%;
     max-width: 100%;
     min-height: 100vh;
-    background-color: var(--color-bg);
-    /* Approximating the complex Figma radial gradients */
-    background-image: 
-      radial-gradient(circle at 85% 5%, rgba(255, 201, 60, 0.15) 0%, transparent 40%),
-      radial-gradient(circle at 15% 95%, rgba(255, 159, 28, 0.12) 0%, transparent 45%);
     box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
     display: flex;
     flex-direction: column;
@@ -697,33 +716,39 @@ const Register02Styles = `
   .page-register-02 .btn-submit:hover {
     background-color: #2a221b;
   }
-
-  .page-register-02 .form-error {
-    color: #e24c4c;
-    font-size: 12px;
-    line-height: 1.4;
-    margin: 12px 0 0 0;
-  }
 `;
 
 function Register02() {
   const navigate = useNavigate();
+  const showNotif = useShowNotif();
+
+  /* The wizard data lives in memory only: a refresh or a direct visit loses
+     step 1, so send the user back there instead of collecting a password on
+     top of empty identity fields. */
+  useEffect(() => {
+    const flowData = registerFlow.get();
+    if (!flowData.fullName || !flowData.email || !flowData.phone) {
+      navigate('/index/auth/register-01', { replace: true });
+    }
+  }, [navigate]);
+
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (password.length < 6) {
-      setError('Password minimal 6 karakter.');
+      showNotif({ title: 'Password Tidak Sesuai', description: 'Password minimal 6 karakter.' });
       return;
     }
     if (password !== confirmPassword) {
-      setError('Konfirmasi password tidak sama.');
+      showNotif({ title: 'Password Tidak Sesuai', description: 'Konfirmasi password tidak sama.' });
       return;
     }
     registerFlow.save({ password, password2: confirmPassword });
-    navigate('/auth/register-03');
+    navigate('/index/auth/register-03');
   };
 
   return (
@@ -749,8 +774,8 @@ function Register02() {
                   <div className="form-group">
                     <label htmlFor="password" className="input-label">Password</label>
                     <div className="input-wrapper">
-                      <input type="password" id="password" className="input-field" placeholder="Masukkan password" value={password} onChange={(e) => { setPassword(e.target.value); setError(''); }} />
-                      <button type="button" className="btn-icon" aria-label="Tampilkan password">
+                      <input type={showPassword ? 'text' : 'password'} id="password" className="input-field" placeholder="Masukkan password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                      <button type="button" className="btn-icon" aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'} onClick={() => setShowPassword((v) => !v)}>
                         <img src={S2_img_2} alt="" />
                       </button>
                     </div>
@@ -758,8 +783,8 @@ function Register02() {
                   <div className="form-group">
                     <label htmlFor="confirm-password" className="input-label">Konfirmasi Password</label>
                     <div className="input-wrapper">
-                      <input type="password" id="confirm-password" className="input-field" placeholder="Ulangi password" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }} />
-                      <button type="button" className="btn-icon" aria-label="Tampilkan password">
+                      <input type={showConfirm ? 'text' : 'password'} id="confirm-password" className="input-field" placeholder="Ulangi password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                      <button type="button" className="btn-icon" aria-label={showConfirm ? 'Sembunyikan konfirmasi password' : 'Tampilkan konfirmasi password'} onClick={() => setShowConfirm((v) => !v)}>
                         <img src={img_3} alt="" />
                       </button>
                     </div>
@@ -778,7 +803,6 @@ function Register02() {
                       <span className="requirement-text">Kombinasi huruf &amp; angka</span>
                     </li>
                   </ul>
-                  {error && <p className="form-error">{error}</p>}
                   <div className="form-actions">
                     <button type="submit" className="btn-submit">Lanjut</button>
                   </div>
@@ -802,6 +826,12 @@ const Register03Styles = `
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
   width: 100%;
+  /* Full-bleed page canvas — glows + opaque base so the artwork survives the
+     global transparent-root rule. */
+  background-image: 
+    radial-gradient(circle at 85% 15%, rgba(255, 201, 60, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 15% 85%, rgba(255, 159, 28, 0.15) 0%, transparent 50%),
+    linear-gradient(#fffbf4, #fffbf4);
 }
 
 .page-register-03, .page-register-03 * {
@@ -814,11 +844,6 @@ const Register03Styles = `
 .page-register-03 #section-verification {
     width: 100%;
     max-width: 100%;
-    background-color: #fffbf4;
-    /* Approximating the complex radial gradients from Figma */
-    background-image: 
-      radial-gradient(circle at 85% 15%, rgba(255, 201, 60, 0.15) 0%, transparent 50%),
-      radial-gradient(circle at 15% 85%, rgba(255, 159, 28, 0.15) 0%, transparent 50%);
     box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
     min-height: 100vh;
     display: flex;
@@ -899,6 +924,12 @@ const Register03Styles = `
     margin: 0;
   }
 
+  /* The backend can flag several fields at once — keep one message per
+     line inside the notif card. */
+  .page-register-03 .notif-card .notification-desc {
+    white-space: pre-line;
+  }
+
   /* ---- error state (registration failed) ---- */
   .page-register-03 .error-actions {
     display: flex;
@@ -953,6 +984,88 @@ function submitRegistration(payload) {
   return pendingRegistration;
 }
 
+/* Register error notifs never quote the backend: the decoded 400 field map
+   { "<field>": ["teks error"], ... } (one entry per offending field, several
+   can fail at once; 429 / WhatsApp-check answers use a "detail" key) only
+   picks which frontend copy below applies. First matching rule per field
+   wins and the rule without `match` is that field's fallback line; unknown
+   fields fall through to the generic fallback at the call site. */
+const ERROR_COPY_RULES = [
+  /* email */
+  { field: 'email', match: /sudah ada|telah ada|terdaftar/i, copy: 'Email ini sudah terdaftar. Pakai email lain, atau langsung masuk ya.' },
+  { field: 'email', match: /format/i, copy: 'Format email belum benar. Contoh: nama@email.com' },
+  { field: 'email', match: /kosong|diisi/i, copy: 'Masukkan alamat email kamu.' },
+  { field: 'email', copy: 'Email belum valid. Periksa kembali ya.' },
+
+  /* phone — WhatsApp-check rejections can land on this field too */
+  { field: 'phone', match: /sudah ada|telah ada|terdaftar/i, copy: 'Nomor ponsel ini sudah terdaftar. Pakai nomor lain, atau langsung masuk ya.' },
+  { field: 'phone', match: /whatsapp/i, copy: 'Nomor ini sepertinya tidak aktif di WhatsApp. Coba pakai nomor lain ya.' },
+  { field: 'phone', match: /15 karakter|melebihi/i, copy: 'Nomor ponsel terlalu panjang. Maksimal 15 digit ya.' },
+  { field: 'phone', match: /kosong|diisi/i, copy: 'Masukkan nomor ponsel kamu.' },
+  { field: 'phone', copy: 'Nomor ponsel belum valid. Periksa kembali ya.' },
+
+  /* username */
+  { field: 'username', match: /sudah ada|telah ada/i, copy: 'Username ini sudah dipakai. Coba yang lain ya.' },
+  { field: 'username', match: /pengguna valid/i, copy: 'Username tidak boleh pakai spasi. Hapus spasinya lalu coba lagi ya.' },
+  { field: 'username', match: /hanya boleh huruf dan angka/i, copy: 'Username tidak boleh memakai simbol atau titik. Gunakan huruf dan angka saja.' },
+  { field: 'username', match: /kosong|diisi/i, copy: 'Masukkan username kamu.' },
+  { field: 'username', copy: 'Username belum valid. Periksa kembali ya.' },
+
+  /* full_name */
+  { field: 'full_name', match: /huruf, angka, dan spasi/i, copy: 'Nama lengkap tidak boleh memakai simbol. Gunakan huruf, angka, dan spasi saja ya.' },
+  { field: 'full_name', copy: 'Nama lengkap belum valid. Periksa kembali ya.' },
+
+  /* password — the backend has no strength rules, only the match check */
+  { field: 'password', match: /didn't match|tidak sama/i, copy: 'Konfirmasi password tidak sama. Periksa lagi ya.' },
+  { field: 'password', copy: 'Password belum sesuai. Periksa kembali ya.' },
+  { field: 'password2', match: /didn't match|tidak sama/i, copy: 'Konfirmasi password tidak sama. Periksa lagi ya.' },
+  { field: 'password2', match: /kosong|diisi/i, copy: 'Ulangi password kamu di kolom konfirmasi.' },
+  { field: 'password2', copy: 'Konfirmasi password belum sesuai. Periksa kembali ya.' },
+
+  /* referral */
+  { field: 'referral_code', match: /wajib diisi/i, copy: 'Kode promo/referral wajib diisi. Isi dulu buat lanjut daftar ya.' },
+  { field: 'referral_code', match: /\/hari|batas undang/i, copy: (msg) => {
+    const limit = msg.match(/(\d+)\s*\/\s*hari/);
+    return limit ? `Kuota undang harian sudah habis (${limit[1]}/hari).` : 'Kuota undang harian sudah habis.';
+  } },
+  { field: 'referral_code', match: /invalid|tidak ditemukan/i, copy: 'Kode referral tidak ditemukan. Periksa lagi penulisannya ya.' },
+  { field: 'referral_code', copy: 'Kode referral belum valid. Periksa kembali ya.' },
+
+  /* withdraw PIN */
+  { field: 'withdraw_pin', match: /6 digit/i, copy: 'PIN penarikan harus berupa 6 digit angka ya.' },
+  { field: 'withdraw_pin', match: /kosong|diisi/i, copy: 'PIN penarikan wajib diisi.' },
+  { field: 'withdraw_pin', copy: 'PIN penarikan belum valid. Periksa kembali ya.' },
+
+  /* OTP */
+  { field: 'otp', match: /required|wajib/i, copy: 'Masukkan kode OTP kamu.' },
+  { field: 'otp', match: /not requested|expired/i, copy: 'Kode OTP sudah tidak berlaku. Minta kode baru dulu ya.' },
+  { field: 'otp', match: /invalid/i, copy: 'Kode OTP salah. Periksa lagi ya.' },
+  { field: 'otp', copy: 'Kode OTP belum sesuai. Periksa kembali ya.' },
+
+  /* plain "detail" strings: throttling + WhatsApp checker failures */
+  { field: 'detail', match: /dibatasi|throttl|rate limit/i, copy: 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi ya.' },
+  { field: 'detail', match: /checknumber|api key|whatsapp/i, copy: 'Layanan verifikasi WhatsApp sedang bermasalah. Coba beberapa saat lagi ya.' },
+
+  /* errors the serializer attaches to the whole form */
+  { field: 'non_field_errors', match: /didn't match|tidak sama/i, copy: 'Konfirmasi password tidak sama. Periksa lagi ya.' },
+  { field: 'non_field_errors', match: /whatsapp/i, copy: 'Nomor ini sepertinya tidak aktif di WhatsApp. Coba pakai nomor lain ya.' },
+];
+
+function errorCopyFromPayload(payload) {
+  if (!payload || typeof payload !== 'object') return [];
+  const copies = [];
+  for (const [field, value] of Object.entries(payload)) {
+    const messages = Array.isArray(value) ? value : [value];
+    for (const message of messages) {
+      if (typeof message !== 'string' || !message.trim()) continue;
+      const rule = ERROR_COPY_RULES.find((r) => r.field === field && (!r.match || r.match.test(message)));
+      if (!rule) continue;
+      copies.push(typeof rule.copy === 'function' ? rule.copy(message) : rule.copy);
+    }
+  }
+  return [...new Set(copies)];
+}
+
 function Register03() {
   const navigate = useNavigate();
   const [error, setError] = useState('');
@@ -963,8 +1076,8 @@ function Register03() {
     const flowData = registerFlow.get();
 
     // Direct visits / refreshes have no collected data. Restart from step 1.
-    if (!flowData.phone || !flowData.password) {
-      navigate('/auth/register-01', { replace: true });
+    if (!flowData.fullName || !flowData.email || !flowData.phone || !flowData.password) {
+      navigate('/index/auth/register-01', { replace: true });
       return undefined;
     }
 
@@ -976,7 +1089,7 @@ function Register03() {
       password: flowData.password,
       password2: flowData.password2 || flowData.password,
       email: flowData.email || '',
-      full_name: '',
+      full_name: flowData.fullName || '',
       phone: flowData.phone,
       referral_code: flowData.referralCode || '',
       otp: '',
@@ -989,14 +1102,23 @@ function Register03() {
           if (!active) return;
           registerFlow.clear();
           registerFlow.save({ user });
-          navigate('/auth/register-04');
+          navigate('/index/auth/register-04');
         }, wait);
       })
       .catch((err) => {
         const wait = Math.max(0, MIN_SPINNER_MS - (Date.now() - startedAt));
         setTimeout(() => {
           if (!active) return;
-          setError(err?.message || 'Pendaftaran gagal. Silakan coba lagi.');
+          /* Notif copy stays frontend-authored — the decoded backend field
+             map only picks the matching line (one per offending field);
+             err.message (network / server-down) and the generic line are
+             the fallbacks. */
+          const copies = errorCopyFromPayload(err?.payload);
+          setError(
+            copies.length
+              ? copies.join('\n')
+              : err?.message || 'Pendaftaran gagal. Silakan coba lagi.'
+          );
         }, wait);
       });
 
@@ -1017,7 +1139,7 @@ function Register03() {
                     <NotifCard variant="error" title="Pendaftaran Gagal" description={error} showClose={false} />
                     <div className="error-actions">
                       <button type="button" className="btn-primary" onClick={() => { setError(''); setAttempt((n) => n + 1); }}>Coba Lagi</button>
-                      <button type="button" className="btn-secondary" onClick={() => navigate('/auth/register-01')}>Ubah Data</button>
+                      <button type="button" className="btn-secondary" onClick={() => navigate('/index/auth/register-01')}>Ubah Data</button>
                     </div>
                   </>
                 ) : (
@@ -1057,6 +1179,12 @@ const Register04Styles = `
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   width: 100%;
+  /* Full-bleed page canvas — glows + opaque base so the artwork survives the
+     global transparent-root rule. */
+  background-image: 
+    radial-gradient(circle at 80% 15%, rgba(255, 201, 60, 0.15) 0%, transparent 60%),
+    radial-gradient(circle at 20% 85%, rgba(255, 159, 28, 0.12) 0%, transparent 60%),
+    linear-gradient(#fffbf4, #fffbf4);
 }
 
 .page-register-04, .page-register-04 * {
@@ -1078,11 +1206,6 @@ const Register04Styles = `
     width: 100%;
     max-width: 100%;
     min-height: 100vh;
-    background-color: #fffbf4;
-    /* Approximating the complex radial gradients from Figma */
-    background-image: 
-      radial-gradient(circle at 80% 15%, rgba(255, 201, 60, 0.15) 0%, transparent 60%),
-      radial-gradient(circle at 20% 85%, rgba(255, 159, 28, 0.12) 0%, transparent 60%);
     box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
     display: flex;
     flex-direction: column;
@@ -1183,7 +1306,7 @@ function Register04() {
                   <p className="success-description">Akun Jelajah Emas kamu sudah siap digunakan. Yuk, mulai jelajahi informasi dan layanan emas digital bersama Jelajah Emas.</p>
                 </div>
                 <div className="action-area">
-                  <button className="btn-primary" onClick={(e) => { e.preventDefault(); navigate('/auth/login'); }}>Lanjut</button>
+                  <button className="btn-primary" onClick={(e) => { e.preventDefault(); navigate('/index/auth/login'); }}>Lanjut</button>
                 </div>
               </div>
             </section>

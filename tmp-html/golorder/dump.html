@@ -1,0 +1,867 @@
+﻿<!DOCTYPE html>
+<html lang="id"><head>
+  <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+  <script type="module" src="/@vite/client"></script>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GOLORDER-DONE</title>
+<style type="text/css" data-vite-dev-id="D:/webbaru/src/index.css">/* ============================================================
+
+   App shell styles shared by all converted pages.
+
+   Global resets below match the originals found in every
+
+   global.css, so individual page CSS files only need to carry
+
+   their page-specific (already scoped) rules.
+
+   ============================================================ */
+
+
+
+* {
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0;
+
+  -webkit-tap-highlight-color: transparent;
+
+}
+
+
+
+html,
+
+body,
+
+#root {
+
+  width: 100%;
+
+  min-height: 100vh;
+
+  margin: 0;
+
+  padding: 0;
+
+}
+
+
+
+/* Each converted page renders a single wrapper div below its page root
+
+   (e.g. #root > .page-x > div). The original mobile mockups sized that
+
+   wrapper by its content, which produced narrow centered columns on
+
+   desktop; force it to span the full width so pages have no side gaps. */
+
+#root > div > div {
+
+  width: 100%;
+
+}
+
+
+
+body {
+
+  font-family: 'Inter', sans-serif;
+
+  background-color: #f0e9df;
+
+  /* App-wide background image ΓÇö every page shows it through the
+
+     transparency rule below. */
+
+  background-image: url('/src/assets/images/background.jpg');
+
+  background-size: cover;
+
+  background-position: center top;
+
+  background-repeat: no-repeat;
+
+  background-attachment: fixed;
+
+  color: #1a1410;
+
+  min-height: 100vh;
+
+}
+
+
+
+/* Page wrappers paint their own opaque canvas; make them transparent so
+
+   the shared background image is visible on all pages. */
+
+#root > [class^="page-"] {
+
+  background-color: transparent;
+
+}
+
+
+
+a {
+
+  text-decoration: none;
+
+  color: inherit;
+
+}
+
+
+
+button {
+
+  border: none;
+
+  background: none;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+}
+
+
+
+input,
+
+textarea,
+
+select {
+
+  font-family: inherit;
+
+}
+
+
+
+/* ============================================================
+
+   Screen directory (route "/")
+
+   ============================================================ */
+
+
+
+.screen-index {
+
+  max-width: 1080px;
+
+  margin: 0 auto;
+
+  padding: 48px 24px 80px;
+
+}
+
+
+
+.screen-index__header {
+
+  text-align: center;
+
+  margin-bottom: 36px;
+
+}
+
+
+
+.screen-index__title {
+
+  font-size: 32px;
+
+  font-weight: 700;
+
+  color: #1a1410;
+
+  margin-bottom: 8px;
+
+}
+
+
+
+.screen-index__title span {
+
+  color: #e8790c;
+
+}
+
+
+
+.screen-index__subtitle {
+
+  font-size: 14px;
+
+  color: #8a7d6d;
+
+  margin-bottom: 24px;
+
+}
+
+
+
+.screen-index__search {
+
+  width: 100%;
+
+  max-width: 420px;
+
+  padding: 13px 18px;
+
+  font-size: 14px;
+
+  border: 1px solid #e2d8c8;
+
+  border-radius: 12px;
+
+  background-color: #fffbf4;
+
+  color: #1a1410;
+
+  outline: none;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__search:focus {
+
+  border-color: #e8790c;
+
+  box-shadow: 0 0 0 3px rgba(232, 121, 12, 0.15);
+
+}
+
+
+
+.screen-index__grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+
+  gap: 12px;
+
+}
+
+
+
+.screen-index__card {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  padding: 16px 18px;
+
+  background-color: #fffbf4;
+
+  border: 1px solid #e9dfd1;
+
+  border-radius: 14px;
+
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__card:hover {
+
+  border-color: #e8790c;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 10px 24px rgba(26, 20, 16, 0.08);
+
+}
+
+
+
+.screen-index__card-label {
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  color: #1a1410;
+
+}
+
+
+
+.screen-index__card-path {
+
+  font-size: 12px;
+
+  color: #b3a795;
+
+  font-family: 'SFMono-Regular', Consolas, monospace;
+
+}
+
+
+
+.screen-index__empty {
+
+  grid-column: 1 / -1;
+
+  text-align: center;
+
+  padding: 40px 0;
+
+  color: #b3a795;
+
+  font-size: 14px;
+
+}
+
+
+
+.screen-index__group {
+
+  margin-bottom: 32px;
+
+}
+
+
+
+.screen-index__group-title {
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  color: #8a7d6d;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+
+  margin-bottom: 12px;
+
+}
+
+
+
+/* ============================================================
+
+   Desktop layout (ΓëÑ768px) for all app screens.
+
+   Below 768px every page keeps its original mobile layout as-is.
+
+   From 768px up the page content renders as a centered app column
+
+   while backgrounds stay full-bleed on the page root, so no
+
+   phone-frame edges or side gaps appear. The landing page has its
+
+   own desktop layout (see LandingPagePerusahaan.jsx).
+
+   ============================================================ */
+
+
+
+@media (min-width: 768px) {
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > div,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > main,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > section {
+
+    max-width: 480px;
+
+    margin-left: auto;
+
+    margin-right: auto;
+
+    box-shadow: none;
+
+  }
+
+}
+
+
+
+/* Inner full-page containers keep a mobile drop shadow; drop it on desktop
+
+   too (they sit below the capped element, so the rule above does not reach
+
+   them). Selectors carry the #root prefix so they outrank the per-page
+
+   \3c style> blocks injected later in the document. */
+
+@media (min-width: 768px) {
+
+  #root .page-register-01 .app-container,
+
+  #root .page-register-04 .mobile-container,
+
+  #root .page-notifikasi-login .screen-container,
+
+  #root .page-notif-screen .screen-container,
+
+  #root .page-kartu-bank .mobile-app-container,
+
+  #root .page-beri-rating section:first-of-type,
+
+  #root .page-beri-rating section:last-of-type,
+
+  #root .page-livechat .input-container {
+
+    box-shadow: none;
+
+  }
+
+}
+
+</style></head>
+<body>
+  <div id="root"><div class="page-asset-01" style="background-image: url(&quot;/src/assets/images/083535.png&quot;);"><style>
+/* Scoped styles for Asset01 ΓÇö converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-asset-01 to isolate this page. */
+
+.page-asset-01, .page-asset-01 * {
+  box-sizing: border-box;
+}
+
+.page-asset-01 {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #fffbf4;
+  /* Latar artwork 083535.png (dipasang inline di root), direntangkan penuh. */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Hero */
+.page-asset-01 .hero-section {
+  max-width: 100%;
+  height: 240px;
+  margin: 0 auto;
+  background: radial-gradient(43.75% 50% at 41.67% 0%, #241c16 0%, #1a1410 55%, #120d09 100%);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.page-asset-01 .top-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  z-index: 2;
+}
+.page-asset-01 .back-btn {
+  width: 34px;
+  height: 34px;
+  background-color: rgba(255, 249, 242, 0.12);
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+}
+.page-asset-01 .page-title {
+  color: #fff9f2;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+.page-asset-01 .asset-card {
+  background-color: rgba(255, 249, 242, 0.08);
+  border-radius: 14px;
+  padding: 13px 14px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+  z-index: 2;
+}
+.page-asset-01 .asset-label {
+  color: rgba(255, 249, 242, 0.5);
+  font-size: 12px;
+  margin: 0;
+}
+.page-asset-01 .asset-value {
+  color: #fff9f2;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 2px 0 0 0;
+}
+.page-asset-01 .asset-fiat {
+  color: rgba(255, 249, 242, 0.45);
+  font-size: 12px;
+  margin: 0;
+}
+.page-asset-01 .character-img {
+  position: absolute;
+  right: -10px;
+  top: 37px;
+  width: 135px;
+  height: 132px;
+  z-index: 1;
+}
+
+/* CSS for section section:FloatingCard */
+.page-asset-01 .floating-price-section {
+  max-width: 100%;
+  /* Pulled up over the dark hero so the card straddles its bottom edge
+     (original mockup offset ΓÇö half of the 94px card). */
+  margin: -47px auto 0 auto;
+  padding: 0 20px;
+  position: relative;
+  z-index: 10;
+  /* Transparan penuh biar artwork latar halaman keliling kartu yang menindih hero. */
+  background: transparent;
+}
+.page-asset-01 .price-card {
+  background-size: cover;
+  background-position: center;
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 94px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.page-asset-01 .gold-icon {
+  width: 45px;
+  height: 44px;
+}
+.page-asset-01 .price-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.page-asset-01 .price-label {
+  color: #a79c8f;
+  font-size: 12px;
+  margin: 0;
+}
+.page-asset-01 .price-value {
+  color: #1a1410;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+.page-asset-01 .price-change {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.page-asset-01 .change-value {
+  color: #e24c4c;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* CSS for section section:Programs */
+.page-asset-01 .programs-section {
+  max-width: 100%;
+  margin: 0 auto;
+  /* Transparan biar artwork latar halaman tembus. */
+  background-color: transparent;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.page-asset-01 .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.page-asset-01 .title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.page-asset-01 .section-title {
+  color: #1a1410;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+.page-asset-01 .badge-live {
+  background-color: #e24c4c;
+  color: #ffffff;
+  font-size: 10px;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-weight: 700;
+  animation: page-asset-01-blink 1.2s ease-in-out infinite;
+}
+@keyframes page-asset-01-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+.page-asset-01 .link-all {
+  color: #e8790c;
+  font-size: 12px;
+  text-decoration: none;
+  font-weight: 700;
+}
+.page-asset-01 .tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.page-asset-01 .tabs::-webkit-scrollbar {
+  display: none;
+}
+.page-asset-01 .tab {
+  background-color: #f6f1e9;
+  color: #514840;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.page-asset-01 .tab.active {
+  background-color: #1a1410;
+  color: #fff9f2;
+}
+.page-asset-01 .program-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.page-asset-01 .program-status {
+  color: #a79c8f;
+  font-size: 12px;
+  padding: 8px 0;
+}
+.page-asset-01 .program-card {
+  border: 1px solid #efe7dc;
+  border-radius: 16px;
+  background-color: transparent;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.page-asset-01 .card-main {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.page-asset-01 .card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.page-asset-01 .product-icon {
+  width: 34px;
+  height: 34px;
+  background-color: #f6f1e9;
+  border: 1px solid rgba(26, 20, 16, 0.22);
+  border-radius: 9px;
+}
+.page-asset-01 .product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.page-asset-01 .product-name {
+  color: #1a1410;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+}
+.page-asset-01 .product-spec {
+  color: #a79c8f;
+  font-size: 12px;
+  margin: 0;
+}
+.page-asset-01 .quota-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+.page-asset-01 .quota-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.page-asset-01 .quota-label {
+  color: #a79c8f;
+  font-size: 12px;
+}
+.page-asset-01 .quota-value {
+  color: #1a1410;
+  font-size: 12px;
+  font-weight: 700;
+}
+.page-asset-01 .progress-bar {
+  height: 6px;
+  background-color: #f6f1e9;
+  border-radius: 4px;
+  width: 100%;
+}
+.page-asset-01 .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffc93c 0%, #e8790c 100%);
+  border-radius: 4px;
+}
+.page-asset-01 .stats-grid {
+  display: flex;
+  border-top: 1px solid #efe7dc;
+  padding-top: 12px;
+  margin-top: 4px;
+}
+.page-asset-01 .stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  align-items: flex-start;
+}
+.page-asset-01 .stat-label {
+  color: #a79c8f;
+  font-size: 10px;
+}
+.page-asset-01 .stat-value {
+  color: #1a1410;
+  font-size: 12px;
+  font-weight: 700;
+}
+.page-asset-01 .stat-value.highlight {
+  color: #2f8f5a;
+}
+.page-asset-01 .card-footer {
+  background-color: #f6f1e9;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.page-asset-01 .footer-icon {
+  width: 21px;
+  height: 21px;
+}
+.page-asset-01 .footer-text {
+  color: #1a1410;
+  font-size: 12px;
+  font-weight: 700;
+  flex: 1;
+}
+.page-asset-01 .footer-arrow {
+  width: 14px;
+  height: 14px;
+}
+
+/* CSS for section section:FAQ */
+.page-asset-01 .faq-section {
+  max-width: 100%;
+  margin: 0 auto;
+  /* Transparan biar artwork latar halaman tembus. */
+  background-color: transparent;
+  padding: 6px 20px 24px 20px;
+  display: flex;
+  flex-direction: column;
+}
+.page-asset-01 .faq-title {
+  color: #1a1410;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+}
+.page-asset-01 .faq-list {
+  display: flex;
+  flex-direction: column;
+}
+.page-asset-01 .faq-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #efe7dc;
+  cursor: pointer;
+}
+.page-asset-01 .faq-item:last-child {
+  border-bottom: none;
+}
+.page-asset-01 .faq-question {
+  color: #1a1410;
+  font-size: 14px;
+  font-weight: 400;
+}
+</style><div><section id="section-hero" class="hero-section"><div class="top-nav"><a href="#" class="back-btn"><img src="data:image/svg+xml,%3csvg%20width='15'%20height='15'%20viewBox='0%200%2015%2015'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M9.375%203.125L5%207.5L9.375%2011.875'%20stroke='%23FFF9F2'%20stroke-width='1.25'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Back"></a><h1 class="page-title">Kumpulkan Aset Anda</h1></div><div class="asset-card"><p class="asset-label">Total Aset Emas Kamu</p><p class="asset-value">1,367 gram</p><p class="asset-fiat">Γëê Rp3.512.870</p></div><img src="/src/assets/images/27d2feb51364f020c6b57863d6f2929526f97178.png" alt="Character" class="character-img"></section><section id="section-floating-card" class="floating-price-section"><div class="price-card" style="background-image: url(&quot;/src/assets/images/d35f294fb1a21fb0aa4f326dc1672ebf0f14686d.png&quot;);"><img src="/src/assets/images/6e7afc8beed777ee8ad0a014432f7422da8ce4ac.png" alt="Gold Coin" class="gold-icon"><div class="price-info"><p class="price-label">Harga Emas Hari Ini</p><p class="price-value">Rp 2.569.270 / gram</p></div><div class="price-change"><img src="data:image/svg+xml,%3csvg%20width='11'%20height='11'%20viewBox='0%200%2011%2011'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M5.5%202.29163V8.70829M8.25%205.95829L5.5%208.70829L2.75%205.95829'%20stroke='%23E24C4C'%20stroke-width='1.00833'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Up"><span class="change-value">+ 1,01%</span></div></div></section><section id="section-programs" class="programs-section"><div class="section-header"><div class="title-wrapper"><h2 class="section-title">Rencana Program</h2><span class="badge-live">Live</span></div><a class="link-all" href="/assets/aset-saya-01">Lihat Milik Saya</a></div><div class="tabs"><button class="tab active">Semua</button><button class="tab">Simpanan</button><button class="tab">Periode</button><button class="tab">Spesial</button><button class="tab">Bonus</button></div><div class="program-list"><div class="program-card"><div class="card-main"><div class="card-header"><div class="product-icon"></div><div class="product-info"><h3 class="product-name">Rencana Simpanan B</h3></div></div><div class="stats-grid"><div class="stat-item"><span class="stat-label">Pembagian</span><span class="stat-value highlight">5%</span></div><div class="stat-item"><span class="stat-label">Estimasi Biaya</span><span class="stat-value">Rp100.000</span></div></div></div><a class="card-footer" href="/assets/asset-02"><img src="/src/assets/images/50152a965b856a6eb89e7be494cdab9588c66fa7.png" alt="Doc" class="footer-icon"><span class="footer-text">Lihat detail rencana</span><img src="data:image/svg+xml,%3csvg%20width='14'%20height='14'%20viewBox='0%200%2014%2014'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M5.25%203.5L8.75%207L5.25%2010.5'%20stroke='%23A79C8F'%20stroke-width='1.16667'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Arrow" class="footer-arrow"></a></div><div class="program-card"><div class="card-main"><div class="card-header"><div class="product-icon"></div><div class="product-info"><h3 class="product-name">Rencana Simpanan D</h3></div></div><div class="stats-grid"><div class="stat-item"><span class="stat-label">Pembagian</span><span class="stat-value highlight">5%</span></div><div class="stat-item"><span class="stat-label">Estimasi Biaya</span><span class="stat-value">Rp100.000</span></div></div></div><a class="card-footer" href="/assets/asset-02"><img src="/src/assets/images/50152a965b856a6eb89e7be494cdab9588c66fa7.png" alt="Doc" class="footer-icon"><span class="footer-text">Lihat detail rencana</span><img src="data:image/svg+xml,%3csvg%20width='14'%20height='14'%20viewBox='0%200%2014%2014'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M5.25%203.5L8.75%207L5.25%2010.5'%20stroke='%23A79C8F'%20stroke-width='1.16667'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Arrow" class="footer-arrow"></a></div><div class="program-card"><div class="card-main"><div class="card-header"><div class="product-icon"></div><div class="product-info"><h3 class="product-name">Rencana Periode A</h3></div></div><div class="stats-grid"><div class="stat-item"><span class="stat-label">Pembagian</span><span class="stat-value highlight">5%</span></div><div class="stat-item"><span class="stat-label">Estimasi Biaya</span><span class="stat-value">Rp100.000</span></div></div></div><a class="card-footer" href="/assets/asset-02"><img src="/src/assets/images/50152a965b856a6eb89e7be494cdab9588c66fa7.png" alt="Doc" class="footer-icon"><span class="footer-text">Lihat detail rencana</span><img src="data:image/svg+xml,%3csvg%20width='14'%20height='14'%20viewBox='0%200%2014%2014'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M5.25%203.5L8.75%207L5.25%2010.5'%20stroke='%23A79C8F'%20stroke-width='1.16667'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Arrow" class="footer-arrow"></a></div><div class="program-card"><div class="card-main"><div class="card-header"><div class="product-icon"></div><div class="product-info"><h3 class="product-name">Rencana Periode C</h3></div></div><div class="stats-grid"><div class="stat-item"><span class="stat-label">Pembagian</span><span class="stat-value highlight">5%</span></div><div class="stat-item"><span class="stat-label">Estimasi Biaya</span><span class="stat-value">Rp100.000</span></div></div></div><a class="card-footer" href="/assets/asset-02"><img src="/src/assets/images/50152a965b856a6eb89e7be494cdab9588c66fa7.png" alt="Doc" class="footer-icon"><span class="footer-text">Lihat detail rencana</span><img src="data:image/svg+xml,%3csvg%20width='14'%20height='14'%20viewBox='0%200%2014%2014'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M5.25%203.5L8.75%207L5.25%2010.5'%20stroke='%23A79C8F'%20stroke-width='1.16667'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Arrow" class="footer-arrow"></a></div><div class="program-card"><div class="card-main"><div class="card-header"><div class="product-icon"></div><div class="product-info"><h3 class="product-name">Rencana Spesial X</h3></div></div><div class="stats-grid"><div class="stat-item"><span class="stat-label">Pembagian</span><span class="stat-value highlight">5%</span></div><div class="stat-item"><span class="stat-label">Estimasi Biaya</span><span class="stat-value">Rp100.000</span></div></div></div><a class="card-footer" href="/assets/asset-02"><img src="/src/assets/images/50152a965b856a6eb89e7be494cdab9588c66fa7.png" alt="Doc" class="footer-icon"><span class="footer-text">Lihat detail rencana</span><img src="data:image/svg+xml,%3csvg%20width='14'%20height='14'%20viewBox='0%200%2014%2014'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M5.25%203.5L8.75%207L5.25%2010.5'%20stroke='%23A79C8F'%20stroke-width='1.16667'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Arrow" class="footer-arrow"></a></div><div class="program-card"><div class="card-main"><div class="card-header"><div class="product-icon"></div><div class="product-info"><h3 class="product-name">Rencana Spesial Y</h3></div></div><div class="stats-grid"><div class="stat-item"><span class="stat-label">Pembagian</span><span class="stat-value highlight">5%</span></div><div class="stat-item"><span class="stat-label">Estimasi Biaya</span><span class="stat-value">Rp100.000</span></div></div></div><a class="card-footer" href="/assets/asset-02"><img src="/src/assets/images/50152a965b856a6eb89e7be494cdab9588c66fa7.png" alt="Doc" class="footer-icon"><span class="footer-text">Lihat detail rencana</span><img src="data:image/svg+xml,%3csvg%20width='14'%20height='14'%20viewBox='0%200%2014%2014'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M5.25%203.5L8.75%207L5.25%2010.5'%20stroke='%23A79C8F'%20stroke-width='1.16667'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Arrow" class="footer-arrow"></a></div><div class="program-card"><div class="card-main"><div class="card-header"><div class="product-icon"></div><div class="product-info"><h3 class="product-name">Rencana Bonus Z</h3></div></div><div class="stats-grid"><div class="stat-item"><span class="stat-label">Pembagian</span><span class="stat-value highlight">5%</span></div><div class="stat-item"><span class="stat-label">Estimasi Biaya</span><span class="stat-value">Rp100.000</span></div></div></div><a class="card-footer" href="/assets/asset-02"><img src="/src/assets/images/50152a965b856a6eb89e7be494cdab9588c66fa7.png" alt="Doc" class="footer-icon"><span class="footer-text">Lihat detail rencana</span><img src="data:image/svg+xml,%3csvg%20width='14'%20height='14'%20viewBox='0%200%2014%2014'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M5.25%203.5L8.75%207L5.25%2010.5'%20stroke='%23A79C8F'%20stroke-width='1.16667'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Arrow" class="footer-arrow"></a></div></div></section><section id="section-faq" class="faq-section"><h2 class="faq-title">Seputar Investasi Emas</h2><div class="faq-list"><a class="faq-item" href="/support/pertanyaan-umum"><span class="faq-question">Apa itu Investasi Emas Rutin?</span><img src="data:image/svg+xml,%3csvg%20width='14'%20height='14'%20viewBox='0%200%2014%2014'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M3.5%205.25L7%208.75L10.5%205.25'%20stroke='%23514840'%20stroke-width='1.16667'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Expand"></a><a class="faq-item" href="/support/pertanyaan-umum"><span class="faq-question">Emas yang terkumpul disimpan di mana?</span><img src="data:image/svg+xml,%3csvg%20width='14'%20height='14'%20viewBox='0%200%2014%2014'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M3.5%205.25L7%208.75L10.5%205.25'%20stroke='%23514840'%20stroke-width='1.16667'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Expand"></a><a class="faq-item" href="/support/pertanyaan-umum"><span class="faq-question">Bagaimana cara mengubah atau membatalkan paket?</span><img src="data:image/svg+xml,%3csvg%20width='14'%20height='14'%20viewBox='0%200%2014%2014'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M3.5%205.25L7%208.75L10.5%205.25'%20stroke='%23514840'%20stroke-width='1.16667'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Expand"></a></div></section></div></div></div>
+  <pre id="golorder-metrics">{
+  "errors": [],
+  "state": {
+    "tabs": [
+      "Semua",
+      "Simpanan",
+      "Periode",
+      "Spesial",
+      "Bonus"
+    ],
+    "semuaOrder": [
+      "Rencana Simpanan B",
+      "Rencana Simpanan D",
+      "Rencana Periode A",
+      "Rencana Periode C",
+      "Rencana Spesial X",
+      "Rencana Spesial Y",
+      "Rencana Bonus Z"
+    ],
+    "periodeOrder": [
+      "Rencana Periode A",
+      "Rencana Periode C"
+    ],
+    "simpananOrder": [
+      "Rencana Simpanan B",
+      "Rencana Simpanan D"
+    ],
+    "spesialOrder": [
+      "Rencana Spesial X",
+      "Rencana Spesial Y"
+    ],
+    "backToSemuaCount": 7
+  },
+  "allPassed": true
+}</pre>
+  <script type="module" src="/tmp-html/golorder/index.html?html-proxy&amp;index=0.js"></script>
+
+
+</body></html>

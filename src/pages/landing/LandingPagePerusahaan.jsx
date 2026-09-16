@@ -5,7 +5,6 @@ import img_2 from '../../assets/images/155_1183.svg';
 import img_3 from '../../assets/images/payment.jpg';
 import img_4 from '../../assets/images/secure.jpg';
 import img_5 from '../../assets/images/fast.jpg';
-import img_6 from '../../assets/images/155_1251.svg';
 import img_7 from '../../assets/images/one.png';
 import img_8 from '../../assets/images/two.png';
 import img_9 from '../../assets/images/three.png';
@@ -17,6 +16,18 @@ import img_15 from '../../assets/images/77d24c42cf84c32b2b4b166aa82a20eab63965b9
 import img_16 from '../../assets/images/155_1477.svg';
 import img_17 from '../../assets/images/155_1480.svg';
 import img_18 from '../../assets/images/155_1484.svg';
+import imgHandphone from '../../assets/images/handphone.png';
+import promoVideo from '../../assets/video/video.mp4';
+/* Foto profil (pp) pengulas di section Testimoni — file .jpg per nama depan. */
+import imgSalsa from '../../assets/images/salsa.jpg';
+import imgAndi from '../../assets/images/andi.jpg';
+import imgMaya from '../../assets/images/maya.jpg';
+import imgRizki from '../../assets/images/rizki.jpg';
+import imgCitra from '../../assets/images/citra.jpg';
+import imgFajar from '../../assets/images/fajar.jpg';
+import imgNadia from '../../assets/images/nadia.jpg';
+import imgKevin from '../../assets/images/kevin.jpg';
+import { useShowNotif } from '../../lib/useShowNotif.js';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -140,48 +151,23 @@ const styles = `
 .page-landing-page-perusahaan .hero-section .btn-primary {
   margin-bottom: 40px;
 }
-.page-landing-page-perusahaan .hero-mockup {
-  width: 200px;
-  background: linear-gradient(180deg, #241c16 0%, #1a1410 55%, #120d09 100%);
-  border-radius: 28px;
-  padding: 10px;
-  box-shadow: 0px 26px 46px 0px rgba(26, 20, 16, 0.25);
-  margin-bottom: -20px;
-}
-.page-landing-page-perusahaan .mockup-screen {
-  background-color: var(--bg-offwhite);
-  border-radius: 20px;
-  height: 390px;
-  padding: 12px 10px;
-  box-sizing: border-box;
+/* Wrapper teks hero — netral di mobile (susunan tetap tengah seperti
+   sebelumnya), jadi kolom kiri saat hero beralih dua kolom di desktop. */
+.page-landing-page-perusahaan .hero-copy {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  align-items: center;
 }
-.page-landing-page-perusahaan .mockup-header {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--text-dark);
-  font-weight: 600;
-  margin-bottom: 10px;
-  padding: 0 5px;
-}
-.page-landing-page-perusahaan .mockup-card {
-  background-color: #fff;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 11px 9px;
-}
-.page-landing-page-perusahaan .mockup-card .card-label {
-  font-size: 9px;
-  color: var(--text-light-gray);
-  margin-bottom: 3px;
-}
-.page-landing-page-perusahaan .mockup-card .card-value {
-  font-size: 14px;
-  color: var(--text-dark);
-  font-weight: 700;
+/* Mockup ponsel memakai gambar handphone.png (kanvas 1000x1000, tepi
+   transparan). Konten ponsel ~463px dari lebar kanvas, jadi width 432px
+   menampilkan ponsel ~200px — proporsi sama dengan mockup CSS sebelumnya;
+   margin bawah negatif memotong ujung ponsel di batas section ala desain
+   (sisi transparan & bagian terpotong di‑clip oleh overflow hero-section). */
+.page-landing-page-perusahaan .hero-mockup {
+  display: block;
+  width: 432px;
+  margin-bottom: -37px;
 }
 
 /* CSS for section section:Features */
@@ -238,25 +224,17 @@ const styles = `
   background-color: #f6f1e9;
   border: 1px solid var(--border-color);
   border-radius: 16px;
-  height: 247px;
+  aspect-ratio: 854 / 480;
   width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  overflow: hidden;
 }
-.page-landing-page-perusahaan .play-btn {
-  background-color: rgba(26, 20, 16, 0.75);
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-.page-landing-page-perusahaan .play-btn:hover {
-  transform: scale(1.05);
+/* Video promosi (854x480). Frame mengikuti rasio asli video di semua lebar
+   layar, jadi isi video tampil penuh tanpa bagian yang ter-crop. */
+.page-landing-page-perusahaan .video-player {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 /* CSS for section section:Steps */
@@ -430,6 +408,14 @@ const styles = `
   background-color: #f6f1e9;
   border: 1px solid rgba(26, 20, 16, 0.22);
   border-radius: 19px;
+  overflow: hidden;
+}
+/* Foto profil (pp) — crop cover supaya penuh memenuhi lingkaran avatar. */
+.page-landing-page-perusahaan .avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .page-landing-page-perusahaan .author-info h4 {
   font-size: 14px;
@@ -648,6 +634,172 @@ const styles = `
   font-size: 10px;
   line-height: 1.5;
 }
+
+/* ================= Desktop / layar lebar ================= */
+/* Konten dirapikan: latar tetap full-bleed, tapi isi tiap section dibatasi
+   lebar baca 1120px dan dipusatkan lewat padding kiri/kanan kalkulatif. */
+@media (min-width: 768px) {
+  .page-landing-page-perusahaan section,
+  .page-landing-page-perusahaan .site-header,
+  .page-landing-page-perusahaan .site-footer {
+    padding-left: max(32px, calc((100% - 1120px) / 2));
+    padding-right: max(32px, calc((100% - 1120px) / 2));
+  }
+  .page-landing-page-perusahaan .section-title {
+    font-size: 30px;
+  }
+  .page-landing-page-perusahaan .section-subtitle {
+    font-size: 15px;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .page-landing-page-perusahaan .site-header {
+    padding-top: 22px;
+    padding-bottom: 22px;
+  }
+  .page-landing-page-perusahaan .hero-section {
+    padding-top: 48px;
+  }
+  .page-landing-page-perusahaan .hero-mockup {
+    width: 480px;
+    margin-bottom: -41px;
+  }
+  .page-landing-page-perusahaan .features-section,
+  .page-landing-page-perusahaan .video-section,
+  .page-landing-page-perusahaan .steps-section,
+  .page-landing-page-perusahaan .faq-section,
+  .page-landing-page-perusahaan .testimonials-section,
+  .page-landing-page-perusahaan .newsletter-section {
+    padding-top: 56px;
+    padding-bottom: 56px;
+  }
+  .page-landing-page-perusahaan .feature-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .page-landing-page-perusahaan .video-placeholder {
+    max-width: 820px;
+    margin-left: auto;
+    margin-right: auto;
+    height: auto;
+    aspect-ratio: 854 / 480;
+  }
+  .page-landing-page-perusahaan .steps-container {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 32px;
+  }
+  .page-landing-page-perusahaan .step-item {
+    flex: 1;
+  }
+  .page-landing-page-perusahaan .faq-list {
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .page-landing-page-perusahaan .testimonials-scroll {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+  .page-landing-page-perusahaan .testimonial-card {
+    min-width: 0;
+  }
+  .page-landing-page-perusahaan .app-download-section {
+    padding-bottom: 56px;
+  }
+  .page-landing-page-perusahaan .download-card {
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 40px 32px;
+  }
+  .page-landing-page-perusahaan .newsletter-form,
+  .page-landing-page-perusahaan .newsletter-success {
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .page-landing-page-perusahaan .site-footer {
+    padding-top: 48px;
+    padding-bottom: 28px;
+    gap: 32px;
+  }
+  .page-landing-page-perusahaan .footer-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 48px;
+  }
+  .page-landing-page-perusahaan .footer-logo {
+    margin-bottom: 0;
+  }
+  .page-landing-page-perusahaan .footer-links-container {
+    gap: 64px;
+  }
+  .page-landing-page-perusahaan .footer-bottom {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 32px;
+  }
+  .page-landing-page-perusahaan .footer-bottom .disclaimer {
+    max-width: 640px;
+    text-align: right;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Hero dua kolom: teks di kiri, mockup ponsel di kanan — tetap terpotong
+     di dasar section supaya efek "mengintip" dari bawah terjaga. */
+  .page-landing-page-perusahaan .hero-section {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 48px;
+    padding-top: 56px;
+  }
+  .page-landing-page-perusahaan .hero-copy {
+    width: auto;
+    max-width: 460px;
+    align-items: flex-start;
+  }
+  .page-landing-page-perusahaan .hero-copy .tag,
+  .page-landing-page-perusahaan .hero-copy .section-title {
+    text-align: left;
+  }
+  .page-landing-page-perusahaan .hero-copy .section-title {
+    font-size: 34px;
+  }
+  .page-landing-page-perusahaan .hero-copy .btn-primary {
+    width: auto;
+    margin-bottom: 0;
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+  .page-landing-page-perusahaan .hero-mockup {
+    width: 460px;
+    margin-bottom: -40px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .page-landing-page-perusahaan .hero-copy {
+    max-width: 520px;
+  }
+  .page-landing-page-perusahaan .hero-copy .section-title {
+    font-size: 40px;
+  }
+  .page-landing-page-perusahaan .hero-mockup {
+    width: 520px;
+    margin-bottom: -44px;
+  }
+}
 `;
 
 export default function LandingPagePerusahaan() {
@@ -664,6 +816,23 @@ export default function LandingPagePerusahaan() {
   };
   // Newsletter form is a demo: a valid submit swaps the form for a success note.
   const [newsletterSent, setNewsletterSent] = useState(false);
+  const [newsletterNama, setNewsletterNama] = useState('');
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterPhone, setNewsletterPhone] = useState('');
+  const [newsletterTnc, setNewsletterTnc] = useState(false);
+  const showNotif = useShowNotif();
+
+  /* Validasi "belum diisi" tampil lewat halaman /notif (menggantikan
+     validasi bawaan browser dari atribut required). */
+  const handleNewsletterSubmit = (e) => {
+    e.preventDefault();
+    if (!newsletterNama.trim()) { showNotif({ title: 'Lengkapi Data', description: 'Masukkan nama lengkap kamu.' }); return; }
+    if (!newsletterEmail.trim()) { showNotif({ title: 'Lengkapi Data', description: 'Masukkan alamat email kamu.' }); return; }
+    if (!newsletterEmail.includes('@')) { showNotif({ title: 'Lengkapi Data', description: 'Masukkan alamat email yang valid.' }); return; }
+    if (!newsletterPhone.trim()) { showNotif({ title: 'Lengkapi Data', description: 'Masukkan nomor telepon kamu.' }); return; }
+    if (!newsletterTnc) { showNotif({ title: 'Lengkapi Data', description: 'Setujui Syarat dan Ketentuan dulu ya.' }); return; }
+    setNewsletterSent(true);
+  };
 
   return (
     <div className="page-landing-page-perusahaan">
@@ -671,32 +840,17 @@ export default function LandingPagePerusahaan() {
       <div>
               <header id="section-header" className="site-header">
                 <img src={img_1} alt="JelajahEmas Logo" className="logo" />
-                <button className="menu-btn" aria-label="Menu" onClick={(e) => { e.preventDefault(); navigate('/auth/login'); }}>
+                <button className="menu-btn" aria-label="Menu" onClick={(e) => { e.preventDefault(); navigate('/index/auth/login'); }}>
                   <img src={img_2} alt="" />
                 </button>
               </header>
               <section id="section-hero" className="hero-section">
-                <div className="tag">#MulaiDariJelajah</div>
-                <h1 className="section-title">Urusan Emas jadi Mudah dan Cepat</h1>
-                <Link to="/auth/login" className="btn-primary">Download JelajahEmas</Link>
-                <div className="hero-mockup">
-                  <div className="mockup-bg">
-                    <div className="mockup-screen">
-                      <div className="mockup-header">
-                        <span className="time">9:41</span>
-                        <span className="app-name">JelajahEmas</span>
-                      </div>
-                      <div className="mockup-card">
-                        <div className="card-label">Total Aset Kamu</div>
-                        <div className="card-value">Rp 24,1jt • 8,25 Gram</div>
-                      </div>
-                      <div className="mockup-card">
-                        <div className="card-label">Harga Emas Hari Ini</div>
-                        <div className="card-value">Rp 2.921.589</div>
-                      </div>
-                    </div>
-                  </div>
+                <div className="hero-copy">
+                  <div className="tag">#LangkahEmasmu</div>
+                  <h1 className="section-title">Kenal Lebih Dekat, Jelajah Lebih Mudah</h1>
+                  <Link to="/index/auth/login" className="btn-primary">Download JelajahEmas</Link>
                 </div>
+                <img className="hero-mockup" src={imgHandphone} alt="Tampilan Aplikasi JelajahEmas" />
               </section>
               <section id="section-features" className="features-section">
                 <h2 className="section-title">Transaksi Nyaman Dalam Genggaman</h2>
@@ -732,12 +886,11 @@ export default function LandingPagePerusahaan() {
                 </div>
               </section>
               <section id="section-video" className="video-section">
-                <div className="tag">#MulaiDariJelajah</div>
+                <div className="tag">#LangkahEmasmu</div>
                 <p className="section-subtitle">Mulai kenali emas digital dengan cara yang lebih sederhana. Temukan informasi, edukasi, dan berbagai layanan dalam satu tempat.</p>
                 <div className="video-placeholder">
-                  <div className="play-btn">
-                    <img src={img_6} alt="Play Video" />
-                  </div>
+                  {/* autoPlay wajib disertai muted agar diizinkan browser; user bisa unmute via controls. */}
+                  <video className="video-player" src={promoVideo} autoPlay muted playsInline controls preload="auto" />
                 </div>
               </section>
               <section id="section-steps" className="steps-section">
@@ -779,9 +932,9 @@ export default function LandingPagePerusahaan() {
               </section>
               <section id="section-app-download" className="app-download-section">
                 <div className="download-card">
-                  <h2 className="quote-text">“Melangkah dan Kembangkan Finansialmu<br />#MulaiDariJelajah!”</h2>
+                  <h2 className="quote-text">“Melangkah dan Kembangkan Finansialmu<br />#LangkahEmasmu!”</h2>
                   <p className="download-hint">Klik untuk mengunduh aplikasi</p>
-                  <Link to="/auth/login" className="btn-primary">Download JelajahEmas</Link>
+                  <Link to="/index/auth/login" className="btn-primary">Download JelajahEmas</Link>
                 </div>
               </section>
               <section id="section-faq" className="faq-section">
@@ -823,7 +976,9 @@ export default function LandingPagePerusahaan() {
                 <div className="testimonials-scroll">
                   <div className="testimonial-card">
                     <div className="testimonial-author">
-                      <div className="avatar" />
+                      <div className="avatar">
+                        <img src={imgSalsa} alt="Salsa Aulia" />
+                      </div>
                       <div className="author-info">
                         <h4>Salsa Aulia</h4>
                         <span>Mahasiswa, 23th</span>
@@ -833,7 +988,9 @@ export default function LandingPagePerusahaan() {
                   </div>
                   <div className="testimonial-card">
                     <div className="testimonial-author">
-                      <div className="avatar" />
+                      <div className="avatar">
+                        <img src={imgAndi} alt="Andi Pratama" />
+                      </div>
                       <div className="author-info">
                         <h4>Andi Pratama</h4>
                         <span>Wiraswasta, 35th</span>
@@ -843,7 +1000,9 @@ export default function LandingPagePerusahaan() {
                   </div>
                   <div className="testimonial-card">
                     <div className="testimonial-author">
-                      <div className="avatar" />
+                      <div className="avatar">
+                        <img src={imgMaya} alt="Maya Lestari" />
+                      </div>
                       <div className="author-info">
                         <h4>Maya Lestari</h4>
                         <span>Karyawan, 29th</span>
@@ -853,7 +1012,9 @@ export default function LandingPagePerusahaan() {
                   </div>
                   <div className="testimonial-card">
                     <div className="testimonial-author">
-                      <div className="avatar" />
+                      <div className="avatar">
+                        <img src={imgRizki} alt="Rizky Ramadhan" />
+                      </div>
                       <div className="author-info">
                         <h4>Rizky Ramadhan</h4>
                         <span>Freelancer, 27th</span>
@@ -863,7 +1024,9 @@ export default function LandingPagePerusahaan() {
                   </div>
                   <div className="testimonial-card">
                     <div className="testimonial-author">
-                      <div className="avatar" />
+                      <div className="avatar">
+                        <img src={imgCitra} alt="Citra Amelia" />
+                      </div>
                       <div className="author-info">
                         <h4>Citra Amelia</h4>
                         <span>Pengusaha, 32th</span>
@@ -873,7 +1036,9 @@ export default function LandingPagePerusahaan() {
                   </div>
                   <div className="testimonial-card">
                     <div className="testimonial-author">
-                      <div className="avatar" />
+                      <div className="avatar">
+                        <img src={imgFajar} alt="Fajar Nugraha" />
+                      </div>
                       <div className="author-info">
                         <h4>Fajar Nugraha</h4>
                         <span>Karyawan, 30th</span>
@@ -883,7 +1048,9 @@ export default function LandingPagePerusahaan() {
                   </div>
                   <div className="testimonial-card">
                     <div className="testimonial-author">
-                      <div className="avatar" />
+                      <div className="avatar">
+                        <img src={imgNadia} alt="Nadia Putri" />
+                      </div>
                       <div className="author-info">
                         <h4>Nadia Putri</h4>
                         <span>Ibu Rumah Tangga, 36th</span>
@@ -893,7 +1060,9 @@ export default function LandingPagePerusahaan() {
                   </div>
                   <div className="testimonial-card">
                     <div className="testimonial-author">
-                      <div className="avatar" />
+                      <div className="avatar">
+                        <img src={imgKevin} alt="Kevin Aditya" />
+                      </div>
                       <div className="author-info">
                         <h4>Kevin Aditya</h4>
                         <span>Content Creator, 26th</span>
@@ -913,18 +1082,18 @@ export default function LandingPagePerusahaan() {
                     <p className="success-text">Data kamu sudah kami terima. Kabar terbaru, promo, dan event akan kami kirimkan ke email kamu.</p>
                   </div>
                 ) : (
-                  <form onSubmit={(e) => { e.preventDefault(); setNewsletterSent(true); }} className="newsletter-form">
+                  <form onSubmit={handleNewsletterSubmit} className="newsletter-form">
                     <div className="form-group">
-                      <input type="text" placeholder="Nama Lengkap" className="form-input" required />
+                      <input type="text" placeholder="Nama Lengkap" className="form-input" value={newsletterNama} onChange={(e) => setNewsletterNama(e.target.value)} />
                     </div>
                     <div className="form-group">
-                      <input type="email" placeholder="Alamat Email" className="form-input" required />
+                      <input type="email" placeholder="Alamat Email" className="form-input" value={newsletterEmail} onChange={(e) => setNewsletterEmail(e.target.value)} />
                     </div>
                     <div className="form-group">
-                      <input type="tel" placeholder="Nomor Telepon" className="form-input" required />
+                      <input type="tel" placeholder="Nomor Telepon" className="form-input" value={newsletterPhone} onChange={(e) => setNewsletterPhone(e.target.value)} />
                     </div>
                     <div className="form-checkbox">
-                      <input type="checkbox" id="tnc" required />
+                      <input type="checkbox" id="tnc" checked={newsletterTnc} onChange={(e) => setNewsletterTnc(e.target.checked)} />
                       <label htmlFor="tnc">Saya setuju dengan Syarat dan Ketentuan yang berlaku serta bersedia data pribadi digunakan untuk penawaran dan promosi.</label>
                     </div>
                     <button type="submit" className="btn-primary">Kirim</button>
@@ -939,13 +1108,13 @@ export default function LandingPagePerusahaan() {
                   <div className="footer-links-container">
                     <div className="footer-links-col">
                       <h4>Bantuan</h4>
-                      <Link to="/support/syarat-dan-ketentuan">Syarat &amp; Ketentuan</Link>
-                      <Link to="/support/kebijakan-privasi">Kebijakan Privasi</Link>
+                      <Link to="/index/support/syarat-dan-ketentuan">Syarat &amp; Ketentuan</Link>
+                      <Link to="/index/support/kebijakan-privasi">Kebijakan Privasi</Link>
                       <a href="#section-newsletter">Hubungi Kami</a>
                     </div>
                     <div className="footer-links-col">
                       <h4>Lainnya</h4>
-                      <Link to="/support/tentang-kami">Tentang Kami</Link>
+                      <a href="#section-hero">Tentang Kami</a>
                       <a href="#section-newsletter">Promo</a>
                       <a href="#section-newsletter">Karir</a>
                     </div>
@@ -956,20 +1125,20 @@ export default function LandingPagePerusahaan() {
                     <img src={img_14} alt="OJK" />
                     <img src={img_15} alt="BAPPEBTI" />
                   </div>
-                  <p>PT JelajahEmas Indonesia. Berizin dan diawasi oleh Otoritas Jasa Keuangan (OJK) &amp; BAPPEBTI.</p>
+                  <p>PT Jelajah Emas Digital Indonesia. Berizin dan diawasi oleh Otoritas Jasa Keuangan (OJK) &amp; BAPPEBTI.</p>
                 </div>
                 {/* <div className="footer-contact">
                   <p className="contact-label">Call Center</p>
                   <p className="contact-number">1500 123</p>
                   <p className="contact-alt">atau 021-8063 5162 &amp; 021-3155 550</p>
                 </div> */}
-                <div className="footer-social">
+                {/* <div className="footer-social">
                   <a href="#" className="social-icon"><img src={img_16} alt="Social" /></a>
                   <a href="#" className="social-icon"><img src={img_17} alt="Social" /></a>
                   <a href="#" className="social-icon"><img src={img_18} alt="Social" /></a>
-                </div>
+                </div> */}
                 <div className="footer-bottom">
-                  <p className="copyright">© 2026 PT JelajahEmas Indonesia. Hak cipta dilindungi.</p>
+                  <p className="copyright">© 2026 PT PT Jelajah Emas Digital Indonesia. Hak cipta dilindungi.</p>
                   <p className="disclaimer">JelajahEmas terdaftar dan diawasi oleh Otoritas Jasa Keuangan (OJK) &amp; Badan Pengawas Perdagangan Berjangka Komoditi (BAPPEBTI). Investasi emas mengandung risiko fluktuasi harga pasar.</p>
                 </div>
               </footer>

@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>REGISTER-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="register-metrics">pending</pre>
+  <script type="module">
+    /* E2E for the register wizard changes:
+       - Step 1 has the new "Nama Pengguna" field; NOTHING can be submitted
+         empty: name, email (format too), phone, referral and captcha are all
+         enforced, with the name checked first.
+       - Step 2 rejects a direct visit when the wizard data is missing
+         (guard suite), and still enforces password match.
+       - Step 3 payload carries the entered name as full_name.
+       Suites (?suite=): flow (default) | guard */
+    const suite = new URLSearchParams(location.search).get('suite') || 'flow';
+    const metrics = { suite, errors: [], scenarios: {}, fetchCalls: [] };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    /* Stub fetch BEFORE the app loads: register returns 201 with a user JSON. */
+    window.fetch = async (url, init = {}) => {
+      metrics.fetchCalls.push({ url: String(url), body: typeof init.body === 'string' ? init.body : null });
+      if (String(url).includes('/api/auth/register/')) {
+        return new Response(JSON.stringify({ id: 1, username: '628123456789', full_name: 'Budi Santoso' }), {
+          status: 201,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    };
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const writeMetrics = () => {
+      document.getElementById('register-metrics').textContent = JSON.stringify(metrics, null, 2);
+      document.title = 'REGISTER-DONE ' + JSON.stringify({ allPassed: metrics.allPassed, errors: metrics.errors.length });
+    };
+    const waitFor = async (selector, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+    const waitForPath = async (path, timeout = 8000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        if (location.pathname === path) return true;
+        await sleep(50);
+      }
+      return false;
+    };
+    const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    const feed = async (input, raw) => {
+      nativeSet.call(input, raw);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      await sleep(80);
+    };
+    const notifText = () => {
+      const card = document.querySelector('.notif-overlay .notif-card');
+      return {
+        title: card?.querySelector('.notification-title')?.textContent || '',
+        desc: card?.querySelector('.notification-desc')?.textContent || '',
+      };
+    };
+    const expectNotif = (name, expectedDesc) => {
+      const seen = notifText();
+      metrics.scenarios[name] = { ...seen, expectedDesc, passed: seen.desc === expectedDesc };
+    };
+    const dismissNotif = async () => {
+      document.querySelector('.notif-overlay .close-button')?.click();
+      await sleep(120);
+    };
+    const submitStep1 = async () => { document.querySelector('.page-register-01 .submit-btn')?.click(); await sleep(600); };
+    const submitStep2 = async () => { document.querySelector('.page-register-02 .btn-submit')?.click(); await sleep(600); };
+
+    if (suite === 'guard') {
+      /* Direct visit to step 2 with an empty wizard store must bounce to step 1. */
+      history.replaceState(null, '', '/index/auth/register-02');
+      await import('/src/main.jsx');
+      const landedOnStep1 = await waitForPath('/index/auth/register-01');
+      metrics.guard = {
+        landedOnStep1,
+        finalPath: location.pathname,
+        step1Rendered: !!document.querySelector('.page-register-01'),
+      };
+      metrics.allPassed = landedOnStep1 && !!document.querySelector('.page-register-01') && metrics.errors.length === 0;
+      writeMetrics();
+    } else {
+      /* ---------- Suite: flow — validation + happy path + payload ---------- */
+      history.replaceState(null, '', '/index/auth/register-01');
+      await import('/src/main.jsx');
+
+      const name = await waitFor('.page-register-01 input[placeholder="Contoh: Budi Santoso"]');
+      const email = await waitFor('.page-register-01 input[placeholder="contoh@email.com"]');
+      const phone = await waitFor('.page-register-01 input[placeholder="Nomor ponsel"]');
+      const referral = await waitFor('.page-register-01 input[placeholder="Masukkan kode"]');
+      metrics.pageRendered = !!(name && email && phone && referral);
+      if (!metrics.pageRendered) { writeMetrics(); throw new Error('register-01 not rendered'); }
+
+      /* A — fully empty form: the name check fires first. */
+      await submitStep1();
+      expectNotif('emptyForm', 'Masukkan nama pengguna kamu.');
+      await dismissNotif();
+
+      /* B — name with forbidden symbols. */
+      await feed(name, 'Budi #123');
+      await submitStep1();
+      expectNotif('nameBadFormat', 'Nama pengguna hanya boleh berisi huruf, angka, dan spasi.');
+      await dismissNotif();
+
+      /* C — email missing "@". */
+      await feed(name, 'Budi Santoso');
+      await feed(email, 'notanemail');
+      await submitStep1();
+      expectNotif('emailBadFormat', 'Masukkan alamat email yang valid.');
+      await dismissNotif();
+
+      /* D — phone empty. */
+      await feed(email, 'budi@example.com');
+      await feed(phone, '');
+      await submitStep1();
+      expectNotif('phoneEmpty', 'Masukkan nomor ponsel yang valid.');
+      await dismissNotif();
+
+      /* E — referral empty. */
+      await feed(phone, '8123456789');
+      await feed(referral, '');
+      await submitStep1();
+      expectNotif('referralEmpty', 'Masukkan kode referral kamu.');
+      await dismissNotif();
+
+      /* F — captcha not ticked. */
+      await feed(referral, 'REF123');
+      await submitStep1();
+      expectNotif('captchaUnchecked', 'Centang "Saya bukan robot" dulu ya.');
+      await dismissNotif();
+
+      /* G — happy path step 1: tick captcha and continue. */
+      document.querySelector('.page-register-01 .captcha-checkbox-group')?.click();
+      await sleep(80);
+      await submitStep1();
+      metrics.reachedStep2 = await waitForPath('/index/auth/register-02');
+
+      /* H — password mismatch then fix. */
+      const pw = await waitFor('.page-register-02 #password');
+      const pw2 = await waitFor('.page-register-02 #confirm-password');
+      await feed(pw, 'rahasia123');
+      await feed(pw2, 'rahasia999');
+      await submitStep2();
+      expectNotif('passwordMismatch', 'Konfirmasi password tidak sama.');
+      await dismissNotif();
+      await feed(pw2, 'rahasia123');
+      await submitStep2();
+      metrics.reachedStep3 = await waitForPath('/index/auth/register-03');
+
+      /* I — the wizard auto-registers; wait for the success screen. */
+      metrics.reachedStep4 = await waitForPath('/index/auth/register-04', 10000);
+
+      const call = metrics.fetchCalls.find((c) => c.url.includes('/api/auth/register/'));
+      metrics.registerCalled = !!call;
+      if (call) {
+        try {
+          const body = JSON.parse(call.body);
+          metrics.registerPayload = body;
+          metrics.payloadChecks = {
+            fullName: body.full_name === 'Budi Santoso',
+            email: body.email === 'budi@example.com',
+            username: body.username === '628123456789',
+            phone: body.phone === '628123456789',
+            referral: body.referral_code === 'REF123',
+            password: body.password === 'rahasia123',
+          };
+        } catch {
+          metrics.registerPayload = call.body;
+        }
+      }
+
+      const scenarioPass = Object.values(metrics.scenarios).every((s) => s.passed);
+      const checks = metrics.payloadChecks || {};
+      metrics.allPassed =
+        scenarioPass &&
+        metrics.reachedStep2 &&
+        metrics.reachedStep3 &&
+        metrics.reachedStep4 &&
+        metrics.registerCalled &&
+        Object.values(checks).every(Boolean) &&
+        metrics.errors.length === 0;
+      writeMetrics();
+    }
+  </script>
+</body>
+</html>

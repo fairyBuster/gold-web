@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useShowNotif } from '../../lib/useShowNotif.js';
 import img_1 from '../../assets/images/102_2017.svg';
 import img_2 from '../../assets/images/6ea7969d642adfbb038f569e995e7ac2259bb145.png';
 import img_3 from '../../assets/images/102_2039.svg';
@@ -253,6 +255,17 @@ const styles = `
 
 export default function VipRedeemKode() {
   const navigate = useNavigate();
+  const [code, setCode] = useState('');
+  const showNotif = useShowNotif();
+
+  /* Validasi kosong tampil lewat halaman /notif; kode terisi lanjut ke halaman VIP. */
+  const handleRedeem = () => {
+    if (!code.trim()) {
+      showNotif({ title: 'Lengkapi Data', description: 'Masukkan kode redeem terlebih dahulu.' });
+      return;
+    }
+    navigate('/index/rewards/vip');
+  };
 
   return (
     <div className="page-vip-redeem-kode">
@@ -277,10 +290,10 @@ export default function VipRedeemKode() {
                 <label className="input-label">Kode Redeem</label>
                 <div className="input-container">
                   <img src={img_3} alt="Icon" className="input-icon" />
-                  <input type="text" placeholder="Masukkan kode di sini" className="redeem-input" />
+                  <input type="text" placeholder="Masukkan kode di sini" className="redeem-input" value={code} onChange={(e) => setCode(e.target.value)} />
                   <button className="paste-btn">Tempel</button>
                 </div>
-                <button className="redeem-btn" onClick={(e) => { e.preventDefault(); navigate('/rewards/vip'); }}>Redeem Sekarang</button>
+                <button className="redeem-btn" onClick={(e) => { e.preventDefault(); handleRedeem(); }}>Redeem Sekarang</button>
               </section>
               <section id="section-info" className="px-20">
                 <div className="info-box">

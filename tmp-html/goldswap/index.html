@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GOLDSWAP-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="gs-metrics">pending</pre>
+  <script type="module">
+    /* E2E probe for the Tukar Emas (gold swap) flow in CetakEmas.jsx:
+       - flow:  step1 preview (hold grams, harga tanpa badge sumber, tarif, summary) → pick 0,5 gr
+                → step2 rincian (wait, fetch info ke-2 mengembalikan harga yang
+                sudah bergerak — step2 harus tetap memakai kutipan step 1)
+                → POST /api/gold/swap/ {gram:"0.5", address_id:12}
+                → step3 order card (tanggal pesanan, 0,5 gram, total, PENDING badge) + timeline;
+       - off / noprice: button disabled + footer note, click must not navigate;
+       - holdpre: FE pre-check (hold 500k < 1 gr) blocks with frontend copy;
+       - noaddr1 / noaddr2: tanpa alamat tersimpan, klik Lanjut (step 1) / Bayar
+         (step 2) otomatis pindah ke /assets/alamat-pengiriman — tanpa notif
+         dan tanpa POST swap;
+       - histdetail: baris SWAP di RiwayatLainnya (membawa gold_order_id dari
+         feed transaksi) membuka layar step 3 dengan data asli dari
+         GET /api/gold/orders/<id>/ — payload basi di sessionStorage tidak
+         dipakai;
+       - hold400 / deposit400 / price503 / valid400 / unconfigured400: backend
+         rejections map to FE-authored NotifCard copy, raw backend text absent;
+       - shipped / cancelled: step3 badge + timeline from a saved order payload.
+       ?case=flow|off|noprice|holdpre|noaddr1|noaddr2|histdetail|hold400|deposit400|price503|valid400|unconfigured400|shipped|cancelled */
+    const metrics = { errors: [], case: null };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const selectedCase = new URLSearchParams(location.search).get('case') || 'flow';
+    metrics.case = selectedCase;
+
+    /* Live values mirrored from the task spec (decimals shipped as strings). */
+    const baseInfo = {
+      is_active: true,
+      price_available: true,
+      price_per_gram: '2436835.76',
+      price_source: 'live',
+      price_updated_at: '2026-09-15T19:50:11.837276',
+      price_usd_per_oz: '4291.70',
+      usd_idr_rate: '17660.6149',
+      printing_fee_per_gram: '20000.00',
+      shipping_cost: '15000.00',
+      balance_hold: '2000000.00',
+      balance_deposit: '100000.00',
+    };
+    const address = {
+      id: 12,
+      recipient_name: 'Budi Santoso',
+      phone_number: '081234567890',
+      address_details: 'Jl. Merdeka No. 10, RT 01/RW 02, Jakarta Pusat',
+      house_number: '10',
+      is_primary: true,
+    };
+    const swapOk = {
+      message: 'Tukar emas berhasil. Order akan segera diproses.',
+      order: {
+        id: 5,
+        status: 'PENDING',
+        gram: '0.5000',
+        price_per_gram: '2436835.76',
+        gold_value: '1218417.88',
+        printing_fee: '10000.00',
+        shipping_cost: '15000.00',
+        total_fee: '25000.00',
+        recipient_name: 'Budi Santoso',
+        phone_number: '081234567890',
+        address_details: 'Jl. Merdeka No. 10, RT 01/RW 02, Jakarta Pusat',
+        house_number: '10',
+        tracking_number: '',
+        transaction_id: 'SWP-20260915201234-A1B2C3',
+        fee_transaction_id: 'SWF-20260915201234-D4E5F6',
+        refunded_at: null,
+        created_at: '2026-09-15T20:12:34.567890',
+        updated_at: '2026-09-15T20:12:34.567890',
+      },
+      price_per_gram: '2436835.76',
+      price_source: 'live',
+      balance_hold: '781582.12',
+      balance_deposit: '75000.00',
+    };
+
+    const postErrors = {
+      hold400: { status: 400, body: { error: 'Saldo balance_hold tidak cukup. Dibutuhkan Rp 1,218,417.88 (nilai emas 0.5 gram x Rp 2,436,835.76/gram), tersedia Rp 500,000.00.', required: '1218417.88', available: '500000.00' } },
+      deposit400: { status: 400, body: { error: 'Saldo balance_deposit tidak cukup untuk biaya. Dibutuhkan Rp 25,000.00 (biaya cetak Rp 10,000.00 + ongkir Rp 15,000.00), tersedia Rp 5,000.00.', required: '25000.00', available: '5000.00' } },
+      price503: { status: 503, body: { error: 'Harga emas real-time sedang tidak tersedia. Coba beberapa saat lagi.' } },
+      valid400: { status: 400, body: { gram: ['Berat emas maksimal 4 angka desimal (contoh: 0.5).'] } },
+      unconfigured400: { status: 400, body: { error: 'Fitur tukar emas belum dikonfigurasi.' } },
+    };
+
+    const json = (data, status = 200) => new Response(JSON.stringify(data), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    /* histdetail: feed riwayat membawa dua baris SWAP (nilai emas + biaya)
+       dengan gold_order_id; detail order asli berstatus SHIPPED. */
+    const swapRows = [
+      {
+        id: 101,
+        type: 'SWAP',
+        wallet_type: 'BALANCE_HOLD',
+        amount: '1218417.88',
+        currency_code: 'IDR',
+        status: 'PROCESSING',
+        description: 'Tukar 0.5000 gram emas dari balance_hold (harga Rp 2,436,835.76/gram)',
+        trx_id: 'SWP-20260915201234-A1B2C3',
+        gold_order_id: 5,
+        created_at: '2026-09-15T20:12:34.567890',
+      },
+      {
+        id: 102,
+        type: 'SWAP',
+        wallet_type: 'BALANCE_DEPOSIT',
+        amount: '25000.00',
+        currency_code: 'IDR',
+        status: 'PROCESSING',
+        description: 'Biaya cetak (Rp 10,000.00) + ongkir (Rp 15,000.00) tukar emas 0.5000 gram dari balance_deposit',
+        trx_id: 'SWF-20260915201234-D4E5F6',
+        gold_order_id: 5,
+        created_at: '2026-09-15T20:12:34.567890',
+      },
+    ];
+    const orderDetail = {
+      id: 5,
+      status: 'SHIPPED',
+      gram: '0.5000',
+      price_per_gram: '2436835.76',
+      gold_value: '1218417.88',
+      printing_fee: '10000.00',
+      shipping_cost: '15000.00',
+      total_fee: '25000.00',
+      recipient_name: 'Budi Santoso',
+      phone_number: '081234567890',
+      address_details: 'Jl. Merdeka No. 10, RT 01/RW 02, Jakarta Pusat',
+      house_number: '10',
+      tracking_number: 'JX1234567890',
+      transaction_id: 'SWP-20260915201234-A1B2C3',
+      fee_transaction_id: 'SWF-20260915201234-D4E5F6',
+      refunded_at: null,
+      created_at: '2026-09-15T20:12:34.567890',
+      updated_at: '2026-09-16T09:00:00.000000',
+    };
+
+    const sent = { swapBody: null, swapAuth: null, infoCalls: 0, addressCalls: 0, orderDetailCalls: 0 };
+    window.fetch = (url, init = {}) => {
+      const target = String(url);
+      if (target.includes('/api/gold/info/')) {
+        sent.infoCalls += 1;
+        const info = selectedCase === 'off' ? { ...baseInfo, is_active: false }
+          : selectedCase === 'noprice' ? { ...baseInfo, price_available: false }
+            : selectedCase === 'holdpre' ? { ...baseInfo, balance_hold: '500000.00' }
+              : baseInfo;
+        /* Fetch info ke-2 (step 2 di case flow) membalas harga yang sudah
+           bergerak — step 2 harus tetap menampilkan kutipan step 1. */
+        const payload = sent.infoCalls > 1 ? { ...info, price_per_gram: '2445000.00' } : info;
+        return Promise.resolve(json(payload));
+      }
+      if (target.includes('/api/auth/address/')) {
+        sent.addressCalls += 1;
+        /* noaddr*: user belum punya alamat tersimpan (hasil list kosong). */
+        if (selectedCase === 'noaddr1' || selectedCase === 'noaddr2') {
+          return Promise.resolve(json({ count: 0, next: null, previous: null, results: [] }));
+        }
+        return Promise.resolve(json({ count: 1, next: null, previous: null, results: [address] }));
+      }
+      if (target.includes('/api/gold/swap/')) {
+        sent.swapBody = init.body ? JSON.parse(init.body) : null;
+        sent.swapAuth = init.headers?.Authorization ?? null;
+        const failure = postErrors[selectedCase];
+        if (failure) return Promise.resolve(json(failure.body, failure.status));
+        return Promise.resolve(json(swapOk, 201));
+      }
+      /* RiwayatLainnya menarik feed per tipe — hanya SWAP yang berisi. */
+      if (target.includes('/api/transactions/')) {
+        const type = new URL(target, location.origin).searchParams.get('type');
+        const results = type === 'SWAP' ? swapRows : [];
+        return Promise.resolve(json({ count: results.length, next: null, previous: null, results }));
+      }
+      /* Detail order asli untuk handoff riwayat (baris SWAP). */
+      if (/\/api\/gold\/orders\/\d+\//.test(target)) {
+        sent.orderDetailCalls += 1;
+        return Promise.resolve(json(orderDetail));
+      }
+      return Promise.resolve(json({}, 404));
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    /* shipped / cancelled cold-load step 3 with a saved order payload. */
+    if (selectedCase === 'shipped' || selectedCase === 'cancelled') {
+      window.sessionStorage.setItem('je_gold_order', JSON.stringify({
+        order: {
+          id: 5,
+          status: selectedCase === 'shipped' ? 'SHIPPED' : 'CANCELLED',
+          gram: '0.5000',
+          total_fee: '25000.00',
+          transaction_id: 'SWP-20260915201234-A1B2C3',
+          tracking_number: selectedCase === 'shipped' ? 'JX1234567890' : '',
+          refunded_at: selectedCase === 'cancelled' ? '2026-09-16T10:00:00' : null,
+          created_at: '2026-09-15T20:12:34.567890',
+        },
+      }));
+    }
+    /* POST rejection probes land directly on step 2 with a saved weight. */
+    if (postErrors[selectedCase]) {
+      window.sessionStorage.setItem('je_gold_swap_gram', '0.5');
+    }
+    /* histdetail: payload basi di sessionStorage (order lain) — handoff
+       riwayat harus menang dan menampilkan hasil fetch, bukan payload ini. */
+    if (selectedCase === 'histdetail') {
+      window.sessionStorage.setItem('je_gold_order', JSON.stringify({
+        order: {
+          id: 9,
+          status: 'PENDING',
+          gram: '9.0000',
+          total_fee: '999.00',
+          created_at: '2025-01-01T00:00:00',
+        },
+      }));
+    }
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (selector, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+    const waitUntil = async (predicate, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        if (predicate()) return true;
+        await sleep(50);
+      }
+      return false;
+    };
+    const path = () => location.pathname;
+    const text = (selector) => document.querySelector(selector)?.textContent.trim() ?? null;
+    const rows = (selector) => [...document.querySelectorAll(selector)];
+    const notifTitle = () => text('.notif-card.error .notification-title');
+    const notifDesc = () => text('.notif-card.error .notification-desc');
+
+    const startRoute = selectedCase === 'histdetail'
+      ? '/index/rewards/riwayat-lainnya'
+      : ['flow', 'off', 'noprice', 'holdpre', 'noaddr1'].includes(selectedCase)
+        ? '/index/assets/cetak-emas-01'
+        : ['shipped', 'cancelled'].includes(selectedCase)
+          ? '/index/assets/cetak-emas-03'
+          : '/index/assets/cetak-emas-02';
+    history.replaceState(null, '', startRoute);
+    await import('/src/main.jsx');
+
+    let passed = false;
+    if (selectedCase === 'flow') {
+      /* ---- step 1: info ter-load → preview ---- */
+      await waitFor('.page-cetak-emas-01 .primary-btn');
+      await waitUntil(() => (text('.page-cetak-emas-01 .balance-sub') || '').includes('Rp 100.000'));
+      metrics.balanceGrams = text('.page-cetak-emas-01 .balance-amount');
+      metrics.balanceSub = text('.page-cetak-emas-01 .balance-sub');
+      /* Badge sumber harga (Real-time/Cache/…) harus TIDAK tampil lagi. */
+      metrics.priceBadge = document.querySelector('.page-cetak-emas-01 .price-badge')?.textContent ?? null;
+      const detailRows = Object.fromEntries(rows('.page-cetak-emas-01 .detail-row').map((r) => [
+        r.querySelector('.detail-label')?.textContent.trim(),
+        r.querySelector('.detail-value')?.textContent.trim(),
+      ]));
+      const w05 = rows('.page-cetak-emas-01 .weight-option')
+        .find((el) => el.querySelector('.weight-val')?.textContent.trim() === '0,5 gr');
+      w05?.click();
+      await sleep(150);
+      const summary = Object.fromEntries(rows('.page-cetak-emas-01 .summary-row').map((r) => [
+        r.querySelector('.summary-label')?.textContent.trim(),
+        r.querySelector('.summary-value')?.textContent.trim(),
+      ]));
+      metrics.summary = summary;
+
+      document.querySelector('.page-cetak-emas-01 .primary-btn')?.click();
+      await waitUntil(() => path() === '/index/assets/cetak-emas-02');
+
+      /* ---- step 2: rincian + POST ---- */
+      await waitFor('.page-cetak-emas-02 .btn-primary');
+      await waitUntil(() => (text('.page-cetak-emas-02 .alamat-name') || '').includes('Budi'));
+      metrics.step2Title = text('.page-cetak-emas-02 .emas-title');
+      metrics.rincian = Object.fromEntries(rows('.page-cetak-emas-02 .rincian-card .row').map((r) => [
+        (r.querySelector('.label-dark') ?? r.querySelector('.total-label'))?.textContent.trim(),
+        r.querySelector('.value, .total-value')?.textContent.trim(),
+      ]));
+      metrics.termsLink = document.querySelector('.page-cetak-emas-02 .terms-text a')?.getAttribute('href') ?? null;
+      document.querySelector('.page-cetak-emas-02 .btn-primary')?.click();
+      await waitUntil(() => path() === '/index/assets/cetak-emas-03');
+
+      /* ---- step 3: order card + timeline ---- */
+      await waitFor('.page-cetak-emas-03 .order-card');
+      metrics.step3Path = path();
+      const orderVals = rows('.page-cetak-emas-03 .order-row .row-value').map((el) => el.textContent.trim());
+      const orderLabels = rows('.page-cetak-emas-03 .order-row .row-label').map((el) => el.textContent.trim());
+      metrics.orderLabels = orderLabels;
+      metrics.orderVals = orderVals;
+      metrics.badge = text('.page-cetak-emas-03 .status-badge span');
+      metrics.badgeClass = document.querySelector('.page-cetak-emas-03 .status-badge')?.className ?? null;
+      metrics.timelineIcons = rows('.page-cetak-emas-03 .timeline-icon').map((el) => el.className);
+      metrics.createdLine = text('.page-cetak-emas-03 .timeline-item .item-desc');
+      metrics.postBody = sent.swapBody;
+      metrics.postAuth = sent.swapAuth;
+      metrics.infoCalls = sent.infoCalls;
+
+      passed = metrics.balanceGrams === '0,821 gram'
+        && metrics.balanceSub === 'Saldo Deposit Rp 100.000'
+        && detailRows['Harga Emas / gram'] === 'Rp 2.436.836'
+        && (detailRows['Tarif Cetak / gram'] || '').includes('Rp 20.000')
+        && metrics.priceBadge === null
+        && summary['Nilai Emas (0,5 gr)'] === 'Rp 1.218.418'
+        && summary['Biaya Cetak'] === 'Rp 10.000'
+        && summary['Ongkos Kirim'] === 'Rp 15.000'
+        && summary['Total Biaya'] === 'Rp 25.000'
+        && metrics.step2Title === 'Emas Cetak 0,5 gram'
+        && (metrics.rincian['Nilai Emas (0,5 gr)'] || '') === 'Rp 1.218.418'
+        && metrics.rincian['Total Dibayar'] === 'Rp 25.000'
+        && metrics.step3Path === '/index/assets/cetak-emas-03'
+        && orderLabels[0] === 'Tanggal Pesanan'
+        && orderVals[0] === '15/09/2026 20:12'
+        && orderVals[1] === '0,5 gram'
+        && orderVals[2] === 'Rp 25.000'
+        && metrics.badge === 'Menunggu Diproses'
+        && /status-badge pending/.test(metrics.badgeClass || '')
+        && /active/.test(metrics.timelineIcons[0] || '')
+        && /inactive/.test(metrics.timelineIcons[1] || '')
+        && /inactive/.test(metrics.timelineIcons[2] || '')
+        && /Sep 2026/.test(metrics.createdLine || '')
+        && /WIB$/.test(metrics.createdLine || '')
+        && sent.swapBody?.gram === '0.5'
+        && sent.swapBody?.address_id === 12
+        && sent.swapAuth === 'Bearer e2e-token'
+        /* "Syarat & Ketentuan" di footer step 2 harus Link ke halaman support. */
+        && metrics.termsLink === '/index/support/syarat-dan-ketentuan'
+        /* Fetch info ke-2 (step 2) sudah membalas harga bergerak 2.445.000,
+           tapi angka rincian di atas tetap memakai kutipan step 1. */
+        && sent.infoCalls === 2;
+    } else if (selectedCase === 'off' || selectedCase === 'noprice') {
+      await waitFor('.page-cetak-emas-01 .primary-btn');
+      await waitUntil(() => (text('.page-cetak-emas-01 .footer-note') || '').length > 0);
+      metrics.footerNote = text('.page-cetak-emas-01 .footer-note');
+      metrics.btnDisabled = document.querySelector('.page-cetak-emas-01 .primary-btn')?.disabled ?? null;
+      metrics.priceCell = rows('.page-cetak-emas-01 .detail-row')
+        .find((r) => r.querySelector('.detail-label')?.textContent.trim() === 'Harga Emas / gram')
+        ?.querySelector('.detail-value')?.textContent.trim() ?? null;
+      document.querySelector('.page-cetak-emas-01 .primary-btn')?.click();
+      await sleep(400);
+      metrics.pathAfterClick = path();
+      const expectNote = selectedCase === 'off'
+        ? 'Fitur tukar emas sedang tidak aktif.'
+        : 'Harga emas sedang tidak tersedia. Coba beberapa saat lagi.';
+      passed = metrics.footerNote === expectNote
+        && metrics.btnDisabled === true
+        && metrics.pathAfterClick === '/index/assets/cetak-emas-01';
+    } else if (selectedCase === 'holdpre') {
+      await waitFor('.page-cetak-emas-01 .primary-btn');
+      await waitUntil(() => (text('.page-cetak-emas-01 .balance-sub') || '').includes('Rp 100.000'));
+      metrics.btnDisabled = document.querySelector('.page-cetak-emas-01 .primary-btn')?.disabled ?? null;
+      document.querySelector('.page-cetak-emas-01 .primary-btn')?.click();
+      await waitFor('.notif-card.error');
+      metrics.notifTitle = notifTitle();
+      metrics.notifDesc = notifDesc();
+      await sleep(200);
+      metrics.pathAfterClick = path();
+      metrics.pageText = document.body.textContent;
+      passed = metrics.btnDisabled === false
+        && metrics.notifTitle === 'Saldo Emas Tidak Cukup'
+        && metrics.notifDesc === 'Saldo emas kamu tidak mencukupi untuk berat ini. Pilih berat lain.'
+        && metrics.pathAfterClick === '/index/assets/cetak-emas-01'
+        && !metrics.pageText.includes('500000.00');
+    } else if (['hold400', 'deposit400', 'price503', 'valid400', 'unconfigured400'].includes(selectedCase)) {
+      await waitFor('.page-cetak-emas-02 .btn-primary');
+      await waitUntil(() => (text('.page-cetak-emas-02 .alamat-name') || '').includes('Budi'));
+      document.querySelector('.page-cetak-emas-02 .btn-primary')?.click();
+      await waitFor('.notif-card.error');
+      metrics.notifTitle = notifTitle();
+      metrics.notifDesc = notifDesc();
+      await sleep(200);
+      metrics.pathAfterClick = path();
+      metrics.pageText = document.body.textContent;
+      const expected = {
+        hold400: ['Saldo Emas Tidak Cukup', 'Saldo emas kamu tidak mencukupi untuk penukaran ini.', 'Dibutuhkan'],
+        deposit400: ['Saldo Deposit Tidak Cukup', 'Saldo deposit kamu tidak mencukupi untuk biaya cetak dan ongkir.', 'Dibutuhkan'],
+        price503: ['Harga Tidak Tersedia', 'Harga emas sedang tidak tersedia. Coba beberapa saat lagi.', 'real-time sedang'],
+        valid400: ['Pesanan Tidak Valid', 'Data pesanan tidak valid. Ulangi pemilihan berat & alamat.', 'angka desimal'],
+        unconfigured400: ['Fitur Tidak Aktif', 'Fitur tukar emas sedang tidak aktif.', 'belum dikonfigurasi'],
+      }[selectedCase];
+      passed = metrics.notifTitle === expected[0]
+        && metrics.notifDesc === expected[1]
+        && metrics.pathAfterClick === '/index/assets/cetak-emas-02'
+        && !metrics.pageText.includes(expected[2]);
+    } else if (selectedCase === 'noaddr1' || selectedCase === 'noaddr2') {
+      /* Tanpa alamat tersimpan: Lanjut (step 1) / Bayar (step 2) harus
+         otomatis pindah ke halaman alamat — tanpa notif, tanpa POST. */
+      const fromStep2 = selectedCase === 'noaddr2';
+      if (fromStep2) {
+        await waitFor('.page-cetak-emas-02 .btn-primary');
+        await waitUntil(() => (text('.page-cetak-emas-02 .rincian-card') || '').includes('Rp'));
+      } else {
+        await waitFor('.page-cetak-emas-01 .primary-btn');
+        await waitUntil(() => (text('.page-cetak-emas-01 .balance-sub') || '').includes('Rp 100.000'));
+      }
+      /* Tunggu fetch alamat (hasil kosong) selesai dulu sebelum klik. */
+      await waitUntil(() => sent.addressCalls > 0);
+      await sleep(200);
+      document.querySelector(fromStep2 ? '.page-cetak-emas-02 .btn-primary' : '.page-cetak-emas-01 .primary-btn')?.click();
+      await waitUntil(() => path() === '/index/assets/alamat-pengiriman');
+      metrics.redirectPath = path();
+      metrics.notifSeen = Boolean(document.querySelector('.notif-card.error'));
+      metrics.postBody = sent.swapBody;
+      passed = metrics.redirectPath === '/index/assets/alamat-pengiriman'
+        && metrics.notifSeen === false
+        && sent.swapBody === null;
+    } else if (selectedCase === 'histdetail') {
+      /* Tekan baris SWAP di riwayat → layar step 3 dengan data asli
+         GET /api/gold/orders/<id>/ (bukan payload basi sessionStorage). */
+      await waitFor('.page-riwayat-lainnya .history-card');
+      const cards = rows('.page-riwayat-lainnya .history-card');
+      metrics.historyTitles = cards.map((el) => el.querySelector('.card-title')?.textContent.trim() ?? null);
+      metrics.swapCardTag = cards[0]?.tagName ?? null;
+      metrics.swapCardHref = cards[0]?.getAttribute('href') ?? null;
+      const swapCard = cards.find((el) => el.querySelector('.card-title')?.textContent.trim() === 'Tukar Emas');
+      swapCard?.click();
+      await waitUntil(() => path() === '/index/assets/cetak-emas-03');
+      await waitUntil(() => text('.page-cetak-emas-03 .status-badge span') === 'Dikirim');
+      metrics.step3Path = path();
+      metrics.orderVals = rows('.page-cetak-emas-03 .order-row .row-value').map((el) => el.textContent.trim());
+      metrics.badge = text('.page-cetak-emas-03 .status-badge span');
+      metrics.badgeClass = document.querySelector('.page-cetak-emas-03 .status-badge')?.className ?? null;
+      metrics.timelineDescs = rows('.page-cetak-emas-03 .timeline-item .item-desc').map((el) => el.textContent.trim());
+      metrics.orderDetailCalls = sent.orderDetailCalls;
+      passed = metrics.swapCardTag === 'A'
+        && metrics.swapCardHref === '/index/assets/cetak-emas-03'
+        && metrics.historyTitles.includes('Tukar Emas')
+        && metrics.historyTitles.includes('Biaya Tukar Emas')
+        && metrics.step3Path === '/index/assets/cetak-emas-03'
+        && metrics.orderVals[0] === '15/09/2026 20:12'
+        && metrics.orderVals[1] === '0,5 gram'
+        && metrics.orderVals[2] === 'Rp 25.000'
+        && metrics.badge === 'Dikirim'
+        && /status-badge shipped/.test(metrics.badgeClass || '')
+        && metrics.timelineDescs[2] === 'No. resi JX1234567890'
+        && sent.orderDetailCalls === 1;
+    } else {
+      /* shipped / cancelled: badge + timeline from the saved payload. */
+      await waitFor('.page-cetak-emas-03 .order-card');
+      metrics.badge = text('.page-cetak-emas-03 .status-badge span');
+      metrics.badgeClass = document.querySelector('.page-cetak-emas-03 .status-badge')?.className ?? null;
+      metrics.timelineIcons = rows('.page-cetak-emas-03 .timeline-icon').map((el) => el.className);
+      metrics.timelineDescs = rows('.page-cetak-emas-03 .timeline-item .item-desc').map((el) => el.textContent.trim());
+      if (selectedCase === 'shipped') {
+        passed = metrics.badge === 'Dikirim'
+          && /status-badge shipped/.test(metrics.badgeClass || '')
+          && /active/.test(metrics.timelineIcons[2] || '')
+          && metrics.timelineDescs[2] === 'No. resi JX1234567890';
+      } else {
+        passed = metrics.badge === 'Dibatalkan'
+          && /status-badge cancelled/.test(metrics.badgeClass || '')
+          && /inactive/.test(metrics.timelineIcons[1] || '')
+          && /inactive/.test(metrics.timelineIcons[2] || '');
+      }
+    }
+
+    metrics.finalPath = path();
+    metrics.bodyText = metrics.bodyText ?? document.body.textContent;
+    metrics.allPassed = passed && metrics.errors.length === 0;
+    document.getElementById('gs-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'GOLDSWAP-DONE';
+  </script>
+</body>
+</html>

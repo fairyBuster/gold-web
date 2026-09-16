@@ -7,17 +7,19 @@ import img_3 from '../../assets/images/53_210.svg';
 import img_4 from '../../assets/images/53_217.svg';
 import img_5 from '../../assets/images/53_289.svg';
 import NotifCard from '../../components/NotifCard.jsx';
+import { useShowNotif } from '../../lib/useShowNotif.js';
 import { getAccountInfo } from '../../lib/authApi.js';
 import { getDownlineStats } from '../../lib/affiliateApi.js';
 import { formatRupiah } from '../../lib/transactionFormat.js';
 
 /* Data: GET /api/auth/downline-stats/ returns per-level (1-5) downline stats.
-   "Total Diundang" uses level 1 members_total; the "Tim Kamu" cards
-   (Langsung/Tingkat 2/3) count only ACTIVE members (members_active) per level.
+   "Total Diundang" sums only ACTIVE members (members_active) across
+   levels 1-3; the "Tim Kamu" cards (Langsung/Tingkat 2/3) count ALL members
+   (members_total = active + inactive) per level.
    The footer count sums levels 1-3 (the levels the detail page shows), all
-   members. "Total Bonus" sums profit + purchase commissions across
-   all levels — those amounts are the commissions earned BY the current user
-   from each level. The referral code comes from GET /api/auth/account-info/. */
+   members. "Total Bonus" sums the profit + purchase commissions earned BY
+   the current user from levels 1-3 only. The referral code comes from
+   GET /api/auth/account-info/. */
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -169,9 +171,6 @@ const styles = `
     color: #a79c8f;
     text-align: center;
     margin-top: 10px;
-  }
-  .page-tim-afiliasi .notice-wrapper {
-    margin-top: 12px;
   }
 
 /* CSS for section section:Actions */
@@ -375,8 +374,15 @@ const styles = `
 
 const TEAM_LEVELS = [1, 2, 3];
 
-/* Fetches the per-level downline statistics plus the current user's referral
-   code in parallel. Every stat on the page renders '—' until this resolves. */
+/* Link undangan yang disalin/dibagikan tombol "Salin" & "Bagikan Kode" —
+   halaman signup dengan kode referral user di query string-nya. Ubah
+   domainnya cukup di konstanta ini. */
+const INVITE_LINK_BASE = 'https://domain.com/#/pages/signup?invitecode=';
+
+/* Fetches the per-level downline statistics and the current user's referral
+   code independently so each part renders as soon as it lands (stats drive
+   every stat on the page; the code fills the hero box). A stats failure shows
+   the error card; a referral-code failure only leaves the code empty. */
 function useTimAfiliasiData() {
   const [stats, setStats] = useState(null);
   const [referralCode, setReferralCode] = useState('');
@@ -384,22 +390,23 @@ function useTimAfiliasiData() {
 
   useEffect(() => {
     let cancelled = false;
-    async function load() {
-      try {
-        const [account, statsPayload] = await Promise.all([
-          getAccountInfo(),
-          getDownlineStats(),
-        ]);
-        if (cancelled) return;
-        setReferralCode(String(account?.referral_code || '').trim());
-        setStats(Array.isArray(statsPayload?.levels) ? statsPayload.levels : []);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err?.message || 'Gagal memuat data tim.');
-        }
-      }
-    }
-    load();
+
+    getDownlineStats()
+      .then((statsPayload) => {
+        if (!cancelled) setStats(Array.isArray(statsPayload?.levels) ? statsPayload.levels : []);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err?.message || 'Gagal memuat data tim.');
+      });
+
+    getAccountInfo()
+      .then((account) => {
+        if (!cancelled) setReferralCode(String(account?.referral_code || '').trim());
+      })
+      .catch(() => {
+        /* Kode referral saja yang gagal — statistik tim tetap tampil. */
+      });
+
     return () => { cancelled = true; };
   }, []);
 
@@ -409,27 +416,53 @@ function useTimAfiliasiData() {
 export default function TimAfiliasi() {
   const navigate = useNavigate();
   const { stats, referralCode, error } = useTimAfiliasiData();
-  /* Hasil salin/bagikan tampil lewat shared NotifCard. */
-  const [shareNote, setShareNote] = useState(null);
+  /* Hasil salin/bagikan tampil lewat halaman /notif. */
+  const showNotif = useShowNotif();
+  const [copied, setCopied] = useState(false);
+
+  /* Link lengkap untuk mengundang anggota (code-box sendiri tetap menampilkan
+     kode mentahnya). Kosong selama kode referral belum termuat. */
+  const inviteLink = referralCode ? `${INVITE_LINK_BASE}${referralCode}` : '';
 
   const findLevel = (level) => (stats || []).find((item) => item.level === level) || null;
-  const level1 = findLevel(1);
-  const totalBonus = (stats || []).reduce(
-    (sum, item) => sum + Number(item.profit_commission_amount || 0) + Number(item.purchase_commission_amount || 0),
-    0,
-  );
+  /* "Total Bonus": akumulasi komisi (profit + purchase) yang diterima user
+     dari tingkat 1-3 saja — konsisten dengan level yang ditampilkan. */
+  const totalBonus = TEAM_LEVELS.reduce((sum, level) => {
+    const entry = findLevel(level);
+    if (!entry) return sum;
+    return sum + Number(entry.profit_commission_amount || 0) + Number(entry.purchase_commission_amount || 0);
+  }, 0);
   const teamCards = TEAM_LEVELS.map((level) => {
     const entry = findLevel(level);
-    return { level, active: entry ? entry.members_active : null };
+    return { level, total: entry ? entry.members_total : null };
   });
   const totalMembers = TEAM_LEVELS.reduce((sum, level) => sum + (findLevel(level)?.members_total || 0), 0);
+  /* "Total Diundang": hanya anggota AKTIF di tingkat 1-3. Aktif = pernah
+     deposit COMPLETED atau punya investasi ACTIVE (definisi dari backend). */
+  const activeMembers = TEAM_LEVELS.reduce((sum, level) => sum + (findLevel(level)?.members_active || 0), 0);
   const statusText = stats === null && !error ? 'Memuat data tim...' : '';
 
+  /* "Salin" menyalin link undangan (bukan kode mentah) ke clipboard; label
+     tombol berubah sesaat sebagai umpan balik (mengikuti pola halaman Misi). */
+  const handleCopyCode = async () => {
+    if (!inviteLink) {
+      showNotif({ title: 'Kode Belum Tersedia', description: 'Kode referral belum termuat. Muat ulang halaman ya.' });
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      showNotif({ title: 'Gagal Menyalin', description: 'Tidak dapat menyalin link. Salin manual ya.' });
+    }
+  };
+
   /* "Bagikan Kode": pakai Web Share API kalau tersedia (umumnya mobile);
-     kalau tidak, salin teks referral ke clipboard sebagai fallback. */
+     kalau tidak, salin pesan undangan berisi link ke clipboard sebagai fallback. */
   const handleShare = async () => {
-    if (!referralCode) return;
-    const text = `Gabung Jelajah Emas yuk! Pakai kode referral saya: ${referralCode}`;
+    if (!inviteLink) return;
+    const text = `Gabung Jelajah Emas yuk! Daftar lewat link ini: ${inviteLink}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: 'Jelajah Emas', text });
@@ -440,9 +473,9 @@ export default function TimAfiliasi() {
     }
     try {
       await navigator.clipboard.writeText(text);
-      setShareNote({ variant: 'success', title: 'Teks Dibagikan', description: 'Teks referral disalin ke clipboard. Tempel di chat atau media sosial kamu.' });
+      showNotif({ variant: 'success', title: 'Teks Dibagikan', description: 'Link undangan disalin ke clipboard. Tempel di chat atau media sosial kamu.' });
     } catch {
-      setShareNote({ variant: 'error', title: 'Gagal Membagikan', description: 'Tidak dapat membagikan kode. Coba lagi ya.' });
+      showNotif({ title: 'Gagal Membagikan', description: 'Tidak dapat membagikan link. Coba lagi ya.' });
     }
   };
 
@@ -463,16 +496,18 @@ export default function TimAfiliasi() {
                   <img className="hero-illustration" src={img_2} alt="Team Illustration" />
                   <p className="hero-label">Kode Referral Kamu</p>
                   <div className="code-box">
-                    <span className="code-text">{referralCode || '—'}</span>
-                    <button className="copy-btn">Salin</button>
+                    <span className="code-text">{referralCode || ''}</span>
+                    <button className="copy-btn" onClick={(e) => { e.preventDefault(); handleCopyCode(); }}>
+                      {copied ? 'Tersalin!' : 'Salin'}
+                    </button>
                   </div>
                   <div className="stats-row">
                     <div className="stat-box">
-                      <span className="stat-num">{level1 ? level1.members_total : '—'}</span>
+                      <span className="stat-num">{stats ? activeMembers : ''}</span>
                       <span className="stat-label">Total Diundang</span>
                     </div>
                     <div className="stat-box">
-                      <span className="stat-num">{stats ? formatRupiah(totalBonus) : '—'}</span>
+                      <span className="stat-num">{stats ? formatRupiah(totalBonus) : ''}</span>
                       <span className="stat-label">Total Bonus</span>
                     </div>
                   </div>
@@ -489,16 +524,11 @@ export default function TimAfiliasi() {
                     <img src={img_3} alt="" />
                     <span>Bagikan Kode</span>
                   </button>
-                  <button className="action-btn secondary" onClick={(e) => { e.preventDefault(); navigate('/affiliate/riwayat-komisi'); }}>
+                  <button className="action-btn secondary" onClick={(e) => { e.preventDefault(); navigate('/index/affiliate/riwayat-komisi'); }}>
                     <img src={img_4} alt="" />
                     <span>Riwayat</span>
                   </button>
                 </div>
-                {shareNote ? (
-                  <div className="notice-wrapper">
-                    <NotifCard variant={shareNote.variant} title={shareNote.title} description={shareNote.description} onClose={() => setShareNote(null)} />
-                  </div>
-                ) : null}
               </section>
               <section id="section-how-it-works" className="mobile-section">
                 <div className="section-header">
@@ -550,21 +580,21 @@ export default function TimAfiliasi() {
                 </div>
                 <div className="team-stats-container">
                   <div className="team-stat-card">
-                    <span className="team-stat-num">{teamCards[0].active ?? '—'}</span>
+                    <span className="team-stat-num">{teamCards[0].total || 0}</span>
                     <span className="team-stat-label">Langsung</span>
                   </div>
                   <div className="team-stat-card">
-                    <span className="team-stat-num">{teamCards[1].active ?? '—'}</span>
+                    <span className="team-stat-num">{teamCards[1].total || 0}</span>
                     <span className="team-stat-label">Tingkat 2</span>
                   </div>
                   <div className="team-stat-card">
-                    <span className="team-stat-num">{teamCards[2].active ?? '—'}</span>
+                    <span className="team-stat-num">{teamCards[2].total || 0}</span>
                     <span className="team-stat-label">Tingkat 3</span>
                   </div>
                 </div>
               </section>
               <section id="section-footer" className="mobile-section">
-                <Link to="/affiliate/detail-tim" className="detail-link">
+                <Link to="/index/affiliate/detail-tim" className="detail-link">
                   <span className="detail-text">
                     {stats ? `Lihat Detail Tim (${totalMembers} Anggota)` : 'Lihat Detail Tim'}
                   </span>

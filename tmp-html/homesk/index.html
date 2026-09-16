@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HOMESK-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="homesk-metrics">pending</pre>
+  <script type="module">
+    /* E2E probe for the saldo skeleton on the Home "Saldo sekarang" card.
+       suite=loading : account-info resolves after 2.5s (skeleton first, then
+                       "Rp 1.234.567"; eye toggle hides/reveals).
+       suite=fail    : account-info rejects 500 (skeleton ends, "—" fallback). */
+    const suite = new URLSearchParams(location.search).get('suite') || 'loading';
+    const metrics = { suite, errors: [], timeline: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const accountPayload = {
+      full_name: 'Budi Santoso',
+      username: '628123456789',
+      balance: '1234567',
+    };
+    const json = (data, status = 200) => new Response(JSON.stringify(data), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    window.fetch = (url) => {
+      const target = String(url);
+      if (target.includes('/api/auth/account-info/')) {
+        const delay = suite === 'fail' ? 2000 : 2500;
+        const payload = suite === 'fail' ? json({}, 500) : json(accountPayload);
+        return new Promise((resolve) => setTimeout(() => resolve(payload), delay));
+      }
+      if (target.includes('/api/auth/balance-statistics/')) {
+        return Promise.resolve(json({ total_income: '0', total_expense: '0' }));
+      }
+      if (target.includes('/api/transactions/')) return Promise.resolve(json({ count: 0, results: [] }));
+      if (target.includes('/api/news/')) return Promise.resolve(json({ count: 0, results: [] }));
+      return Promise.resolve(json({}, 404));
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const writeMetrics = () => {
+      document.getElementById('homesk-metrics').textContent = JSON.stringify(metrics, null, 2);
+      document.title = 'HOMESK-DONE';
+    };
+    const waitFor = async (selector, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+    const valueText = () => document.querySelector('.page-home .asset-value')?.textContent.trim() ?? null;
+    const snap = (label) => {
+      metrics.timeline.push({
+        label,
+        t: Math.round(performance.now()),
+        skeleton: !!document.querySelector('.page-home .asset-value-skeleton'),
+        value: valueText(),
+      });
+    };
+
+    history.replaceState(null, '', '/index/home');
+    await import('/src/main.jsx');
+
+    await waitFor('.page-home .asset-value');
+    await sleep(500); /* account-info still pending (2.5s stub delay) */
+    snap('while-loading');
+
+    if (suite === 'fail') {
+      await sleep(2200); /* let the delayed 500 land + re-render */
+      snap('after-failure');
+      metrics.state.valueAfterFailure = valueText();
+      metrics.allPassed = metrics.timeline[0].skeleton === true
+        && metrics.timeline[0].value === ''
+        && metrics.timeline[1].skeleton === false
+        && metrics.state.valueAfterFailure === '—'
+        && metrics.errors.length === 0;
+      writeMetrics();
+    } else {
+      await sleep(3200); /* wait for the stub to resolve + re-render */
+      snap('after-load');
+      const toggle = await waitFor('.page-home .visibility-btn');
+      toggle.click();
+      await sleep(200);
+      metrics.state.hiddenText = valueText();
+      toggle.click();
+      await sleep(200);
+      metrics.state.shownAgainText = valueText();
+      metrics.state.path = location.pathname;
+      metrics.allPassed = metrics.timeline[0].skeleton === true
+        && metrics.timeline[0].value === ''
+        && metrics.timeline[1].skeleton === false
+        && metrics.timeline[1].value === 'Rp 1.234.567'
+        && metrics.state.hiddenText === 'Rp ••••••'
+        && metrics.state.shownAgainText === 'Rp 1.234.567'
+        && metrics.state.path === '/index/home'
+        && metrics.errors.length === 0;
+      writeMetrics();
+    }
+  </script>
+</body>
+</html>

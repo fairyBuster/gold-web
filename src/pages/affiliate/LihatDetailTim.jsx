@@ -19,7 +19,8 @@ import { formatRupiah } from '../../lib/transactionFormat.js';
    avatar and show "Total investasi:" from total_investment_amount; the status
    chips, the search box, and the level stat cards filter the loaded list
    client-side (tap the active level card again to show all levels). The dark
-   card background follows the selected level (default: Level 1 dark).
+   card background and the info banner below the cards follow the selected
+   level (default: Level 1).
 
    Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -307,13 +308,6 @@ const styles = `
   text-align: center;
   padding: 20px 0;
 }
-.page-lihat-detail-tim .error-text {
-  color: #e24c4c;
-  font-size: 12px;
-  font-weight: 600;
-  text-align: center;
-  padding: 20px 0;
-}
 
 /* CSS for section section:Footer */
 .page-lihat-detail-tim .footer-wrapper {
@@ -359,6 +353,14 @@ const STATUS_FILTERS = [
   { value: 'inactive', label: 'Tidak aktif' },
 ];
 
+/* Info banner copy per level — follows the selected level card (default:
+   Level 1, matching the default dark card). */
+const LEVEL_INFO = {
+  1: 'teman yang kamu ajak langsung menggunakan kode referral kamu.',
+  2: 'teman yang diajak oleh anggota Level 1 kamu.',
+  3: 'teman yang diajak oleh anggota Level 2 kamu.',
+};
+
 /* "2026-07-16 16:24:59" → Date (the space-separated form does not parse
    reliably across browsers). */
 function toDate(value) {
@@ -393,35 +395,58 @@ function memberInvestmentAmount(member) {
 }
 
 /* Fetches levels 1-3 concurrently and merges them into one list, tagging each
-   member with the level they belong to. */
+   member with the level they belong to. Each level publishes as soon as it
+   lands so the list renders from the first level instead of waiting for all
+   three; a level that fails is skipped (the error shows only when every level
+   failed). */
 function useDownlineMembers() {
   const [members, setMembers] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
-    async function load() {
-      try {
-        const payloads = await Promise.all(DOWNLINE_LEVELS.map((level) => getDownlineList({ level })));
-        if (cancelled) return;
-        const merged = [];
-        const seen = new Set();
-        payloads.forEach((payload, index) => {
-          const level = DOWNLINE_LEVELS[index];
+    let settled = 0;
+    let successCount = 0;
+    let firstError = null;
+    const seen = new Set();
+    const collected = [];
+
+    const publish = () => {
+      if (cancelled) return;
+      setMembers(
+        [...collected].sort((a, b) => a.level - b.level || toDate(b.registration_date) - toDate(a.registration_date))
+      );
+    };
+
+    DOWNLINE_LEVELS.forEach((level) => {
+      getDownlineList({ level })
+        .then((payload) => {
+          if (cancelled) return;
+          successCount += 1;
           const list = Array.isArray(payload?.members) ? payload.members : [];
+          let added = false;
           for (const member of list) {
             if (seen.has(member.id)) continue;
             seen.add(member.id);
-            merged.push({ ...member, level });
+            collected.push({ ...member, level });
+            added = true;
+          }
+          if (added) publish();
+        })
+        .catch((err) => {
+          if (!cancelled && !firstError) firstError = err;
+        })
+        .finally(() => {
+          settled += 1;
+          if (cancelled || settled < DOWNLINE_LEVELS.length) return;
+          if (successCount === 0) {
+            setError(firstError?.message || 'Gagal memuat data tim.');
+          } else {
+            publish(); /* Final snapshot (also resolves an all-empty result). */
           }
         });
-        merged.sort((a, b) => a.level - b.level || toDate(b.registration_date) - toDate(a.registration_date));
-        setMembers(merged);
-      } catch (err) {
-        if (!cancelled) setError(err?.message || 'Gagal memuat data tim.');
-      }
-    }
-    load();
+    });
+
     return () => { cancelled = true; };
   }, []);
 
@@ -437,6 +462,10 @@ export default function LihatDetailTim() {
 
   const loading = members === null && !error;
   const allMembers = members || [];
+
+  /* The info banner explains the active level — the same default (Level 1)
+     the dark stat card falls back to when no level is selected. */
+  const infoLevel = levelFilter ?? DOWNLINE_LEVELS[0];
 
   /* Per-level totals for the stat cards. */
   const stats = DOWNLINE_LEVELS.map((level) => {
@@ -510,7 +539,7 @@ export default function LihatDetailTim() {
                 <div className="info-wrapper">
                   <div className="info-banner">
                     <img src={img_2} alt="Info" className="info-icon" />
-                    <p className="info-text"><strong>Level 1</strong> — teman yang kamu ajak langsung menggunakan kode referral kamu.</p>
+                    <p className="info-text"><strong>Level {infoLevel}</strong> — {LEVEL_INFO[infoLevel]}</p>
                   </div>
                 </div>
               </section>

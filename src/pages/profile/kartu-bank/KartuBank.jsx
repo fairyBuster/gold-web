@@ -14,6 +14,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import NotifCard from '../../../components/NotifCard.jsx';
+import { useShowNotif } from '../../../lib/useShowNotif.js';
 import { createUserBank, listUserBanks } from '../../../lib/banksApi.js';
 import * as kartuBankFlow from '../../../lib/kartuBankFlow.js';
 import img_1 from '../../../assets/images/67_61.svg';
@@ -28,12 +29,28 @@ import S3_img_3 from '../../../assets/images/67_44.svg';
 import img_chip from '../../../assets/images/b15f014d3ad142c30cb1cf658c988af94fb62319.png';
 import img_info from '../../../assets/images/33_71.svg';
 
-/* 880812345678 -> "8808 •••• 5678". Short numbers are shown as-is. */
+/* 880812345678 -> "88081 ••••". Everything from the 6th digit on is masked,
+   whatever the number's length; numbers up to 5 digits are shown as-is. */
 function maskAccountNumber(value) {
   const digits = String(value || '').replace(/\D/g, '');
   if (!digits) return '—';
-  if (digits.length <= 8) return digits;
-  return `${digits.slice(0, 4)} •••• ${digits.slice(-4)}`;
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)} ••••`;
+}
+
+/* Nama pemilik disensor setengah (aturan sama dgn TarikDana): kata kedua dst
+   hanya huruf awal ("Budi Santoso" -> "Budi S••••••"); nama satu kata disensor
+   separuh ("Ahmad" -> "Ahm••"). */
+function maskAccountName(value) {
+  const words = String(value || '').trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '—';
+  if (words.length === 1) {
+    const keep = Math.max(1, Math.ceil(words[0].length / 2));
+    return words[0].slice(0, keep) + '•'.repeat(words[0].length - keep);
+  }
+  return words
+    .map((word, index) => (index === 0 ? word : word.slice(0, 1) + '•'.repeat(Math.max(0, word.length - 1))))
+    .join(' ');
 }
 
 /* Steps 1 and 3 show the same saved-accounts data, so they share this hook. */
@@ -71,7 +88,7 @@ function BankCard({ bank }) {
       <img src={img_chip} alt="Chip" className="chip-icon" />
       <div className="card-bottom">
         <span className="account-number">{maskAccountNumber(bank.account_number)}</span>
-        <span className="account-name">a.n. {bank.account_name}</span>
+        <span className="account-name">a.n. {maskAccountName(bank.account_name)}</span>
       </div>
     </article>
   );
@@ -155,7 +172,10 @@ const KartuBank01Styles = `
   margin: 0;
   padding: 0;
   font-family: 'Inter', sans-serif;
-  background-color: #e5e5e5; /* Darker background for desktop to highlight the mobile app */
+  /* Artwork + base moved onto the root so they stay full-bleed on desktop. */
+  background-image: radial-gradient(circle at 80% 10%, rgba(241, 176, 74, 0.15) 0%, transparent 40%),
+                    radial-gradient(circle at 20% 90%, rgba(241, 176, 74, 0.1) 0%, transparent 40%),
+                    linear-gradient(#fffbf4, #fffbf4);
   display: flex;
   justify-content: center;
   min-height: 100vh;
@@ -179,10 +199,7 @@ const KartuBank01Styles = `
     width: 100%;
     max-width: 100%; /* Based on Figma root frame width */
     min-height: 100vh;
-    background-color: #fffbf4;
-    /* Simplified background gradient to match the warm feel of the design */
-    background-image: radial-gradient(circle at 80% 10%, rgba(241, 176, 74, 0.15) 0%, transparent 40%),
-                      radial-gradient(circle at 20% 90%, rgba(241, 176, 74, 0.1) 0%, transparent 40%);
+    /* Canvas sits on the page root; no shadow on desktop (see index.css). */
     box-shadow: 0px 30px 60px 0px rgba(26, 20, 16, 0.18);
     display: flex;
     flex-direction: column;
@@ -315,14 +332,6 @@ const KartuBank01Styles = `
     text-align: center;
   }
 
-  .page-kartu-bank .error-text {
-    margin-top: 120px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #e24c4c;
-    text-align: center;
-  }
-
   .page-kartu-bank .cards-container {
     display: flex;
     gap: 14px;
@@ -441,7 +450,7 @@ function KartuBank01() {
       <section id="section-app">
         <div className="mobile-app-container">
           <header className="app-header">
-            <button className="btn-back" aria-label="Kembali" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+            <button className="btn-back" aria-label="Kembali" onClick={(e) => { e.preventDefault(); navigate('/index/profil'); }}>
               <img src={img_1} alt="" />
             </button>
             <h1 className="header-title">Rekening Bank</h1>
@@ -471,7 +480,7 @@ function KartuBank01() {
             ) : null}
             {!loading && !error ? (
               <>
-                <button className="btn-add-account" onClick={(e) => { e.preventDefault(); navigate('/profil/kartu-bank-02'); }}>
+                <button className="btn-add-account" onClick={(e) => { e.preventDefault(); navigate('/index/profil/kartu-bank-02'); }}>
                   <img src={S1_img_3} alt="" />
                   <span>Tambah Rekening Baru</span>
                 </button>
@@ -729,13 +738,6 @@ const KartuBank02Styles = `
   .page-kartu-bank-02 .input-field::placeholder {
     color: #a79c8f;
   }
-  .page-kartu-bank-02 .error-text {
-    color: #e24c4c;
-    font-size: 12px;
-    font-weight: 600;
-    margin: 0 0 10px 0;
-    text-align: center;
-  }
   .page-kartu-bank-02 .submit-button:disabled {
     opacity: 0.7;
     cursor: default;
@@ -779,10 +781,8 @@ function KartuBank02() {
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
   const [isDefault, setIsDefault] = useState(false);
-  const [error, setError] = useState('');
-  /* API failures render via the shared NotifCard; client validation stays inline. */
-  const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const showNotif = useShowNotif();
 
   /* Validasi ringan di klien; backend tetap jadi penentu akhir. */
   const handleSubmit = async (e) => {
@@ -790,12 +790,10 @@ function KartuBank02() {
     if (submitting) return;
 
     const digits = accountNumber.replace(/\D/g, '');
-    if (!bankId) { setError('Pilih bank terlebih dahulu.'); return; }
-    if (digits.length < 6) { setError('Nomor rekening minimal 6 digit.'); return; }
-    if (!accountName.trim()) { setError('Masukkan nama pemilik rekening.'); return; }
+    if (!bankId) { showNotif({ title: 'Lengkapi Data', description: 'Pilih bank terlebih dahulu.' }); return; }
+    if (digits.length < 6) { showNotif({ title: 'Lengkapi Data', description: 'Nomor rekening minimal 6 digit.' }); return; }
+    if (!accountName.trim()) { showNotif({ title: 'Lengkapi Data', description: 'Masukkan nama pemilik rekening.' }); return; }
 
-    setError('');
-    setSubmitError('');
     setSubmitting(true);
     try {
       await createUserBank({
@@ -806,9 +804,12 @@ function KartuBank02() {
         isDefault,
       });
       kartuBankFlow.clear();
-      navigate('/profil/kartu-bank');
+      navigate('/index/profil/kartu-bank');
     } catch (err) {
-      setSubmitError(err?.message || 'Gagal menyimpan rekening. Silakan coba lagi.');
+      showNotif({
+        title: 'Gagal Menyimpan Rekening',
+        description: err?.message || 'Gagal menyimpan rekening. Silakan coba lagi.',
+      });
       setSubmitting(false);
     }
   };
@@ -835,7 +836,7 @@ function KartuBank02() {
             <button
               type="button"
               className="input-box dropdown"
-              onClick={() => navigate('/profil/pilih-bank')}
+              onClick={() => navigate('/index/profil/pilih-bank')}
             >
               <span className={bankName ? 'value' : 'placeholder'}>{bankName || 'Pilih bank'}</span>
               <img src={S2_img_2} alt="Dropdown" />
@@ -899,10 +900,6 @@ function KartuBank02() {
           <p className="disclaimer">
             Demi keamanan akun, pastikan rekening yang didaftarkan benar milik kamu sendiri. Penggunaan rekening atas nama orang lain dapat memicu proses verifikasi tambahan atau pemblokiran sementara sesuai kebijakan platform.
           </p>
-          {error ? <p className="error-text">{error}</p> : null}
-          {submitError ? (
-            <NotifCard variant="error" title="Gagal Menyimpan Rekening" description={submitError} onClose={() => setSubmitError('')} />
-          ) : null}
           <button className="submit-button" disabled={submitting} onClick={handleSubmit}>
             {submitting ? 'Menyimpan...' : 'Simpan Rekening'}
           </button>
@@ -1153,12 +1150,6 @@ const KartuBank03Styles = `
     font-size: 14px;
     color: #a79c8f;
   }
-  .page-kartu-bank-03 .error-text {
-    padding: 0 20px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #e24c4c;
-  }
 `;
 
 function KartuBank03() {
@@ -1187,7 +1178,7 @@ function KartuBank03() {
         {hasBanks ? <BankCardList banks={userBanks} /> : null}
       </section>
       <section id="section-add-account" className="add-account-section">
-        <button className="add-account-btn" onClick={(e) => { e.preventDefault(); navigate('/profil/kartu-bank-02'); }}>
+        <button className="add-account-btn" onClick={(e) => { e.preventDefault(); navigate('/index/profil/kartu-bank-02'); }}>
           <img src={S3_img_3} alt="" />
           <span>Tambah Rekening Baru</span>
         </button>

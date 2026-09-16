@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Setelan probe — change-password tanpa OTP</title>
+</head>
+<body>
+<div id="root"></div>
+<pre id="setelan-metrics">pending</pre>
+<script type="module">
+  /* Probe Setelan (route /index/profil/setelan) — form Ubah Kata Sandi:
+     - validasi lokal (konfirmasi beda) memblokir submit TANPA memanggil API;
+     - submit valid → POST /api/auth/change-password/ dengan payload
+       { phone, old_password, new_password, new_password_confirm };
+     - 400 old_password → notif "Kata sandi lama tidak sesuai." + tetap di halaman;
+     - 200 → notif sukses + kembali ke halaman sebelumnya (/index/home). */
+  const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+
+  const encodeSalted = (obj) => {
+    const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+    return { data: [...(base64 + SALT)].reverse().join('') };
+  };
+  const json = (obj, status = 200) => Promise.resolve(new Response(JSON.stringify(encodeSalted(obj)), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+
+  /* Body tiap request change-password yang masuk, buat dicek di assertion. */
+  const changeCalls = [];
+
+  window.fetch = (input, init = {}) => {
+    const url = typeof input === 'string' ? input : (input?.url ?? String(input));
+    if (url.includes('/api/auth/account-info/')) {
+      return json({ phone: '6281234567890', full_name: 'Budi Santoso', username: 'budi' });
+    }
+    if (url.includes('/api/auth/change-password/')) {
+      changeCalls.push({ method: init.method, body: JSON.parse(init.body || '{}') });
+      if (changeCalls.length === 1) return json({ old_password: ['Password lama salah.'] }, 400);
+      return json({ detail: 'Password berhasil diubah.' });
+    }
+    return json({});
+  };
+
+  localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+  /* Halaman sebelumnya (Home) disiapkan sebagai entry history supaya
+     history.back() setelah sukses tetap berada di dalam app. */
+  history.replaceState(null, '', '/index/home');
+  history.pushState(null, '', '/index/profil/setelan');
+
+  const metrics = { steps: [], rendered: {} };
+  const write = () => { document.getElementById('setelan-metrics').textContent = JSON.stringify(metrics, null, 2); };
+  const waitFor = async (fn, timeout = 15000, step = 150) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      try { if (fn()) return true; } catch { /* belum siap */ }
+      await new Promise((r) => setTimeout(r, step));
+    }
+    return false;
+  };
+
+  const setNative = (el, value) => {
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    setter.call(el, value);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  const pageReady = () => !!document.querySelector('.page-setelan #current-password, .page-setelan input#current-password');
+  const notifText = () => document.querySelector('.notif-overlay')?.textContent ?? '';
+  const submit = () => document.querySelector('.page-setelan .btn-primary')?.click();
+
+  try {
+    await import('/src/main.jsx');
+    await waitFor(pageReady);
+    metrics.steps.push(['halaman Setelan siap', pageReady()]);
+
+    /* 1. Konfirmasi beda → notif lokal, API belum boleh dipanggil. */
+    setNative(document.querySelector('#current-password'), 'Lamaku123');
+    setNative(document.querySelector('#new-password'), 'Baruku123');
+    setNative(document.querySelector('#confirm-password'), 'Baruku999');
+    submit();
+    const mismatchNotif = await waitFor(() => notifText().includes('Konfirmasi kata sandi tidak sama.'));
+    const mismatchOk = mismatchNotif && changeCalls.length === 0 && location.pathname === '/index/profil/setelan';
+    metrics.steps.push(['konfirmasi beda diblokir tanpa panggil API', mismatchOk]);
+
+    /* 2. Konfirmasi dibetulkan → API dipanggil; respons pertama 400 old_password. */
+    setNative(document.querySelector('#confirm-password'), 'Baruku123');
+    submit();
+    const wrongOldNotif = await waitFor(() => changeCalls.length === 1 && notifText().includes('Kata sandi lama tidak sesuai.'));
+    const wrongOldOk = wrongOldNotif && location.pathname === '/index/profil/setelan';
+    metrics.steps.push(['kata sandi lama salah → notif, tetap di halaman', wrongOldOk]);
+    metrics.rendered.notifWrongOld = notifText();
+
+    /* 3. Submit lagi → respons sukses; notif sukses + kembali ke Home. */
+    submit();
+    const wentBack = await waitFor(() => location.pathname === '/index/home' && changeCalls.length === 2);
+    const successNotif = await waitFor(() => notifText().includes('Kata Sandi Berhasil Diubah'));
+    const successOk = wentBack && successNotif;
+    metrics.steps.push(['sukses → notif + kembali ke halaman sebelumnya', successOk]);
+    metrics.rendered.notifSuccess = notifText();
+    metrics.rendered.finalPath = location.pathname;
+
+    /* 4. Payload request terakhir sesuai kontrak endpoint. */
+    const body = changeCalls[1]?.body ?? {};
+    const payloadOk = changeCalls[1]?.method === 'POST'
+      && body.phone === '6281234567890'
+      && body.old_password === 'Lamaku123'
+      && body.new_password === 'Baruku123'
+      && body.new_password_confirm === 'Baruku123';
+    metrics.steps.push(['payload change-password sesuai kontrak', payloadOk]);
+    metrics.rendered.changeCalls = changeCalls;
+
+    metrics.allPassed = mismatchOk && wrongOldOk && successOk && payloadOk;
+  } catch (error) {
+    metrics.error = String(error);
+    metrics.allPassed = false;
+  }
+
+  write();
+</script>
+</body>
+</html>

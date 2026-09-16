@@ -1,0 +1,1325 @@
+﻿<!DOCTYPE html>
+<html lang="id"><head>
+  <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+  <script type="module" src="/@vite/client"></script>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ROUTE-SMOKE-DONE</title>
+  <style>#rs-metrics { display: none; }</style>
+<style type="text/css" data-vite-dev-id="D:/webbaru/src/index.css">/* ============================================================
+
+   App shell styles shared by all converted pages.
+
+   Global resets below match the originals found in every
+
+   global.css, so individual page CSS files only need to carry
+
+   their page-specific (already scoped) rules.
+
+   ============================================================ */
+
+
+
+* {
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0;
+
+  -webkit-tap-highlight-color: transparent;
+
+}
+
+
+
+html,
+
+body,
+
+#root {
+
+  width: 100%;
+
+  min-height: 100vh;
+
+  margin: 0;
+
+  padding: 0;
+
+}
+
+
+
+/* Each converted page renders a single wrapper div below its page root
+
+   (e.g. #root > .page-x > div). The original mobile mockups sized that
+
+   wrapper by its content, which produced narrow centered columns on
+
+   desktop; force it to span the full width so pages have no side gaps. */
+
+#root > div > div {
+
+  width: 100%;
+
+}
+
+
+
+body {
+
+  font-family: 'Inter', sans-serif;
+
+  background-color: #f0e9df;
+
+  /* App-wide background image ΓÇö every page shows it through the
+
+     transparency rule below. */
+
+  background-image: url('/src/assets/images/background.jpg');
+
+  background-size: cover;
+
+  background-position: center top;
+
+  background-repeat: no-repeat;
+
+  background-attachment: fixed;
+
+  color: #1a1410;
+
+  min-height: 100vh;
+
+}
+
+
+
+/* Page wrappers paint their own opaque canvas; make them transparent so
+
+   the shared background image is visible on all pages. */
+
+#root > [class^="page-"] {
+
+  background-color: transparent;
+
+}
+
+
+
+a {
+
+  text-decoration: none;
+
+  color: inherit;
+
+}
+
+
+
+button {
+
+  border: none;
+
+  background: none;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+}
+
+
+
+input,
+
+textarea,
+
+select {
+
+  font-family: inherit;
+
+}
+
+
+
+/* ============================================================
+
+   Screen directory (route "/")
+
+   ============================================================ */
+
+
+
+.screen-index {
+
+  max-width: 1080px;
+
+  margin: 0 auto;
+
+  padding: 48px 24px 80px;
+
+}
+
+
+
+.screen-index__header {
+
+  text-align: center;
+
+  margin-bottom: 36px;
+
+}
+
+
+
+.screen-index__title {
+
+  font-size: 32px;
+
+  font-weight: 700;
+
+  color: #1a1410;
+
+  margin-bottom: 8px;
+
+}
+
+
+
+.screen-index__title span {
+
+  color: #e8790c;
+
+}
+
+
+
+.screen-index__subtitle {
+
+  font-size: 14px;
+
+  color: #8a7d6d;
+
+  margin-bottom: 24px;
+
+}
+
+
+
+.screen-index__search {
+
+  width: 100%;
+
+  max-width: 420px;
+
+  padding: 13px 18px;
+
+  font-size: 14px;
+
+  border: 1px solid #e2d8c8;
+
+  border-radius: 12px;
+
+  background-color: #fffbf4;
+
+  color: #1a1410;
+
+  outline: none;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__search:focus {
+
+  border-color: #e8790c;
+
+  box-shadow: 0 0 0 3px rgba(232, 121, 12, 0.15);
+
+}
+
+
+
+.screen-index__grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+
+  gap: 12px;
+
+}
+
+
+
+.screen-index__card {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  padding: 16px 18px;
+
+  background-color: #fffbf4;
+
+  border: 1px solid #e9dfd1;
+
+  border-radius: 14px;
+
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__card:hover {
+
+  border-color: #e8790c;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 10px 24px rgba(26, 20, 16, 0.08);
+
+}
+
+
+
+.screen-index__card-label {
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  color: #1a1410;
+
+}
+
+
+
+.screen-index__card-path {
+
+  font-size: 12px;
+
+  color: #b3a795;
+
+  font-family: 'SFMono-Regular', Consolas, monospace;
+
+}
+
+
+
+.screen-index__empty {
+
+  grid-column: 1 / -1;
+
+  text-align: center;
+
+  padding: 40px 0;
+
+  color: #b3a795;
+
+  font-size: 14px;
+
+}
+
+
+
+.screen-index__group {
+
+  margin-bottom: 32px;
+
+}
+
+
+
+.screen-index__group-title {
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  color: #8a7d6d;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+
+  margin-bottom: 12px;
+
+}
+
+
+
+/* ============================================================
+
+   Desktop layout (ΓëÑ768px) for all app screens.
+
+   Below 768px every page keeps its original mobile layout as-is.
+
+   From 768px up the page content renders as a centered app column
+
+   while backgrounds stay full-bleed on the page root, so no
+
+   phone-frame edges or side gaps appear. The landing page has its
+
+   own desktop layout (see LandingPagePerusahaan.jsx).
+
+   ============================================================ */
+
+
+
+@media (min-width: 768px) {
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > div,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > main,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > section {
+
+    max-width: 480px;
+
+    margin-left: auto;
+
+    margin-right: auto;
+
+    box-shadow: none;
+
+  }
+
+}
+
+
+
+/* Inner full-page containers keep a mobile drop shadow; drop it on desktop
+
+   too (they sit below the capped element, so the rule above does not reach
+
+   them). Selectors carry the #root prefix so they outrank the per-page
+
+   \3c style> blocks injected later in the document. */
+
+@media (min-width: 768px) {
+
+  #root .page-register-01 .app-container,
+
+  #root .page-register-04 .mobile-container,
+
+  #root .page-notifikasi-login .screen-container,
+
+  #root .page-notif-screen .screen-container,
+
+  #root .page-kartu-bank .mobile-app-container,
+
+  #root .page-beri-rating section:first-of-type,
+
+  #root .page-beri-rating section:last-of-type,
+
+  #root .page-livechat .input-container {
+
+    box-shadow: none;
+
+  }
+
+}
+
+</style></head>
+<body>
+  <div id="root"><div class="page-welcome-page" style="background-image: url(&quot;/src/assets/images/d35f294fb1a21fb0aa4f326dc1672ebf0f14686d.png&quot;);"><style>
+/* Scoped styles for WelcomePage ΓÇö converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-welcome-page to isolate this page. */
+
+.page-welcome-page {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  background-size: cover;
+  background-position: center top;
+  background-attachment: fixed;
+  background-color: #f5f0eb;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-welcome-page, .page-welcome-page * {
+  box-sizing: border-box;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Hero */
+.page-welcome-page .hero-section {
+  max-width: 100%;
+  width: 100%;
+  margin: 0 auto;
+  padding-top: 191px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1 0 auto;
+}
+
+.page-welcome-page .hero-section .container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.page-welcome-page .hero-section .logo {
+  width: 205px;
+  height: 68px;
+  object-fit: contain;
+}
+
+.page-welcome-page .hero-section .subtitle {
+  margin-top: 0px;
+  margin-bottom: 15px;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 250px;
+}
+
+.page-welcome-page .hero-section .character {
+  width: 185px;
+  height: 223px;
+  object-fit: contain;
+  margin-bottom: 0;
+}
+
+.page-welcome-page .hero-section .button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0 24px;
+}
+
+/* CSS for section section:Buttons */
+.page-welcome-page .btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.page-welcome-page .btn:active {
+  opacity: 0.8;
+}
+
+.page-welcome-page .btn-primary {
+  background-color: #f1b04a;
+  color: #1a1410;
+}
+
+.page-welcome-page .btn-secondary {
+  background-color: #231b15;
+  color: #ffffff;
+}
+
+/* CSS for section section:Footer */
+.page-welcome-page .footer-section {
+  max-width: 100%;
+  width: 100%;
+  margin: 0 auto;
+  padding-top: 149px;
+  padding-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.page-welcome-page .footer-section .container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.page-welcome-page .footer-section .partner-logos {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.page-welcome-page .footer-section .partner-logos img {
+  height: 17px;
+  object-fit: contain;
+}
+
+.page-welcome-page .footer-section .footer-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.page-welcome-page .footer-section .footer-links a {
+  color: #514840;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.page-welcome-page .footer-section .footer-links a:hover {
+  text-decoration: underline;
+}
+
+.page-welcome-page .footer-section .footer-links .separator {
+  color: #a79c8f;
+  font-size: 12px;
+}
+
+.page-welcome-page .footer-section .copyright {
+  text-align: center;
+  color: #a79c8f;
+  font-size: 10px;
+  line-height: 1.5;
+  margin: 0;
+}
+</style><div><section id="section-hero" class="hero-section"><div class="container"><img class="logo" src="/src/assets/images/3d6fb697a044e75c7a6c789438a276b40b37b5b9.png" alt="Jelajah Emas Logo"><p class="subtitle">Saatnya memulai perjalanan emasmu,<br>peluang dan inspirasi dalam satu tempat.</p><img class="character" src="/src/assets/images/a2e642134a81c06da92ec2afc6d0074bf61bb78b.png" alt="Mascot Character"><div class="button-group"><button class="btn btn-primary">Masuk</button><button class="btn btn-secondary">Buat Akun</button></div></div></section><section id="section-footer" class="footer-section"><div class="container"><div class="partner-logos"><img src="/src/assets/images/a.png" alt="Partner Logo 1"><img src="/src/assets/images/b.png" alt="Partner Logo 2"></div><div class="footer-links"><a href="/index/support/kebijakan-privasi">Legal</a><span class="separator">ΓÇó</span><a href="/index/landing">Tentang Kami</a><span class="separator">ΓÇó</span><a href="/index/landing">Website Resmi</a></div><p class="copyright">JelajahEmas dikelola oleh PT JELAJAH EMAS DIGITAL INDONESIA<br>AHU: AHU-A11995.AH.01.30 tahun 2026 ΓÇó NPWP: 1000000011096252</p></div></section></div></div></div>
+  <pre id="rs-metrics">{
+  "errors": [],
+  "routes": [
+    {
+      "path": "/index/auth/welcome",
+      "expected": "/index/auth/welcome",
+      "finalPath": "/index/auth/welcome",
+      "pathOk": true,
+      "title": "Selamat Datang ┬╖ Jelajah Emas",
+      "expectedTitle": "Selamat Datang ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/auth/popup-awal",
+      "expected": "/index/auth/popup-awal",
+      "finalPath": "/index/auth/popup-awal",
+      "pathOk": true,
+      "title": "Gabung Komunitas ┬╖ Jelajah Emas",
+      "expectedTitle": "Gabung Komunitas ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/auth/notifikasi-login",
+      "expected": "/index/auth/notifikasi-login",
+      "finalPath": "/index/auth/notifikasi-login",
+      "pathOk": true,
+      "title": "Notifikasi Login ┬╖ Jelajah Emas",
+      "expectedTitle": "Notifikasi Login ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/auth/login",
+      "expected": "/index/auth/login",
+      "finalPath": "/index/auth/login",
+      "pathOk": true,
+      "title": "Masuk ┬╖ Jelajah Emas",
+      "expectedTitle": "Masuk ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/auth/register-01",
+      "expected": "/index/auth/register-01",
+      "finalPath": "/index/auth/register-01",
+      "pathOk": true,
+      "title": "Daftar Akun ┬╖ Jelajah Emas",
+      "expectedTitle": "Daftar Akun ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/auth/register-02",
+      "expected": "/index/auth/register-01",
+      "finalPath": "/index/auth/register-01",
+      "pathOk": true,
+      "title": "Daftar Akun ┬╖ Jelajah Emas",
+      "expectedTitle": "Daftar Akun ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/auth/register-03",
+      "expected": "/index/auth/register-01",
+      "finalPath": "/index/auth/register-01",
+      "pathOk": true,
+      "title": "Daftar Akun ┬╖ Jelajah Emas",
+      "expectedTitle": "Daftar Akun ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/auth/register-04",
+      "expected": "/index/auth/register-04",
+      "finalPath": "/index/auth/register-04",
+      "pathOk": true,
+      "title": "Daftar Akun ┬╖ Jelajah Emas",
+      "expectedTitle": "Daftar Akun ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/auth/lupa-password",
+      "expected": "/index/auth/lupa-password",
+      "finalPath": "/index/auth/lupa-password",
+      "pathOk": true,
+      "title": "Lupa Password ┬╖ Jelajah Emas",
+      "expectedTitle": "Lupa Password ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/auth/lupa-password-02",
+      "expected": "/index/auth/lupa-password",
+      "finalPath": "/index/auth/lupa-password",
+      "pathOk": true,
+      "title": "Lupa Password ┬╖ Jelajah Emas",
+      "expectedTitle": "Lupa Password ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/auth/lupa-password-03",
+      "expected": "/index/auth/lupa-password",
+      "finalPath": "/index/auth/lupa-password",
+      "pathOk": true,
+      "title": "Lupa Password ┬╖ Jelajah Emas",
+      "expectedTitle": "Lupa Password ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/auth/lupa-password-04",
+      "expected": "/index/auth/lupa-password-04",
+      "finalPath": "/index/auth/lupa-password-04",
+      "pathOk": true,
+      "title": "Lupa Password ┬╖ Jelajah Emas",
+      "expectedTitle": "Lupa Password ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/home",
+      "expected": "/index/home",
+      "finalPath": "/index/home",
+      "pathOk": true,
+      "title": "Beranda ┬╖ Jelajah Emas",
+      "expectedTitle": "Beranda ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/assets/alamat-pengiriman",
+      "expected": "/index/assets/alamat-pengiriman",
+      "finalPath": "/index/assets/alamat-pengiriman",
+      "pathOk": true,
+      "title": "Alamat Pengiriman ┬╖ Jelajah Emas",
+      "expectedTitle": "Alamat Pengiriman ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/assets/aset-03",
+      "expected": "/index/assets/aset-03",
+      "finalPath": "/index/assets/aset-03",
+      "pathOk": true,
+      "title": "Rencana Aktif ┬╖ Jelajah Emas",
+      "expectedTitle": "Rencana Aktif ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/assets/aset-saya-01",
+      "expected": "/index/assets/aset-saya-01",
+      "finalPath": "/index/assets/aset-saya-01",
+      "pathOk": true,
+      "title": "Aset Saya ┬╖ Jelajah Emas",
+      "expectedTitle": "Aset Saya ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/assets/aset-saya-02",
+      "expected": "/index/assets/aset-saya-02",
+      "finalPath": "/index/assets/aset-saya-02",
+      "pathOk": true,
+      "title": "Aset Saya ┬╖ Jelajah Emas",
+      "expectedTitle": "Aset Saya ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/assets/asset-01",
+      "expected": "/index/assets/asset-01",
+      "finalPath": "/index/assets/asset-01",
+      "pathOk": true,
+      "title": "Rencana Investasi ┬╖ Jelajah Emas",
+      "expectedTitle": "Rencana Investasi ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/assets/asset-02",
+      "expected": "/index/assets/asset-02",
+      "finalPath": "/index/assets/asset-02",
+      "pathOk": true,
+      "title": "Detail Rencana ┬╖ Jelajah Emas",
+      "expectedTitle": "Detail Rencana ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/assets/cetak-emas-01",
+      "expected": "/index/assets/cetak-emas-01",
+      "finalPath": "/index/assets/cetak-emas-01",
+      "pathOk": true,
+      "title": "Cetak Emas ┬╖ Jelajah Emas",
+      "expectedTitle": "Cetak Emas ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/assets/cetak-emas-02",
+      "expected": "/index/assets/cetak-emas-02",
+      "finalPath": "/index/assets/cetak-emas-02",
+      "pathOk": true,
+      "title": "Cetak Emas ┬╖ Jelajah Emas",
+      "expectedTitle": "Cetak Emas ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/assets/cetak-emas-03",
+      "expected": "/index/assets/cetak-emas-03",
+      "finalPath": "/index/assets/cetak-emas-03",
+      "pathOk": true,
+      "title": "Cetak Emas ┬╖ Jelajah Emas",
+      "expectedTitle": "Cetak Emas ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/assets/emas-digital",
+      "expected": "/index/assets/emas-digital",
+      "finalPath": "/index/assets/emas-digital",
+      "pathOk": true,
+      "title": "Emas Digital ┬╖ Jelajah Emas",
+      "expectedTitle": "Emas Digital ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/assets/konfirmasi",
+      "expected": "/index/assets/asset-02",
+      "finalPath": "/index/assets/asset-02",
+      "pathOk": true,
+      "title": "Detail Rencana ┬╖ Jelajah Emas",
+      "expectedTitle": "Detail Rencana ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/profil/beri-rating",
+      "expected": "/index/profil/beri-rating",
+      "finalPath": "/index/profil/beri-rating",
+      "pathOk": true,
+      "title": "Beri Rating ┬╖ Jelajah Emas",
+      "expectedTitle": "Beri Rating ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/profil/beri-rating-02",
+      "expected": "/index/profil/beri-rating-02",
+      "finalPath": "/index/profil/beri-rating-02",
+      "pathOk": true,
+      "title": "Beri Rating ┬╖ Jelajah Emas",
+      "expectedTitle": "Beri Rating ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/transactions/detail-penarikan",
+      "expected": "/index/transactions/detail-penarikan",
+      "finalPath": "/index/transactions/detail-penarikan",
+      "pathOk": true,
+      "title": "Detail Penarikan ┬╖ Jelajah Emas",
+      "expectedTitle": "Detail Penarikan ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/transactions/detail-penarikan-02",
+      "expected": "/index/transactions/detail-penarikan-02",
+      "finalPath": "/index/transactions/detail-penarikan-02",
+      "pathOk": true,
+      "title": "Detail Penarikan ┬╖ Jelajah Emas",
+      "expectedTitle": "Detail Penarikan ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/transactions/detail-penarikan-03",
+      "expected": "/index/transactions/detail-penarikan-03",
+      "finalPath": "/index/transactions/detail-penarikan-03",
+      "pathOk": true,
+      "title": "Detail Penarikan ┬╖ Jelajah Emas",
+      "expectedTitle": "Detail Penarikan ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/rewards/detail-riwayat-poin",
+      "expected": "/index/rewards/detail-riwayat-poin",
+      "finalPath": "/index/rewards/detail-riwayat-poin",
+      "pathOk": true,
+      "title": "Detail Riwayat Poin ┬╖ Jelajah Emas",
+      "expectedTitle": "Detail Riwayat Poin ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/transactions/isi-ulang",
+      "expected": "/index/transactions/isi-ulang",
+      "finalPath": "/index/transactions/isi-ulang",
+      "pathOk": true,
+      "title": "Isi Ulang ┬╖ Jelajah Emas",
+      "expectedTitle": "Isi Ulang ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/transactions/loading-penarikan",
+      "expected": "/index/transactions/loading-penarikan",
+      "finalPath": "/index/transactions/loading-penarikan",
+      "pathOk": true,
+      "title": "Memproses Penarikan ┬╖ Jelajah Emas",
+      "expectedTitle": "Memproses Penarikan ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/profil/pilih-bank",
+      "expected": "/index/profil/pilih-bank",
+      "finalPath": "/index/profil/pilih-bank",
+      "pathOk": true,
+      "title": "Pilih Bank ┬╖ Jelajah Emas",
+      "expectedTitle": "Pilih Bank ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/transactions/qris",
+      "expected": "/index/transactions/qris",
+      "finalPath": "/index/transactions/qris",
+      "pathOk": true,
+      "title": "Pembayaran QRIS ┬╖ Jelajah Emas",
+      "expectedTitle": "Pembayaran QRIS ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/assets/riwayat-aset-saya",
+      "expected": "/index/assets/riwayat-aset-saya",
+      "finalPath": "/index/assets/riwayat-aset-saya",
+      "pathOk": true,
+      "title": "Riwayat Aset Saya ┬╖ Jelajah Emas",
+      "expectedTitle": "Riwayat Aset Saya ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/affiliate/riwayat-detail-komisi",
+      "expected": "/index/affiliate/riwayat-detail-komisi",
+      "finalPath": "/index/affiliate/riwayat-detail-komisi",
+      "pathOk": true,
+      "title": "Riwayat Detail Komisi ┬╖ Jelajah Emas",
+      "expectedTitle": "Riwayat Detail Komisi ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/transactions/riwayat-isi-ulang",
+      "expected": "/index/transactions/riwayat-isi-ulang",
+      "finalPath": "/index/transactions/riwayat-isi-ulang",
+      "pathOk": true,
+      "title": "Riwayat Isi Ulang ┬╖ Jelajah Emas",
+      "expectedTitle": "Riwayat Isi Ulang ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/affiliate/riwayat-komisi",
+      "expected": "/index/affiliate/riwayat-komisi",
+      "finalPath": "/index/affiliate/riwayat-komisi",
+      "pathOk": true,
+      "title": "Riwayat Komisi ┬╖ Jelajah Emas",
+      "expectedTitle": "Riwayat Komisi ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/rewards/riwayat-lainnya",
+      "expected": "/index/rewards/riwayat-lainnya",
+      "finalPath": "/index/rewards/riwayat-lainnya",
+      "pathOk": true,
+      "title": "Riwayat Lainnya ┬╖ Jelajah Emas",
+      "expectedTitle": "Riwayat Lainnya ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/transactions/riwayat-penarikan",
+      "expected": "/index/transactions/riwayat-penarikan",
+      "finalPath": "/index/transactions/riwayat-penarikan",
+      "pathOk": true,
+      "title": "Riwayat Penarikan ┬╖ Jelajah Emas",
+      "expectedTitle": "Riwayat Penarikan ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/rewards/riwayat-poin",
+      "expected": "/index/rewards/riwayat-poin",
+      "finalPath": "/index/rewards/riwayat-poin",
+      "pathOk": true,
+      "title": "Riwayat Poin ┬╖ Jelajah Emas",
+      "expectedTitle": "Riwayat Poin ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/transactions/riwayat-transaksi",
+      "expected": "/index/transactions/riwayat-transaksi",
+      "finalPath": "/index/transactions/riwayat-transaksi",
+      "pathOk": true,
+      "title": "Riwayat Transaksi ┬╖ Jelajah Emas",
+      "expectedTitle": "Riwayat Transaksi ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/transactions/tarik-dana-01",
+      "expected": "/index/transactions/tarik-dana-01",
+      "finalPath": "/index/transactions/tarik-dana-01",
+      "pathOk": true,
+      "title": "Tarik Dana ┬╖ Jelajah Emas",
+      "expectedTitle": "Tarik Dana ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/transactions/tarik-dana-02",
+      "expected": "/index/transactions/tarik-dana-02",
+      "finalPath": "/index/transactions/tarik-dana-02",
+      "pathOk": true,
+      "title": "Tarik Dana ┬╖ Jelajah Emas",
+      "expectedTitle": "Tarik Dana ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/transactions/tarik-dana-03",
+      "expected": "/index/transactions/tarik-dana-03",
+      "finalPath": "/index/transactions/tarik-dana-03",
+      "pathOk": true,
+      "title": "Tarik Dana ┬╖ Jelajah Emas",
+      "expectedTitle": "Tarik Dana ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/transactions/tarik-dana-04",
+      "expected": "/index/transactions/tarik-dana-01",
+      "finalPath": "/index/transactions/tarik-dana-01",
+      "pathOk": true,
+      "title": "Tarik Dana ┬╖ Jelajah Emas",
+      "expectedTitle": "Tarik Dana ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/transactions/virtual-account",
+      "expected": "/index/transactions/virtual-account",
+      "finalPath": "/index/transactions/virtual-account",
+      "pathOk": true,
+      "title": "Virtual Account ┬╖ Jelajah Emas",
+      "expectedTitle": "Virtual Account ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/rewards/absen-harian",
+      "expected": "/index/rewards/absen-harian",
+      "finalPath": "/index/rewards/absen-harian",
+      "pathOk": true,
+      "title": "Absen Harian ┬╖ Jelajah Emas",
+      "expectedTitle": "Absen Harian ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/rewards/misi",
+      "expected": "/index/rewards/misi",
+      "finalPath": "/index/rewards/misi",
+      "pathOk": true,
+      "title": "Misi ┬╖ Jelajah Emas",
+      "expectedTitle": "Misi ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/rewards/poin-mall-01",
+      "expected": "/index/rewards/poin-mall-01",
+      "finalPath": "/index/rewards/poin-mall-01",
+      "pathOk": true,
+      "title": "Poin Mall ┬╖ Jelajah Emas",
+      "expectedTitle": "Poin Mall ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/rewards/poin-mall-02",
+      "expected": "/index/rewards/poin-mall-02",
+      "finalPath": "/index/rewards/poin-mall-02",
+      "pathOk": true,
+      "title": "Poin Mall ┬╖ Jelajah Emas",
+      "expectedTitle": "Poin Mall ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/rewards/poin-mall-03",
+      "expected": "/index/rewards/poin-mall-01",
+      "finalPath": "/index/rewards/poin-mall-01",
+      "pathOk": true,
+      "title": "Poin Mall ┬╖ Jelajah Emas",
+      "expectedTitle": "Poin Mall ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/rewards/redeem-kode",
+      "expected": "/index/rewards/redeem-kode",
+      "finalPath": "/index/rewards/redeem-kode",
+      "pathOk": true,
+      "title": "Redeem Kode ┬╖ Jelajah Emas",
+      "expectedTitle": "Redeem Kode ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/rewards/vip",
+      "expected": "/index/rewards/vip",
+      "finalPath": "/index/rewards/vip",
+      "pathOk": true,
+      "title": "VIP ┬╖ Jelajah Emas",
+      "expectedTitle": "VIP ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/rewards/vip-redeem-kode",
+      "expected": "/index/rewards/vip-redeem-kode",
+      "finalPath": "/index/rewards/vip-redeem-kode",
+      "pathOk": true,
+      "title": "Redeem Kode VIP ┬╖ Jelajah Emas",
+      "expectedTitle": "Redeem Kode VIP ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/profil/edit",
+      "expected": "/index/profil/edit",
+      "finalPath": "/index/profil/edit",
+      "pathOk": true,
+      "title": "Edit Profil ┬╖ Jelajah Emas",
+      "expectedTitle": "Edit Profil ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/profil/kartu-bank",
+      "expected": "/index/profil/kartu-bank",
+      "finalPath": "/index/profil/kartu-bank",
+      "pathOk": true,
+      "title": "Kartu Bank ┬╖ Jelajah Emas",
+      "expectedTitle": "Kartu Bank ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/profil/kartu-bank-02",
+      "expected": "/index/profil/kartu-bank-02",
+      "finalPath": "/index/profil/kartu-bank-02",
+      "pathOk": true,
+      "title": "Kartu Bank ┬╖ Jelajah Emas",
+      "expectedTitle": "Kartu Bank ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/profil/kartu-bank-03",
+      "expected": "/index/profil/kartu-bank-03",
+      "finalPath": "/index/profil/kartu-bank-03",
+      "pathOk": true,
+      "title": "Kartu Bank ┬╖ Jelajah Emas",
+      "expectedTitle": "Kartu Bank ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/profil/notifikasi",
+      "expected": "/index/profil/notifikasi",
+      "finalPath": "/index/profil/notifikasi",
+      "pathOk": true,
+      "title": "Notifikasi ┬╖ Jelajah Emas",
+      "expectedTitle": "Notifikasi ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/profil",
+      "expected": "/index/profil",
+      "finalPath": "/index/profil",
+      "pathOk": true,
+      "title": "Profil ┬╖ Jelajah Emas",
+      "expectedTitle": "Profil ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/profil/setelan",
+      "expected": "/index/profil/setelan",
+      "finalPath": "/index/profil/setelan",
+      "pathOk": true,
+      "title": "Setelan ┬╖ Jelajah Emas",
+      "expectedTitle": "Setelan ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/affiliate/detail-tim",
+      "expected": "/index/affiliate/detail-tim",
+      "finalPath": "/index/affiliate/detail-tim",
+      "pathOk": true,
+      "title": "Detail Tim ┬╖ Jelajah Emas",
+      "expectedTitle": "Detail Tim ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/affiliate/tim-afiliasi",
+      "expected": "/index/affiliate/tim-afiliasi",
+      "finalPath": "/index/affiliate/tim-afiliasi",
+      "pathOk": true,
+      "title": "Tim Afiliasi ┬╖ Jelajah Emas",
+      "expectedTitle": "Tim Afiliasi ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/berita",
+      "expected": "/index/berita",
+      "finalPath": "/index/berita",
+      "pathOk": true,
+      "title": "Berita ┬╖ Jelajah Emas",
+      "expectedTitle": "Berita ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/berita/detail",
+      "expected": "/index/berita/detail",
+      "finalPath": "/index/berita/detail",
+      "pathOk": true,
+      "title": "Detail Berita ┬╖ Jelajah Emas",
+      "expectedTitle": "Detail Berita ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/support/hubungi-cs",
+      "expected": "/index/support/hubungi-cs",
+      "finalPath": "/index/support/hubungi-cs",
+      "pathOk": true,
+      "title": "Hubungi CS ┬╖ Jelajah Emas",
+      "expectedTitle": "Hubungi CS ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/support/kebijakan-privasi",
+      "expected": "/index/support/kebijakan-privasi",
+      "finalPath": "/index/support/kebijakan-privasi",
+      "pathOk": true,
+      "title": "Kebijakan Privasi ┬╖ Jelajah Emas",
+      "expectedTitle": "Kebijakan Privasi ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/support/livechat",
+      "expected": "/index/support/livechat",
+      "finalPath": "/index/support/livechat",
+      "pathOk": true,
+      "title": "Live Chat ┬╖ Jelajah Emas",
+      "expectedTitle": "Live Chat ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/support/pertanyaan-umum",
+      "expected": "/index/support/pertanyaan-umum",
+      "finalPath": "/index/support/pertanyaan-umum",
+      "pathOk": true,
+      "title": "Pertanyaan Umum ┬╖ Jelajah Emas",
+      "expectedTitle": "Pertanyaan Umum ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/support/syarat-dan-ketentuan",
+      "expected": "/index/support/syarat-dan-ketentuan",
+      "finalPath": "/index/support/syarat-dan-ketentuan",
+      "pathOk": true,
+      "title": "Syarat &amp; Ketentuan ┬╖ Jelajah Emas",
+      "expectedTitle": "Syarat &amp; Ketentuan ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/support/tentang-kami",
+      "expected": "/index/support/tentang-kami",
+      "finalPath": "/index/support/tentang-kami",
+      "pathOk": true,
+      "title": "Tentang Kami ┬╖ Jelajah Emas",
+      "expectedTitle": "Tentang Kami ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/landing",
+      "expected": "/index/landing",
+      "finalPath": "/index/landing",
+      "pathOk": true,
+      "title": "Website Resmi ┬╖ Jelajah Emas",
+      "expectedTitle": "Website Resmi ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index",
+      "expected": "/index/auth/welcome",
+      "finalPath": "/index/auth/welcome",
+      "pathOk": true,
+      "title": "Selamat Datang ┬╖ Jelajah Emas",
+      "expectedTitle": "Selamat Datang ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/home",
+      "expected": "/index/home",
+      "finalPath": "/index/home",
+      "pathOk": true,
+      "title": "Beranda ┬╖ Jelajah Emas",
+      "expectedTitle": "Beranda ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/auth/login",
+      "expected": "/index/auth/login",
+      "finalPath": "/index/auth/login",
+      "pathOk": true,
+      "title": "Masuk ┬╖ Jelajah Emas",
+      "expectedTitle": "Masuk ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/auth/register-02",
+      "expected": "/index/auth/register-01",
+      "finalPath": "/index/auth/register-01",
+      "pathOk": true,
+      "title": "Daftar Akun ┬╖ Jelajah Emas",
+      "expectedTitle": "Daftar Akun ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/auth/welcome",
+      "expected": "/index/auth/welcome",
+      "finalPath": "/index/auth/welcome",
+      "pathOk": true,
+      "title": "Selamat Datang ┬╖ Jelajah Emas",
+      "expectedTitle": "Selamat Datang ┬╖ Jelajah Emas",
+      "titleOk": true
+    },
+    {
+      "path": "/index/halaman-tidak-ada",
+      "expected": "/index/auth/welcome",
+      "finalPath": "/index/auth/welcome",
+      "pathOk": true,
+      "title": "Selamat Datang ┬╖ Jelajah Emas",
+      "expectedTitle": "Selamat Datang ┬╖ Jelajah Emas",
+      "titleOk": true
+    }
+  ],
+  "summary": {
+    "total": 79,
+    "failed": 0,
+    "errorCount": 0
+  },
+  "allPassed": true
+}</pre>
+  <script type="module" src="/tmp-html/route-smoke/index.html?html-proxy&amp;index=0.js"></script>
+
+
+</body></html>

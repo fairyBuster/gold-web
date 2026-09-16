@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EMASDIGITAL-LIVE-RUNNING</title>
+  <style>#edm-metrics { display: none; }</style>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="edm-metrics">pending</pre>
+  <script type="module">
+    /* E2E probe for the wired EmasDigital hero/stats:
+       - Total emas digital = balance_hold ÷ price_per_gram from
+         GET /api/gold/info/ (3.437.500 / 2.500.000 -> "1,375").
+       - Fiat line + Balance Hold box show balance_hold (Rp3.437.500).
+       - Profit = interest_total from balance-statistics ("+Rp85.000").
+       - "Diperbarui pada pukul HH:MM WIB" uses the fetch time; every mockup
+         number (1,367 / 3.512.870 / 70.934 / 10:02) is gone.
+       - The stat boxes stay solid white cards (previous styling change). */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const json = (data, status = 200) => new Response(JSON.stringify(data), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+    window.fetch = (url) => {
+      const target = String(url);
+      if (target.includes('/api/gold/info/')) {
+        return Promise.resolve(json({
+          price_per_gram: '2500000.00',
+          balance_hold: '3437500.00',
+          balance_deposit: '120000.00',
+          print_fee_per_gram: '25000.00',
+          shipping_fee: '15000.00',
+        }));
+      }
+      if (target.includes('/api/auth/balance-statistics/all-time/')) {
+        return Promise.resolve(json({ interest_total: '85000.00' }));
+      }
+      return Promise.resolve(json({}, 404));
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitForText = async (selector, expected, timeout = 6000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el && el.textContent.trim() === expected) return true;
+        await sleep(50);
+      }
+      return false;
+    };
+
+    history.replaceState(null, '', '/index/assets/emas-digital');
+    await import('/src/main.jsx');
+
+    await waitForText('.page-emas-digital .amount-number', '1,375');
+    await sleep(200);
+
+    const text = (selector) => document.querySelector(selector)?.textContent.trim() ?? '(missing)';
+    metrics.state.grams = text('.page-emas-digital .amount-number');
+    metrics.state.unit = text('.page-emas-digital .amount-unit');
+    metrics.state.fiat = text('.page-emas-digital .amount-fiat');
+    metrics.state.updated = text('.page-emas-digital .update-info');
+    metrics.state.stats = [...document.querySelectorAll('.page-emas-digital .stat-box')].map((box) => ({
+      title: box.querySelector('.stat-title').textContent.trim(),
+      value: box.querySelector('.stat-value').textContent.trim(),
+      background: getComputedStyle(box).backgroundColor,
+    }));
+    const bodyText = document.querySelector('.page-emas-digital').textContent;
+    metrics.state.mockupLeftovers = ['1,367', '3.512.870', '70.934', '10:02'].filter((s) => bodyText.includes(s));
+
+    const passed = metrics.state.grams === '1,375'
+      && metrics.state.unit === 'gram'
+      && metrics.state.fiat === '≈ Rp3.437.500'
+      && /^Diperbarui pada pukul \d{2}:\d{2} WIB$/.test(metrics.state.updated)
+      && JSON.stringify(metrics.state.stats) === JSON.stringify([
+        { title: 'Profit', value: '+Rp85.000', background: 'rgb(255, 255, 255)' },
+        { title: 'Balance Hold', value: 'Rp3.437.500', background: 'rgb(255, 255, 255)' },
+      ])
+      && metrics.state.mockupLeftovers.length === 0
+      && metrics.errors.length === 0;
+
+    metrics.allPassed = passed;
+    document.getElementById('edm-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'EMASDIGITAL-LIVE-DONE';
+  </script>
+</body>
+</html>

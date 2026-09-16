@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ASETSAYA-PROFIT-LIVE-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="as-live-metrics">pending</pre>
+  <script type="module">
+    /* Live probe: /assets/aset-saya-01 against the real API (no fetch stub).
+       Expected "Pembagian / Periode" rows are computed from the same live
+       /api/investments/ list the page renders from (via the app's own
+       decoding client), then compared card by card: random plans -> the
+       configured min–max range, others -> daily_profit. */
+    const metrics = { errors: [], state: {} };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const session = await (await fetch('/e2e-token.json')).json();
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: session.access }));
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (selector, timeout = 10000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(50);
+      }
+      return null;
+    };
+
+    /* Mirrors transactionFormat.formatRupiah / productFormat.formatRupiahRange. */
+    const fmt = (value) => `Rp${Math.abs(Number(value) || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}`;
+    const fmtRange = (min, max) => (min === max ? fmt(min) : `${fmt(min)} – ${fmt(max)}`);
+
+    /* Same live endpoint the page consumes, through the app's own client. */
+    const { listAllInvestments } = await import('/src/lib/investmentsApi.js');
+    const list = await listAllInvestments();
+    const sorted = [...list].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+    metrics.state.tokenUser = session.user;
+    metrics.state.investmentIds = sorted.map((inv) => inv.id);
+    metrics.state.expectedRows = sorted.map((inv) => {
+      const min = Number(inv.profit_random_min) || 0;
+      const max = Number(inv.profit_random_max) || 0;
+      const isRandom = inv.profit_type === 'random' && min > 0 && max >= min;
+      return isRandom ? `${fmtRange(min, max)} / hari` : `${fmt(inv.daily_profit)} / hari`;
+    });
+
+    history.replaceState(null, '', '/assets/aset-saya-01');
+    await import('/src/main.jsx');
+
+    await waitFor('.page-aset-saya-01 .product-card');
+    await sleep(500);
+
+    metrics.state.domRows = [...document.querySelectorAll('.page-aset-saya-01 .product-card')].map((card) => {
+      const row = [...card.querySelectorAll('.info-row')]
+        .find((el) => el.querySelector('.info-label')?.textContent.trim() === 'Pembagian / Periode');
+      return row ? row.querySelector('.info-value').textContent.trim() : '(row missing)';
+    });
+
+    const passed = metrics.state.domRows.length === metrics.state.expectedRows.length
+      && metrics.state.domRows.length > 0
+      && JSON.stringify(metrics.state.domRows) === JSON.stringify(metrics.state.expectedRows)
+      && metrics.errors.length === 0;
+
+    metrics.allPassed = passed;
+    document.getElementById('as-live-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'ASETSAYA-PROFIT-LIVE-DONE';
+  </script>
+</body>
+</html>

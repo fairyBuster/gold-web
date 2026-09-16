@@ -1,0 +1,754 @@
+﻿<!DOCTYPE html>
+<html lang="id"><head>
+  <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+  <script type="module" src="/@vite/client"></script>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ASSET-INFO-DONE</title>
+<style type="text/css" data-vite-dev-id="D:/webbaru/src/index.css">/* ============================================================
+
+   App shell styles shared by all converted pages.
+
+   Global resets below match the originals found in every
+
+   global.css, so individual page CSS files only need to carry
+
+   their page-specific (already scoped) rules.
+
+   ============================================================ */
+
+
+
+* {
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 0;
+
+  -webkit-tap-highlight-color: transparent;
+
+}
+
+
+
+html,
+
+body,
+
+#root {
+
+  width: 100%;
+
+  min-height: 100vh;
+
+  margin: 0;
+
+  padding: 0;
+
+}
+
+
+
+/* Each converted page renders a single wrapper div below its page root
+
+   (e.g. #root > .page-x > div). The original mobile mockups sized that
+
+   wrapper by its content, which produced narrow centered columns on
+
+   desktop; force it to span the full width so pages have no side gaps. */
+
+#root > div > div {
+
+  width: 100%;
+
+}
+
+
+
+body {
+
+  font-family: 'Inter', sans-serif;
+
+  background-color: #f0e9df;
+
+  /* App-wide background image ΓÇö every page shows it through the
+
+     transparency rule below. */
+
+  background-image: url('/src/assets/images/background.jpg');
+
+  background-size: cover;
+
+  background-position: center top;
+
+  background-repeat: no-repeat;
+
+  background-attachment: fixed;
+
+  color: #1a1410;
+
+  min-height: 100vh;
+
+}
+
+
+
+/* Page wrappers paint their own opaque canvas; make them transparent so
+
+   the shared background image is visible on all pages. */
+
+#root > [class^="page-"] {
+
+  background-color: transparent;
+
+}
+
+
+
+a {
+
+  text-decoration: none;
+
+  color: inherit;
+
+}
+
+
+
+button {
+
+  border: none;
+
+  background: none;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+}
+
+
+
+input,
+
+textarea,
+
+select {
+
+  font-family: inherit;
+
+}
+
+
+
+/* ============================================================
+
+   Screen directory (route "/")
+
+   ============================================================ */
+
+
+
+.screen-index {
+
+  max-width: 1080px;
+
+  margin: 0 auto;
+
+  padding: 48px 24px 80px;
+
+}
+
+
+
+.screen-index__header {
+
+  text-align: center;
+
+  margin-bottom: 36px;
+
+}
+
+
+
+.screen-index__title {
+
+  font-size: 32px;
+
+  font-weight: 700;
+
+  color: #1a1410;
+
+  margin-bottom: 8px;
+
+}
+
+
+
+.screen-index__title span {
+
+  color: #e8790c;
+
+}
+
+
+
+.screen-index__subtitle {
+
+  font-size: 14px;
+
+  color: #8a7d6d;
+
+  margin-bottom: 24px;
+
+}
+
+
+
+.screen-index__search {
+
+  width: 100%;
+
+  max-width: 420px;
+
+  padding: 13px 18px;
+
+  font-size: 14px;
+
+  border: 1px solid #e2d8c8;
+
+  border-radius: 12px;
+
+  background-color: #fffbf4;
+
+  color: #1a1410;
+
+  outline: none;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__search:focus {
+
+  border-color: #e8790c;
+
+  box-shadow: 0 0 0 3px rgba(232, 121, 12, 0.15);
+
+}
+
+
+
+.screen-index__grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+
+  gap: 12px;
+
+}
+
+
+
+.screen-index__card {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  padding: 16px 18px;
+
+  background-color: #fffbf4;
+
+  border: 1px solid #e9dfd1;
+
+  border-radius: 14px;
+
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+}
+
+
+
+.screen-index__card:hover {
+
+  border-color: #e8790c;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 10px 24px rgba(26, 20, 16, 0.08);
+
+}
+
+
+
+.screen-index__card-label {
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  color: #1a1410;
+
+}
+
+
+
+.screen-index__card-path {
+
+  font-size: 12px;
+
+  color: #b3a795;
+
+  font-family: 'SFMono-Regular', Consolas, monospace;
+
+}
+
+
+
+.screen-index__empty {
+
+  grid-column: 1 / -1;
+
+  text-align: center;
+
+  padding: 40px 0;
+
+  color: #b3a795;
+
+  font-size: 14px;
+
+}
+
+
+
+.screen-index__group {
+
+  margin-bottom: 32px;
+
+}
+
+
+
+.screen-index__group-title {
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  color: #8a7d6d;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.06em;
+
+  margin-bottom: 12px;
+
+}
+
+
+
+/* ============================================================
+
+   Desktop layout (ΓëÑ768px) for all app screens.
+
+   Below 768px every page keeps its original mobile layout as-is.
+
+   From 768px up the page content renders as a centered app column
+
+   while backgrounds stay full-bleed on the page root, so no
+
+   phone-frame edges or side gaps appear. The landing page has its
+
+   own desktop layout (see LandingPagePerusahaan.jsx).
+
+   ============================================================ */
+
+
+
+@media (min-width: 768px) {
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > div,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > main,
+
+  #root > [class^="page-"]:not(.page-landing-page-perusahaan) > section {
+
+    max-width: 480px;
+
+    margin-left: auto;
+
+    margin-right: auto;
+
+    box-shadow: none;
+
+  }
+
+}
+
+
+
+/* Inner full-page containers keep a mobile drop shadow; drop it on desktop
+
+   too (they sit below the capped element, so the rule above does not reach
+
+   them). Selectors carry the #root prefix so they outrank the per-page
+
+   \3c style> blocks injected later in the document. */
+
+@media (min-width: 768px) {
+
+  #root .page-register-01 .app-container,
+
+  #root .page-register-04 .mobile-container,
+
+  #root .page-notifikasi-login .screen-container,
+
+  #root .page-notif-screen .screen-container,
+
+  #root .page-kartu-bank .mobile-app-container,
+
+  #root .page-beri-rating section:first-of-type,
+
+  #root .page-beri-rating section:last-of-type,
+
+  #root .page-livechat .input-container {
+
+    box-shadow: none;
+
+  }
+
+}
+
+</style></head>
+<body>
+  <div id="root"><div class="page-asset-02" style="background-image: url(&quot;/src/assets/images/083535.png&quot;);"><style>
+/* Scoped styles for Asset02 ΓÇö converted from global.css + inline section styles.
+   All selectors are pre-fixed with .page-asset-02 to isolate this page. */
+
+.page-asset-02 {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #fffbf4;
+  /* Latar artwork 083535.png (dipasang inline di root), direntangkan penuh
+     (glow radial lama dihapus). */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: top center;
+  color: #1a1410;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  min-height: 100vh;
+  box-shadow: 0 0 20px rgba(0,0,0,0.05);
+  box-sizing: border-box;
+  position: relative;
+  padding-bottom: 24px;
+  width: 100%;
+}
+
+.page-asset-02, .page-asset-02 * {
+  box-sizing: inherit;
+}
+
+.page-asset-02 h1,.page-asset-02  h2,.page-asset-02  h3,.page-asset-02  p {
+  margin: 0;
+}
+
+.page-asset-02 .container {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+/* ---- inline section styles ---- */
+
+/* CSS for section section:Header */
+.page-asset-02 #header {
+    padding: 20px 20px 16px 20px;
+  }
+  .page-asset-02 .header-container {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .page-asset-02 .back-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    background-color: #f6f1e9;
+    border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    padding: 0;
+  }
+  .page-asset-02 .header-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1410;
+  }
+
+/* CSS for section section:ProductCard */
+.page-asset-02 #product-card {
+    margin-bottom: 24px;
+  }
+  .page-asset-02 .card {
+    background-color: #ffffff;
+    border: 1px solid #efe7dc;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .page-asset-02 .card-icon {
+    width: 40px;
+    height: 40px;
+    background-color: #f6f1e9;
+    border: 1px solid rgba(26, 20, 16, 0.22);
+    border-radius: 10px;
+  }
+  .page-asset-02 .card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+  .page-asset-02 .product-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1410;
+  }
+  .page-asset-02 .badge {
+    background-color: rgba(255, 159, 28, 0.14);
+    color: #e8790c;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+
+/* CSS for section section:PackageDetails */
+.page-asset-02 #package-details {
+    margin-bottom: 24px;
+  }
+  .page-asset-02 .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1410;
+    margin-bottom: 12px;
+  }
+  .page-asset-02 .details-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .page-asset-02 .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #efe7dc;
+  }
+  .page-asset-02 .detail-row:last-child {
+    border-bottom: none;
+  }
+  .page-asset-02 .detail-label {
+    font-size: 12px;
+    color: #a79c8f;
+  }
+  .page-asset-02 .detail-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1a1410;
+  }
+
+/* CSS for section section:ProductInfo */
+.page-asset-02 #product-info {
+    margin-bottom: 24px;
+  }
+  .page-asset-02 .section-desc {
+    font-size: 12px;
+    color: #a79c8f;
+    margin-bottom: 16px;
+    line-height: 1.4;
+  }
+  .page-asset-02 .table-container {
+    border: 1px solid #efe7dc;
+    border-radius: 14px;
+    overflow: hidden;
+    background-color: #ffffff;
+  }
+  .page-asset-02 .table-header {
+    display: flex;
+    background-color: #f6f1e9;
+    padding: 12px 14px;
+    border-bottom: 1px solid #efe7dc;
+  }
+  .page-asset-02 .table-row {
+    display: flex;
+    padding: 12px 14px;
+    border-bottom: 1px solid #efe7dc;
+  }
+  .page-asset-02 .table-row:last-child {
+    border-bottom: none;
+  }
+  .page-asset-02 .col {
+    flex: 1;
+    font-size: 12px;
+    color: #514840;
+  }
+  .page-asset-02 .col.left { text-align: left; }
+  .page-asset-02 .col.center { text-align: center; }
+  .page-asset-02 .col.right { text-align: right; }
+  
+  .page-asset-02 .table-header .col {
+    font-weight: 700;
+  }
+  .page-asset-02 .bold-text {
+    font-weight: 700;
+    color: #1a1410;
+  }
+
+/* CSS for section section:Disclaimer */
+.page-asset-02 #disclaimer {
+    margin-bottom: 32px;
+  }
+  .page-asset-02 .info-box {
+    background-color: #f6f1e9;
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .page-asset-02 .info-icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+  }
+  .page-asset-02 .info-icon img {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .page-asset-02 .info-text {
+    font-size: 11px;
+    color: #514840;
+    line-height: 1.5;
+  }
+
+/* Status text shown while loading / on errors */
+.page-asset-02 .page-status {
+  font-size: 13px;
+  color: #a79c8f;
+  text-align: center;
+  padding: 32px 0 16px 0;
+  line-height: 1.5;
+}
+
+/* Empty state ΓÇö shown when the opened product is inactive (empty.jpg mascot) */
+.page-asset-02 .empty-state-container {
+  padding: 60px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.page-asset-02 .illustration-wrapper {
+  margin-bottom: 24px;
+}
+.page-asset-02 .illustration {
+  width: 120px;
+  height: 133px;
+  object-fit: contain;
+}
+.page-asset-02 .text-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 32px;
+}
+.page-asset-02 .empty-title {
+  color: #1a1410;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.page-asset-02 .empty-subtitle {
+  color: #a79c8f;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+/* CSS for section section:Action */
+.page-asset-02 .primary-btn {
+    width: 100%;
+    background-color: #f1b04a;
+    color: #1a1410;
+    border: none;
+    border-radius: 14px;
+    padding: 16px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s;
+  }
+  .page-asset-02 .primary-btn:hover {
+    background-color: #e0a03a;
+  }
+</style><div><section id="header"><header class="header-container"><button class="back-btn" aria-label="Back"><img src="data:image/svg+xml,%3csvg%20width='16'%20height='16'%20viewBox='0%200%2016%2016'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M10%203.33337L5.33337%208.00004L10%2012.6667'%20stroke='%231A1410'%20stroke-width='1.33333'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3c/svg%3e" alt="Back Icon"></button><h1 class="header-title">Detail &amp; Simulasi</h1></header></section><section id="product-card" class="container"><div class="card"><div class="card-icon"></div><div class="card-info"><h2 class="product-name">Logam 24K</h2><span class="badge">Simpanan</span></div></div></section><section id="package-details" class="container"><h2 class="section-title">Rincian Penawaran</h2><div class="details-list"><div class="detail-row"><span class="detail-label">Harga Produk</span><span class="detail-value">Rp50.000</span></div><div class="detail-row"><span class="detail-label">Pembagian / Hari</span><span class="detail-value">Rp3.125 ΓÇô Rp5.175</span></div><div class="detail-row"><span class="detail-label">Masa berlaku simpan</span><span class="detail-value">40 Hari</span></div><div class="detail-row"><span class="detail-label">Sumber Dana</span><span class="detail-value">Saldo Jelajah Emas</span></div></div></section><section id="product-info" class="container"><h2 class="section-title">Informasi Produk</h2><div class="table-container"><div class="table-header"><div class="col left">Keterangan</div><div class="col center">Penjelasan</div><div class="col right">Detail</div></div><div class="table-row"><div class="col left">Periode 1</div><div class="col center">Field 01</div><div class="col right bold-text">Field content 01</div></div><div class="table-row"><div class="col left">Periode 2</div><div class="col center">Field 02</div><div class="col right bold-text">Field content 02</div></div><div class="table-row"><div class="col left">Periode 3</div><div class="col center">Field 03</div><div class="col right bold-text">Field content 03</div></div></div></section><section id="disclaimer" class="container"><div class="info-box"><div class="info-icon"><img src="data:image/svg+xml,%3csvg%20width='16'%20height='16'%20viewBox='0%200%2016%2016'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M8%2014C11.3137%2014%2014%2011.3137%2014%208C14%204.68629%2011.3137%202%208%202C4.68629%202%202%204.68629%202%208C2%2011.3137%204.68629%2014%208%2014Z'%20stroke='%23A79C8F'%20stroke-width='1.2'/%3e%3cpath%20d='M8%205.33325V8.66659'%20stroke='%23A79C8F'%20stroke-width='1.2'%20stroke-linecap='round'/%3e%3cpath%20d='M8.00004%2011.3333C8.36823%2011.3333%208.66671%2011.0349%208.66671%2010.6667C8.66671%2010.2985%208.36823%2010%208.00004%2010C7.63185%2010%207.33337%2010.2985%207.33337%2010.6667C7.33337%2011.0349%207.63185%2011.3333%208.00004%2011.3333Z'%20fill='%23A79C8F'/%3e%3c/svg%3e" alt="Info"></div><p class="info-text">Harga emas dapat berubah sewaktu-waktu mengikuti pasar.<br>Nominal biaya di atas dihitung berdasarkan harga emas saat simulasi dibuat.</p></div></section><section id="action" class="container"><button class="primary-btn">Aktifkan Paket Ini</button></section></div></div></div>
+  <pre id="info-metrics">{
+  "errors": [],
+  "pid": 134,
+  "hasSection": true,
+  "pageText": "\n/* Scoped styles for Asset02 ΓÇö converted from global.css + inline section styles.\n   All selectors are pre-fixed with .page-asset-02 to isolate this page. */\n\n.page-asset-02 {\n  font-family: 'Inter', sans-serif;\n  margin: 0;\n  padding: 0;\n  background-color: #fffbf4;\n  /* Latar artwork 083535.png (dipasang inline di root), direntangkan penuh\n     (glow radial lama dihapus). */\n  background-size: 100% 100%;\n  background-repeat: no-repeat;\n  background-position: top center;\n  color: #1a1410;\n  max-width: 100%;\n  margin-left: auto;\n  margin-right: auto;\n  min-height: 100vh;\n  box-shadow: 0 0 20px rgba(0,0,0,0.05);\n  box-sizing: border-box;\n  position: relative;\n  padding-bottom: 24px;\n  width: 100%;\n}\n\n.page-asset-02, .page-asset-02 * {\n  box-sizing: inherit;\n}\n\n.page-asset-02 h1,.page-asset-02  h2,.page-asset-02  h3,.page-asset-02  p {\n  margin: 0;\n}\n\n.page-asset-02 .container {\n  padding-left: 20px;\n  padding-right: 20px;\n}\n\n/* ---- inline section styles ---- */\n\n/* CSS for section section:Header */\n.page-asset-02 #header {\n    padding: 20px 20px 16px 20px;\n  }\n  .page-asset-02 .header-container {\n    display: flex;\n    align-items: center;\n    gap: 14px;\n  }\n  .page-asset-02 .back-btn {\n    width: 36px;\n    height: 36px;\n    border-radius: 11px;\n    background-color: #f6f1e9;\n    border: none;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    cursor: pointer;\n    padding: 0;\n  }\n  .page-asset-02 .header-title {\n    font-size: 16px;\n    font-weight: 700;\n    color: #1a1410;\n  }\n\n/* CSS for section section:ProductCard */\n.page-asset-02 #product-card {\n    margin-bottom: 24px;\n  }\n  .page-asset-02 .card {\n    background-color: #ffffff;\n    border: 1px solid #efe7dc;\n    border-radius: 16px;\n    padding: 16px;\n    display: flex;\n    align-items: center;\n    gap: 12px;\n  }\n  .page-asset-02 .card-icon {\n    width: 40px;\n    height: 40px;\n    background-color: #f6f1e9;\n    border: 1px solid rgba(26, 20, 16, 0.22);\n    border-radius: 10px;\n  }\n  .page-asset-02 .card-info {\n    display: flex;\n    flex-direction: column;\n    gap: 6px;\n    align-items: flex-start;\n  }\n  .page-asset-02 .product-name {\n    font-size: 14px;\n    font-weight: 700;\n    color: #1a1410;\n  }\n  .page-asset-02 .badge {\n    background-color: rgba(255, 159, 28, 0.14);\n    color: #e8790c;\n    font-size: 10px;\n    font-weight: 600;\n    padding: 3px 8px;\n    border-radius: 6px;\n  }\n\n/* CSS for section section:PackageDetails */\n.page-asset-02 #package-details {\n    margin-bottom: 24px;\n  }\n  .page-asset-02 .section-title {\n    font-size: 14px;\n    font-weight: 700;\n    color: #1a1410;\n    margin-bottom: 12px;\n  }\n  .page-asset-02 .details-list {\n    display: flex;\n    flex-direction: column;\n  }\n  .page-asset-02 .detail-row {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    padding: 12px 0;\n    border-bottom: 1px solid #efe7dc;\n  }\n  .page-asset-02 .detail-row:last-child {\n    border-bottom: none;\n  }\n  .page-asset-02 .detail-label {\n    font-size: 12px;\n    color: #a79c8f;\n  }\n  .page-asset-02 .detail-value {\n    font-size: 12px;\n    font-weight: 700;\n    color: #1a1410;\n  }\n\n/* CSS for section section:ProductInfo */\n.page-asset-02 #product-info {\n    margin-bottom: 24px;\n  }\n  .page-asset-02 .section-desc {\n    font-size: 12px;\n    color: #a79c8f;\n    margin-bottom: 16px;\n    line-height: 1.4;\n  }\n  .page-asset-02 .table-container {\n    border: 1px solid #efe7dc;\n    border-radius: 14px;\n    overflow: hidden;\n    background-color: #ffffff;\n  }\n  .page-asset-02 .table-header {\n    display: flex;\n    background-color: #f6f1e9;\n    padding: 12px 14px;\n    border-bottom: 1px solid #efe7dc;\n  }\n  .page-asset-02 .table-row {\n    display: flex;\n    padding: 12px 14px;\n    border-bottom: 1px solid #efe7dc;\n  }\n  .page-asset-02 .table-row:last-child {\n    border-bottom: none;\n  }\n  .page-asset-02 .col {\n    flex: 1;\n    font-size: 12px;\n    color: #514840;\n  }\n  .page-asset-02 .col.left { text-align: left; }\n  .page-asset-02 .col.center { text-align: center; }\n  .page-asset-02 .col.right { text-align: right; }\n  \n  .page-asset-02 .table-header .col {\n    font-weight: 700;\n  }\n  .page-asset-02 .bold-text {\n    font-weight: 700;\n    color: #1a1410;\n  }\n\n/* CSS for section section:Disclaimer */\n.page-asset-02 #disclaimer {\n    margin-bottom: 32px;\n  }\n  .page-asset-02 .info-box {\n    background-color: #f6f1e9;\n    border-radius: 14px;\n    padding: 14px 16px;\n    display: flex;\n    gap: 10px;\n    align-items: flex-start;\n  }\n  .page-asset-02 .info-icon {\n    flex-shrink: 0;\n    width: 16px;\n    height: 16px;\n    margin-top: 2px;\n  }\n  .page-asset-02 .info-icon img {\n    width: 100%;\n    height: 100%;\n    display: block;\n  }\n  .page-asset-02 .info-text {\n    font-size: 11px;\n    color: #514840;\n    line-height: 1.5;\n  }\n\n/* Status text shown while loading / on errors */\n.page-asset-02 .page-status {\n  font-size: 13px;\n  color: #a79c8f;\n  text-align: center;\n  padding: 32px 0 16px 0;\n  line-height: 1.5;\n}\n\n/* Empty state ΓÇö shown when the opened product is inactive (empty.jpg mascot) */\n.page-asset-02 .empty-state-container {\n  padding: 60px 20px 40px;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  text-align: center;\n}\n.page-asset-02 .illustration-wrapper {\n  margin-bottom: 24px;\n}\n.page-asset-02 .illustration {\n  width: 120px;\n  height: 133px;\n  object-fit: contain;\n}\n.page-asset-02 .text-content {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  margin-bottom: 32px;\n}\n.page-asset-02 .empty-title {\n  color: #1a1410;\n  font-size: 16px;\n  font-weight: 700;\n  margin-bottom: 8px;\n}\n.page-asset-02 .empty-subtitle {\n  color: #a79c8f;\n  font-size: 13px;\n  line-height: 1.5;\n  max-width: 280px;\n}\n\n/* CSS for section section:Action */\n.page-asset-02 .primary-btn {\n    width: 100%;\n    background-color: #f1b04a;\n    color: #1a1410;\n    border: none;\n    border-radius: 14px;\n    padding: 16px;\n    font-size: 14px;\n    font-weight: 700;\n    cursor: pointer;\n    text-align: center;\n    transition: background-color 0.2s;\n  }\n  .page-asset-02 .primary-btn:hover {\n    background-color: #e0a03a;\n  }\nDetail &amp; SimulasiLogam 24KSimpananRincian PenawaranHarga ProdukRp50.000Pembagian / HariRp3.125 ΓÇô Rp5.175Masa berlaku simpan40 HariSumber DanaSaldo Jelajah EmasInformasi ProdukKeteranganPenjelasanDetailPeriode 1Field 01Field content 01Periode 2Field 02Field content 02Periode 3Field 03Field content 03Harga emas dapat berubah sewaktu-waktu mengikuti pasar.Nominal biaya di atas dihitung berdasarkan harga emas saat simulasi dibuat.Aktifkan Paket Ini",
+  "title": "Informasi Produk",
+  "headers": [
+    "Keterangan",
+    "Penjelasan",
+    "Detail"
+  ],
+  "rows": [
+    {
+      "left": "Periode 1",
+      "center": "Field 01",
+      "hasRight": true,
+      "right": "Field content 01"
+    },
+    {
+      "left": "Periode 2",
+      "center": "Field 02",
+      "hasRight": true,
+      "right": "Field content 02"
+    },
+    {
+      "left": "Periode 3",
+      "center": "Field 03",
+      "hasRight": true,
+      "right": "Field content 03"
+    }
+  ],
+  "tableText": "KeteranganPenjelasanDetailPeriode 1Field 01Field content 01Periode 2Field 02Field content 02Periode 3Field 03Field content 03",
+  "allPassed": true
+}</pre>
+  <script type="module" src="/tmp-html/assetinfo/index.html?html-proxy&amp;index=0.js"></script>
+
+
+</body></html>

@@ -45,9 +45,9 @@ import S3_img_3 from '../../../assets/images/11_384.svg';
 
 /* Withdrawal status -> the step (URL) that should be showing. */
 const STAGE_ROUTES = {
-  1: '/transactions/detail-penarikan',
-  2: '/transactions/detail-penarikan-02',
-  3: '/transactions/detail-penarikan-03',
+  1: '/index/transactions/detail-penarikan',
+  2: '/index/transactions/detail-penarikan-02',
+  3: '/index/transactions/detail-penarikan-03',
 };
 
 const FAILED_STATUSES = ['REJECTED', 'REJECT', 'CANCELLED', 'CANCELED', 'FAILED', 'EXPIRED'];
@@ -608,7 +608,7 @@ function DetailPenarikan01({ trx, refreshing, lastSync, onRefresh }) {
                         <div className="timeline-step-desc">
                           {failed
                             ? (refunded ? 'Dana sudah dikembalikan ke saldo kamu' : 'Penarikan tidak berhasil diproses')
-                            : 'Estimasi selesai 1–24 jam kerja'}
+                            : 'Estimasi selesai 1–5 jam kerja'}
                         </div>
                       </div>
                     </div>
@@ -618,7 +618,7 @@ function DetailPenarikan01({ trx, refreshing, lastSync, onRefresh }) {
                         <div className="timeline-content">
                           <div className="timeline-step-title">Dana Diterima</div>
                           <div className="timeline-step-desc">
-                            {account ? `Rekening ${account}` : 'Estimasi masuk 1–24 jam kerja'}
+                            {account ? `Rekening ${account}` : 'Estimasi masuk 1–5 jam kerja'}
                           </div>
                         </div>
                       </div>
@@ -632,7 +632,7 @@ function DetailPenarikan01({ trx, refreshing, lastSync, onRefresh }) {
                   <button className="btn btn-primary" onClick={onRefresh} disabled={refreshing}>
                     {refreshing ? 'Menyegarkan…' : 'Segarkan Halaman'}
                   </button>
-                  <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/transactions/riwayat-penarikan'); }}>Lihat Detail Transaksi</button>
+                  <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/index/transactions/riwayat-penarikan'); }}>Lihat Detail Transaksi</button>
                 </div>
               </section>
             </div>
@@ -947,7 +947,7 @@ function DetailPenarikan02({ trx, refreshing, lastSync, onRefresh }) {
                       </div>
                       <div className="timeline-content">
                         <h3 className="timeline-step-title">Sedang Diproses Bank</h3>
-                        <p className="timeline-step-desc">Estimasi selesai 1–24 jam kerja</p>
+                        <p className="timeline-step-desc">Estimasi selesai 1–5 jam kerja</p>
                       </div>
                     </div>
                     <div className="timeline-item">
@@ -966,7 +966,7 @@ function DetailPenarikan02({ trx, refreshing, lastSync, onRefresh }) {
                   <button className="btn btn-primary" onClick={onRefresh} disabled={refreshing}>
                     {refreshing ? 'Menyegarkan…' : 'Segarkan Halaman'}
                   </button>
-                  <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/transactions/riwayat-penarikan'); }}>Lihat Detail Transaksi</button>
+                  <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/index/transactions/riwayat-penarikan'); }}>Lihat Detail Transaksi</button>
                 </div>
               </section>
             </div>
@@ -1259,7 +1259,7 @@ function DetailPenarikan03({ trx, refreshing, lastSync, onRefresh }) {
                 <button className="btn btn-primary" onClick={onRefresh} disabled={refreshing}>
                   {refreshing ? 'Menyegarkan…' : 'Segarkan Halaman'}
                 </button>
-                <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/transactions/riwayat-penarikan'); }}>Lihat Detail Transaksi</button>
+                <button className="btn btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/index/transactions/riwayat-penarikan'); }}>Lihat Detail Transaksi</button>
               </section>
             </div>
 
@@ -1292,7 +1292,7 @@ export default function DetailPenarikan({ step = 1 }) {
       <StateShell
         message="Belum ada transaksi penarikan."
         actionLabel="Lihat Riwayat Penarikan"
-        onAction={() => navigate('/transactions/riwayat-penarikan')}
+        onAction={() => navigate('/index/transactions/riwayat-penarikan')}
       />
     );
   }
