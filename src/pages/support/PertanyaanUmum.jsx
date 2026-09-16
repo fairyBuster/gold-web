@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { goBack } from '../../lib/backNav.js';
 import { fetchFaqs } from '../../lib/faqApi.js';
 import img_1 from '../../assets/images/109_2465.svg';
 import img_2 from '../../assets/images/109_2472.svg';
@@ -297,7 +298,7 @@ export default function PertanyaanUmum() {
       <div>
               <section id="header">
                 <header className="top-bar">
-                  <button className="btn-back" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="btn-back" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/support/hubungi-cs'); }}>
                     <img src={img_1} alt="Back Icon" />
                   </button>
                   <h1 className="title">Pusat Bantuan</h1>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import { useShowNotif } from '../../../lib/useShowNotif.js';
 import img_1 from '../../../assets/images/41_1038.svg';
 /* Shipping address — GET/POST /api/auth/address/ (list + create). */
@@ -308,7 +309,7 @@ export default function AlamatPengiriman() {
       <div>
               <section id="section-header">
                 <header className="app-header">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/assets/cetak-emas-01'); }}>
                     <img src={img_1} alt="" />
                   </button>
                   <h1 className="page-title">Alamat Pengiriman</h1>

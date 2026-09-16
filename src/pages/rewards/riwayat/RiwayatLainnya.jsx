@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import img_1 from '../../../assets/images/109_2784.svg';
-import img_2 from '../../../assets/images/3996294870fd174373ab40264b02a36e21eea57f.png';
+import img_2 from '../../../assets/images/3996294870fd174373ab40264b02a36e21eea57f.webp';
 import NotifCard from '../../../components/NotifCard.jsx';
 import ListPagination from '../../../components/ListPagination.jsx';
 import ListState from '../../../components/ListState.jsx';
@@ -300,7 +301,7 @@ export default function RiwayatLainnya() {
       <div>
               <section id="section-header" className="app-section header-section">
                 <header className="header">
-                  <a href="#" className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <a href="#" className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/transactions/riwayat-transaksi'); }}>
                     <img src={img_1} alt="" />
                   </a>
                   <h1 className="page-title">Riwayat Lainnya</h1>

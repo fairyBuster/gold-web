@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { goBack } from '../lib/backNav.js';
 import NotifCard from './NotifCard.jsx';
 
 /* Styles are kept inline in this file so the component is a single-file import. */
@@ -192,7 +193,7 @@ export default function ModalKonfirmasi({
     e.preventDefault();
     if (busy) return;
     if (onCancel) onCancel();
-    else window.history.back();
+    else goBack('/index/assets/aset-saya-01');
   };
 
   const handleConfirm = (e) => {

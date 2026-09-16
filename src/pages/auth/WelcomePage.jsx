@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
-import img_1 from '../../assets/images/3d6fb697a044e75c7a6c789438a276b40b37b5b9.png';
-import img_2 from '../../assets/images/a2e642134a81c06da92ec2afc6d0074bf61bb78b.png';
+import img_1 from '../../assets/images/3d6fb697a044e75c7a6c789438a276b40b37b5b9.webp';
+import img_2 from '../../assets/images/a2e642134a81c06da92ec2afc6d0074bf61bb78b.webp';
 import img_3 from '../../assets/images/a.png';
 import img_4 from '../../assets/images/b.png';
 import img_5 from '../../assets/images/d35f294fb1a21fb0aa4f326dc1672ebf0f14686d.png';

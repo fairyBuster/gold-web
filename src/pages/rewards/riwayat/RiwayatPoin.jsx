@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import img_1 from '../../../assets/images/67_135.svg';
-import img_2 from '../../../assets/images/cd4321a034b318f75c488cf1f2e3603c65cc1a7f.png';
+import img_2 from '../../../assets/images/cd4321a034b318f75c488cf1f2e3603c65cc1a7f.webp';
 import img_3 from '../../../assets/images/45c66465850aad401bebf25b861b6f2f05b9a3dd.png';
 import NotifCard from '../../../components/NotifCard.jsx';
 import ListPagination from '../../../components/ListPagination.jsx';
@@ -308,7 +309,7 @@ export default function RiwayatPoin() {
               <section id="section-header">
                 <div className="app-container">
                   <header className="header">
-                    <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/rewards/poin-mall-01'); }}>
                       <img src={img_1} alt="Back Icon" />
                     </button>
                     <h1 className="page-title">Riwayat Poin</h1>

@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { goBack } from '../../lib/backNav.js';
 import { listSupportLinks } from '../../lib/supportLinksApi.js';
 import img_1 from '../../assets/images/102_1724.svg';
-import img_2 from '../../assets/images/7f43db77fdc0a54172b923d3fc56ba8f36714aa6.png';
+import img_2 from '../../assets/images/7f43db77fdc0a54172b923d3fc56ba8f36714aa6.webp';
 import img_3 from '../../assets/images/105_2312.svg';
-import img_4 from '../../assets/images/d9af9b39efedfae7ea21b76fa659e5a945332389.png';
+import img_4 from '../../assets/images/d9af9b39efedfae7ea21b76fa659e5a945332389.webp';
 import img_5 from '../../assets/images/109_2563.svg';
 import img_6 from '../../assets/images/339e4d5bd714d7d8036056a2b0878ac61e305d28.png';
 import img_7 from '../../assets/images/109_2563.svg';
-import img_8 from '../../assets/images/9248a93a677bc363e73808d6da7651b37a1c67e1.png';
+import img_8 from '../../assets/images/9248a93a677bc363e73808d6da7651b37a1c67e1.webp';
 import img_9 from '../../assets/images/109_2563.svg';
 import img_10 from '../../assets/images/109_2563.svg';
-import img_11 from '../../assets/images/488ceb8a244e7d386619c31c6d4e0de7cea5748b.png';
+import img_11 from '../../assets/images/488ceb8a244e7d386619c31c6d4e0de7cea5748b.webp';
 import img_12 from '../../assets/images/109_2563.svg';
 import img_13 from '../../assets/images/4b58d96ea77e63381c68a7f8cef8cc166f671df9.png';
 import img_14 from '../../assets/images/109_2563.svg';
@@ -264,7 +265,7 @@ export default function HubungiCs() {
       <div>
               <section id="section-header">
                 <header className="app-header">
-                  <a href="#" className="btn-back" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <a href="#" className="btn-back" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                     <img src={img_1} alt="" />
                   </a>
                   <h1 className="header-title">Hubungi CS</h1>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { goBack } from '../../lib/backNav.js';
 /* POST /api/vouchers/claim/ — redeem a voucher code for a balance credit. */
 import { claimVoucher } from '../../lib/vouchersApi.js';
 /* API notifications (success/error) open the shared /notif screen. */
@@ -9,7 +10,7 @@ import ListState from '../../components/ListState.jsx';
 import { useTransactionFeed } from '../../lib/useTransactionFeed.js';
 import { formatAmountLabel, formatRupiah, parseDate } from '../../lib/transactionFormat.js';
 import img_1 from '../../assets/images/102_2017.svg';
-import img_2 from '../../assets/images/6ea7969d642adfbb038f569e995e7ac2259bb145.png';
+import img_2 from '../../assets/images/6ea7969d642adfbb038f569e995e7ac2259bb145.webp';
 import img_3 from '../../assets/images/102_2039.svg';
 import img_4 from '../../assets/images/102_2053.svg';
 import img_5 from '../../assets/images/83771caf3290878852dfea1999f709535d158b8b.png';
@@ -340,7 +341,7 @@ export default function RedeemKode() {
       <div>
               <section id="section-header">
                 <header className="header-container">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                     <img src={img_1} alt="Back" />
                   </button>
                   <h1 className="header-title">Redeem Kode</h1>

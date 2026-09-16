@@ -8,6 +8,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import { useShowNotif } from '../../../lib/useShowNotif.js';
 /* Ulasan pengguna: GET /api/reviews/ untuk daftar, POST /api/reviews/ (multipart
    text + gambar) untuk kirim ulasan dari step 2. */
@@ -354,6 +355,9 @@ function BeriRating01() {
   const ratingText = (ratingTenths / 10).toFixed(1);
   /* null = API belum termuat/gagal; daftar asli dirender begitu data datang. */
   const [reviews, setReviews] = useState(null);
+  /* URL gambar ulasan yang gagal dimuat (mis. file belum tersedia di server) —
+     slotnya diganti placeholder, bukan ikon gambar rusak. */
+  const [failedReviewImages, setFailedReviewImages] = useState(() => new Set());
 
   /* +1 tiap 10 detik; hitungan live di-reset saat halaman ditutup. */
   useEffect(() => {
@@ -381,7 +385,7 @@ function BeriRating01() {
       <div>
               <section id="section-header">
                 <header className="header">
-                  <a href="#" className="back-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <a href="#" className="back-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); goBack('/index/profil'); }}>
                     <img src={S1_img_1} alt="" />
                   </a>
                   <h1 className="page-title">Ulasan Pengguna</h1>
@@ -418,15 +422,29 @@ function BeriRating01() {
                     <div className="review-card" key={review.id}>
                       {review.images?.length > 0 && (
                         <div className={`review-images ${review.images.length > 1 ? 'double' : 'single'}`}>
-                          {review.images.slice(0, 2).map((image) => (
-                            <img key={image.id} className="review-image" src={image.image} alt="" />
-                          ))}
+                          {review.images.slice(0, 2).map((image) =>
+                            failedReviewImages.has(image.image) ? (
+                              <div key={image.id} className="review-image-placeholder" />
+                            ) : (
+                              <img
+                                key={image.id}
+                                className="review-image"
+                                src={image.image}
+                                alt=""
+                                onError={() =>
+                                  setFailedReviewImages((prev) =>
+                                    prev.has(image.image) ? prev : new Set(prev).add(image.image)
+                                  )
+                                }
+                              />
+                            )
+                          )}
                         </div>
                       )}
                       <div className="review-content">
                         <div className="review-header">
                           <div className="user-info">
-                            <div className="avatar" />
+                            {/* <div className="avatar" /> */}
                             <div className="user-name">{review.user_display_name}</div>
                           </div>
                           <div className="review-date">{formatRelativeDate(review.created_at)}</div>
@@ -814,7 +832,7 @@ function BeriRating02() {
               <section id="section-header">
                 <div className="app-container">
                   <header className="site-header">
-                    <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/profil/beri-rating'); }}>
                       <img src={S2_img_1} alt="Back Icon" />
                     </button>
                     <h1 className="header-title">Beri Rating</h1>

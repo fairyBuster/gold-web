@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { goBack } from '../../lib/backNav.js';
 import { useShowNotif } from '../../lib/useShowNotif.js';
 import { changePassword, getAccountInfo } from '../../lib/authApi.js';
 import pkg from '../../../package.json';
@@ -344,7 +345,7 @@ export default function Setelan() {
     try {
       await changePassword({ phone, oldPassword: currentPassword, newPassword, newPasswordConfirm: confirmPassword });
       showNotif({ variant: 'success', title: 'Kata Sandi Berhasil Diubah', description: 'Kata sandi kamu berhasil diubah.' });
-      window.history.back();
+      goBack('/index/profil');
     } catch (err) {
       /* Penanda verifikasi kata sandi lama ada di payload.old_password —
          teks yang tampil tetap ditulis frontend (lihat apiClient). */
@@ -378,7 +379,7 @@ export default function Setelan() {
       <div>
               <section id="section-header">
                 <header className="app-header container">
-                  <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/profil'); }}>
                     <img src={img_1} alt="" />
                   </button>
                   <h1 className="header-title">Setelan</h1>

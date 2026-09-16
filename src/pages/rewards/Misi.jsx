@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { goBack } from '../../lib/backNav.js';
 /* Data: GET /api/missions/ drives the hero goal, stats and reward cards, and
    the Klaim button posts to POST /api/missions/claim/. The referral code comes
    from account-info and the Diundang/Bergabung counts from downline-stats —
@@ -12,7 +13,7 @@ import { formatRupiah } from '../../lib/transactionFormat.js';
 import NotifCard from '../../components/NotifCard.jsx';
 import { useShowNotif } from '../../lib/useShowNotif.js';
 import img_1 from '../../assets/images/103_2125.svg';
-import img_2 from '../../assets/images/17e7f2f606a56322420437f792ab8f3eef96e321.png';
+import img_2 from '../../assets/images/17e7f2f606a56322420437f792ab8f3eef96e321.webp';
 import img_3 from '../../assets/images/103_2159.svg';
 import img_4 from '../../assets/images/103_2164.svg';
 import img_5 from '../../assets/images/103_2198.svg';
@@ -497,9 +498,11 @@ export default function Misi() {
 
   const referralCode = String(account?.referral_code || '').trim();
   /* Salin/Bagikan memakai link pendaftaran dengan kode tertanam (?ref=KODE),
-     format yang dibaca halaman register untuk mengisi kode promo otomatis. */
+     format yang dibaca halaman register untuk mengisi kode promo otomatis.
+     Link memakai bentuk hash (/#/index/...) supaya bisa dibuka di host statis
+     mana pun tanpa aturan fallback server. */
   const referralLink = referralCode
-    ? `${window.location.origin}/auth/register-01?ref=${encodeURIComponent(referralCode)}`
+    ? `${window.location.origin}/#/index/auth/register-01?ref=${encodeURIComponent(referralCode)}`
     : '';
 
   /* Klaim: POST /api/missions/claim/ — sukses menambah saldo lalu menyegarkan
@@ -575,7 +578,7 @@ export default function Misi() {
       <div>
               <section id="section-header">
                 <header className="header">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                     <img src={img_1} alt="" />
                   </button>
                   <h1 className="header-title">Misi</h1>

@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import NotifCard from '../../../components/NotifCard.jsx';
 import { listAddresses } from '../../../lib/addressApi.js';
 /* Tukar emas (balance_hold → emas fisik): harga emas, tarif cetak, ongkir,
@@ -21,21 +22,21 @@ import { useShowNotif } from '../../../lib/useShowNotif.js';
 
 /* Step 1 imports (renamed to avoid collisions with other steps) */
 import S1_img_1 from '../../../assets/images/36_668.svg';
-import S1_img_2 from '../../../assets/images/4ff45e57bc897e30533b9ea96068fac470c7dbbe.png';
+import S1_img_2 from '../../../assets/images/4ff45e57bc897e30533b9ea96068fac470c7dbbe.webp';
 import S1_img_3 from '../../../assets/images/97196130a1fd8b9d5ad63809c0373395554691fe.png';
 
 /* Step 2 imports (renamed to avoid collisions with other steps) */
 import S2_img_1 from '../../../assets/images/34_305.svg';
 import S2_img_2 from '../../../assets/images/97196130a1fd8b9d5ad63809c0373395554691fe.png';
-import S2_img_3 from '../../../assets/images/gold.png';
+import S2_img_3 from '../../../assets/images/gold.webp';
 
 /* Step 3 imports (renamed to avoid collisions with other steps) */
-import S3_img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.png';
+import S3_img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.webp';
 import S3_img_2 from '../../../assets/images/40_904.svg';
 import S3_img_3 from '../../../assets/images/40_904.svg';
 
 /* Background artwork shared by all Cetak Emas steps (assigned inline in JSX). */
-import pageBg from '../../../assets/images/083535.png';
+import pageBg from '../../../assets/images/083535.webp';
 
 
 /* ================= Step 1 — /assets/cetak-emas-01 (was CetakEmas01.jsx) ================= */
@@ -578,7 +579,7 @@ function CetakEmas01() {
       <div className="app-container">
               <section id="section-header">
                 <header className="header">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); navigate('/index/home'); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                     <img src={S1_img_1} alt="" />
                   </button>
                   <h1 className="page-title">Cetak Emas</h1>
@@ -1110,7 +1111,7 @@ function CetakEmas02() {
               <section id="section-header" style={{width: '100%', display: 'flex', justifyContent: 'center'}}>
                 <div className="mobile-container header-container">
                   <header className="header">
-                    <button className="back-btn" aria-label="Back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <button className="back-btn" aria-label="Back" onClick={(e) => { e.preventDefault(); goBack('/index/assets/cetak-emas-01'); }}>
                       <img src={S2_img_1} alt="Back Icon" />
                     </button>
                     <h1 className="page-title">Ringkasan Pesanan</h1>

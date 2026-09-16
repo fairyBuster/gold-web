@@ -1,14 +1,15 @@
 import img_1 from '../../assets/images/156_1523.svg';
+import { goBack } from '../../lib/backNav.js';
 import img_2 from '../../assets/images/6cc160dc9332040e2f6f3ee84020aa0a2519653a.png';
 import img_3 from '../../assets/images/0df4ee1cbf5b1725acac2d9d08fb45019361fa6e.png';
 import img_4 from '../../assets/images/77d24c42cf84c32b2b4b166aa82a20eab63965b9.png';
-import img_5 from '../../assets/images/6cb5bd9ac1f6d69bd474bb083eb9aef1b43ece63.png';
+import img_5 from '../../assets/images/6cb5bd9ac1f6d69bd474bb083eb9aef1b43ece63.webp';
 import img_6 from '../../assets/images/91d0ab97f9ac67690ef668b9d7be1822064ebf26.png';
-import img_7 from '../../assets/images/ea189c93af3cf445b247df84a4c0aac9334bc27d.png';
+import img_7 from '../../assets/images/ea189c93af3cf445b247df84a4c0aac9334bc27d.webp';
 import img_8 from '../../assets/images/26_530.svg';
 import img_9 from '../../assets/images/26_537.svg';
 /* Full-page background artwork (same asset as the login screen). */
-import img_10 from '../../assets/images/083535.png';
+import img_10 from '../../assets/images/083535.webp';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -277,7 +278,7 @@ export default function TentangKami() {
       <div>
               <section id="section-header">
                 <header className="header">
-                  <button className="back-btn" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                     <img src={img_1} alt="Back" />
                   </button>
                   <h1 className="header-title">Tentang Kami</h1>

@@ -9,6 +9,7 @@
    ============================================================================ */
 
 import { useNavigate, Link } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import { useEffect, useRef, useState } from 'react';
 import img_4 from '../../../assets/images/11_364.svg';
 import img_5 from '../../../assets/images/11_358.svg';
@@ -18,20 +19,20 @@ import img_8 from '../../../assets/images/11_384.svg';
 
 /* Step 1 imports (renamed to avoid collisions with other steps) */
 import S1_img_1 from '../../../assets/images/156_1523.svg';
-import S1_img_2 from '../../../assets/images/e1b6a897bc21b04dbaf80b15b093a845dcebf04d.png';
+import S1_img_2 from '../../../assets/images/e1b6a897bc21b04dbaf80b15b093a845dcebf04d.webp';
 import S1_img_3 from '../../../assets/images/11_243.svg';
 
 /* Step 2 imports (renamed to avoid collisions with other steps) */
 import S2_img_1 from '../../../assets/images/156_1523.svg';
-import S2_img_2 from '../../../assets/images/ea1bb9cef82aba4ecc7496b3f5ea8102b089a13d.png';
+import S2_img_2 from '../../../assets/images/ea1bb9cef82aba4ecc7496b3f5ea8102b089a13d.webp';
 
 /* Step 3 imports (renamed to avoid collisions with other steps) */
 import S3_img_1 from '../../../assets/images/156_1523.svg';
-import S3_img_2 from '../../../assets/images/e1b6a897bc21b04dbaf80b15b093a845dcebf04d.png';
+import S3_img_2 from '../../../assets/images/e1b6a897bc21b04dbaf80b15b093a845dcebf04d.webp';
 import S3_img_3 from '../../../assets/images/11_358.svg';
 
 /* Step 4 imports (renamed to avoid collisions with other steps) */
-import S4_img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.png';
+import S4_img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.webp';
 
 /* API layer — used by this flow. Step 1 requests the WhatsApp OTP
    (POST /api/auth/request-otp-registered/), step 3 submits the new password
@@ -256,7 +257,7 @@ function LupaPassword01() {
       <div>
               <section id="section-header">
                 <header className="header">
-                  <button className="back-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); goBack('/index/auth/login'); }}>
                     <img src={S1_img_1} alt="" />
                   </button>
                   <h1 className="header-title">Lupa Password</h1>
@@ -560,7 +561,7 @@ function LupaPassword02() {
       <style>{LupaPassword02Styles}</style>
       <section id="verification-screen" className="app-container">
               <header className="header">
-                <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/auth/lupa-password'); }}>
                   <img src={S2_img_1} alt="Back Icon" />
                 </button>
                 <h1 className="header-title">Verifikasi Kode</h1>
@@ -888,7 +889,7 @@ function LupaPassword03() {
       <div>
               <section id="section-header">
                 <header className="header">
-                  <a href="#" className="back-btn" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <a href="#" className="back-btn" onClick={(e) => { e.preventDefault(); goBack('/index/auth/lupa-password-02'); }}>
                     <img src={S3_img_1} alt="Back" />
                   </a>
                   <h1 className="header-title">Buat Password Baru</h1>

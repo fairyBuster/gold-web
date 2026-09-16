@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { goBack } from '../../lib/backNav.js';
 /* Data: GET /api/attendance/logs/calendar/ drives the streak card and the
    monthly grid, and the Absen Sekarang button posts to
    POST /api/attendance/logs/claim/. The calendar follows the server date
@@ -12,7 +13,7 @@ import NotifCard from '../../components/NotifCard.jsx';
 import ListState from '../../components/ListState.jsx';
 import { useShowNotif } from '../../lib/useShowNotif.js';
 import img_1 from '../../assets/images/102_1724.svg';
-import img_2 from '../../assets/images/f8f1a5b57a11f48b4845177ed85bf0e0ce6512a1.png';
+import img_2 from '../../assets/images/f8f1a5b57a11f48b4845177ed85bf0e0ce6512a1.webp';
 import img_3 from '../../assets/images/102_1732.svg';
 import img_4 from '../../assets/images/102_1737.svg';
 import img_check from '../../assets/images/102_1782.svg';
@@ -389,7 +390,7 @@ export default function AbsenHarian() {
       <div>
               <section id="section-header">
                 <header className="header">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                     <img src={img_1} alt="" />
                   </button>
                   <h1 className="header-title">Absen Harian</h1>

@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import BottomNav from '../../components/BottomNav.jsx';
 import NotifCard from '../../components/NotifCard.jsx';
 import PopupKomunitas from '../../components/PopupKomunitas.jsx';
-import img_1 from '../../assets/images/38a55ef245471fd7a368a8008013cd81b2525d61.png';
-import img_2 from '../../assets/images/3d6fb697a044e75c7a6c789438a276b40b37b5b9.png';
+import img_1 from '../../assets/images/38a55ef245471fd7a368a8008013cd81b2525d61.webp';
+import img_2 from '../../assets/images/3d6fb697a044e75c7a6c789438a276b40b37b5b9.webp';
 import img_3 from '../../assets/images/120_3267.svg';
 import img_4 from '../../assets/images/120_3271.svg';
 import img_5 from '../../assets/images/120_3364.svg';
@@ -14,22 +14,22 @@ import img_7 from '../../assets/images/120_3373.svg';
 import img_8 from '../../assets/images/6e7afc8beed777ee8ad0a014432f7422da8ce4ac.png';
 import img_9 from '../../assets/images/120_3286.svg';
 import img_10 from '../../assets/images/05ab16507053b79d47257c0cb8f932cb8e444b74.png';
-import img_11 from '../../assets/images/0682ccf19a5ccac05cf1b55cdf4ce11990d20ded.png';
-import img_12 from '../../assets/images/daa433f6e9556af856198e9d4ecedd96ef8128a8.png';
+import img_11 from '../../assets/images/0682ccf19a5ccac05cf1b55cdf4ce11990d20ded.webp';
+import img_12 from '../../assets/images/daa433f6e9556af856198e9d4ecedd96ef8128a8.webp';
 import img_13 from '../../assets/images/2435cd6c53c354916420eab2f8b2db60cacf59ca.png';
 import img_14 from '../../assets/images/6c978b09e2741a18e62f0ff8b1cee6c908c1f1e0.png';
 import img_15 from '../../assets/images/120_3336.svg';
 import img_16 from '../../assets/images/a.png';
 import img_17 from '../../assets/images/b.png';
-import img_18 from '../../assets/images/a183fe7f42819438be5c49935567e464a5e56f98.png';
+import img_18 from '../../assets/images/a183fe7f42819438be5c49935567e464a5e56f98.webp';
 /* Same card artwork used by the “Harga Emas Hari Ini” cards on AsetSaya/Asset pages. */
 import img_19 from '../../assets/images/d35f294fb1a21fb0aa4f326dc1672ebf0f14686d.png';
 /* "Event & Promosi" banner slides. */
-import img_20 from '../../assets/images/b1.png';
-import img_21 from '../../assets/images/b2.png';
-import img_22 from '../../assets/images/b3.png';
+import img_20 from '../../assets/images/b1.webp';
+import img_21 from '../../assets/images/b2.webp';
+import img_22 from '../../assets/images/b3.webp';
 /* Full-page background artwork (same asset as the login screen). */
-import img_23 from '../../assets/images/083535.png';
+import img_23 from '../../assets/images/083535.webp';
 /* Live gold-price card data (free public sources, cached 5 min). */
 import { fetchGoldPrice, getCachedGoldPrice, formatIDR, formatPercentID } from '../../lib/goldPriceApi.js';
 /* Header greeting user data — GET /api/auth/account-info/. */
@@ -404,6 +404,14 @@ const styles = `
     background-color: #f6f1e9;
     border: 1px solid rgba(26, 20, 16, 0.18);
     border-radius: 14px;
+  }
+  .page-home .news-image {
+    width: 100%;
+    height: 88px;
+    border: 1px solid rgba(26, 20, 16, 0.18);
+    border-radius: 14px;
+    object-fit: cover;
+    display: block;
   }
   .page-home .news-content {
     display: flex;
@@ -806,7 +814,11 @@ export default function Home() {
                       className="news-card"
                       onClick={() => sessionStorage.setItem('je_news_id', String(item.id))}
                     >
-                      <div className="news-image-placeholder" />
+                      {item.image ? (
+                        <img className="news-image" src={item.image} alt={item.title} />
+                      ) : (
+                        <div className="news-image-placeholder" />
+                      )}
                       <div className="news-content">
                         <p className="news-title">{item.title}</p>
                         <span className="news-date">{formatNewsDate(item.published_at)}</span>

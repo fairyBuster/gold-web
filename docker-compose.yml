@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  jelajah-emas-app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: jelajah-emas-app
+    ports:
+      - "3050:3050"
+    restart: unless-stopped

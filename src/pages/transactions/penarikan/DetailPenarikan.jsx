@@ -28,16 +28,16 @@ import { formatRupiah, formatTime, parseDate } from '../../../lib/transactionFor
 import img_4 from '../../../assets/images/11_384.svg';
 
 /* Step 1 imports (renamed to avoid collisions with other steps) */
-import S1_img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.png';
+import S1_img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.webp';
 import S1_img_2 from '../../../assets/images/135_337.svg';
 
 /* Step 2 imports (renamed to avoid collisions with other steps) */
-import S2_img_1 from '../../../assets/images/2a3095d968e2d2a8159ef070663bf69a50f6efb9.png';
+import S2_img_1 from '../../../assets/images/2a3095d968e2d2a8159ef070663bf69a50f6efb9.webp';
 import S2_img_2 from '../../../assets/images/55_592.svg';
 import S2_img_3 from '../../../assets/images/55_592.svg';
 
 /* Step 3 imports (renamed to avoid collisions with other steps) */
-import S3_img_1 from '../../../assets/images/d0c88bff3940350d94087b6d99bd4af93d239625.png';
+import S3_img_1 from '../../../assets/images/d0c88bff3940350d94087b6d99bd4af93d239625.webp';
 import S3_img_2 from '../../../assets/images/11_384.svg';
 import S3_img_3 from '../../../assets/images/11_384.svg';
 

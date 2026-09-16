@@ -1,4 +1,5 @@
 import imgSuccess from '../assets/images/79_692.svg';
+import { goBack } from '../lib/backNav.js';
 import imgError from '../assets/images/notif-error.svg';
 import imgClose from '../assets/images/79_702.svg';
 
@@ -104,7 +105,7 @@ export default function NotifCard({
   const handleClose = (e) => {
     e.preventDefault();
     if (onClose) onClose();
-    else window.history.back();
+    else goBack('/index/home');
   };
 
   const isError = variant === 'error';

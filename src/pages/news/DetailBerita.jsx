@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { goBack } from '../../lib/backNav.js';
 import NotifCard from '../../components/NotifCard.jsx';
 import img_1 from '../../assets/images/41_1038.svg';
 import img_2 from '../../assets/images/67_225.svg';
-import img_3 from '../../assets/images/7f43db77fdc0a54172b923d3fc56ba8f36714aa6.png';
+import img_3 from '../../assets/images/7f43db77fdc0a54172b923d3fc56ba8f36714aa6.webp';
 /* Article detail — GET /api/news/{id}/ (public endpoint). */
 import { getNews, listNews } from '../../lib/newsApi.js';
 
@@ -99,6 +100,14 @@ const styles = `
     color: #a79c8f;
     font-size: 14px;
     font-weight: 400;
+  }
+  .page-detail-berita .cover-image {
+    width: 100%;
+    height: 233.5px;
+    border-radius: 16px;
+    object-fit: cover;
+    display: block;
+    margin-bottom: 16px;
   }
 
   .page-detail-berita .article-header {
@@ -259,7 +268,7 @@ export default function DetailBerita() {
       <div>
               <section id="section-header">
                 <header className="top-nav">
-                  <button className="icon-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="icon-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/berita'); }}>
                     <img src={img_1} alt="" />
                   </button>
                   <button className="icon-btn" aria-label="Buka menu Tim Afiliasi" onClick={(e) => { e.preventDefault(); navigate('/index/affiliate/tim-afiliasi'); }}>
@@ -275,9 +284,13 @@ export default function DetailBerita() {
                   )}
                   {!loading && !error && article && (
                     <>
-                      <div className="cover-image-placeholder">
-                        <span>+ Gambar Sampul Berita</span>
-                      </div>
+                      {article.image ? (
+                        <img className="cover-image" src={article.image} alt={article.title} />
+                      ) : (
+                        <div className="cover-image-placeholder">
+                          <span>+ Gambar Sampul Berita</span>
+                        </div>
+                      )}
                       <div className="article-header">
                         <span className="category-badge">{article.category_name}</span>
                         <h1 className="article-title">{article.title}</h1>

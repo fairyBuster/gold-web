@@ -1,16 +1,30 @@
-import { useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import { QRCodeCanvas } from 'qrcode.react';
 import img_1 from '../../../assets/images/34_305.svg';
 import img_2 from '../../../assets/images/34_313.svg';
-import img_3 from '../../../assets/images/f3c7efd176c45912c54a20b6ff3074df704d1292.png';
+import img_3 from '../../../assets/images/f3c7efd176c45912c54a20b6ff3074df704d1292.webp';
 import img_5 from '../../../assets/images/34_341.svg';
 import img_6 from '../../../assets/images/34_346.svg';
+/* Nominal ditampilkan dari route state (dibuat di Isi Ulang lewat MGM /
+   LPAY / FF Pay). */
+import { formatIDR } from '../../../lib/goldPriceApi.js';
 /* Hasil simpan/bagikan tampil lewat halaman /notif. */
 import { useShowNotif } from '../../../lib/useShowNotif.js';
 
-/* Payload QRIS mockup — diganti payload asli saat backend menyediakannya. */
-const QRIS_PAYLOAD = 'QRIS Jelajah Emas - Pembayaran Rp 100.000';
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+/* Masa berlaku dari `expires_at` ISO UTC gateway; '' bila kosong/tak valid.
+   Ditampilkan dalam zona waktu perangkat. */
+function formatExpiry(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  return `${date.getDate()} ${MONTH_LABELS[date.getMonth()]} ${date.getFullYear()}, ${hh}:${mm}`;
+}
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -142,7 +156,7 @@ const styles = `
     width: auto;
     object-fit: contain;
   }
-  /* Kerangka kode QR — menampilkan QR yang digenerate di komponen. */
+  /* Kerangka kode QR — gambar dari gateway (pay_data) atau generate lokal. */
   .page-qris .qr-placeholder {
     width: 220px;
     height: 232px;
@@ -153,6 +167,21 @@ const styles = `
     justify-content: center;
     align-items: center;
     margin-bottom: 12px;
+  }
+  /* Gambar QR dari gateway (pay_data QR_URL / qr_image LPAY). */
+  .page-qris .qr-image {
+    width: 196px;
+    height: 196px;
+    object-fit: contain;
+    display: block;
+  }
+  /* Teks cadangan saat gambar QR gagal dimuat dan tidak ada konten lokal. */
+  .page-qris .qr-fallback-text {
+    font-size: 12px;
+    color: #a79c8f;
+    text-align: center;
+    line-height: 1.5;
+    padding: 0 16px;
   }
   .page-qris .billing-info {
     text-align: center;
@@ -330,32 +359,86 @@ const styles = `
 
 export default function Qris() {
   const navigate = useNavigate();
+  const location = useLocation();
   const showNotif = useShowNotif();
   const qrBoxRef = useRef(null);
+  /* Gambar QR gateway gagal dimuat → jatuh kembali ke generate lokal. */
+  const [imageFailed, setImageFailed] = useState(false);
+
+  /* Data pembayaran dibuat di Isi Ulang (MGM / LPAY initiate / FF Pay
+     initiate + select-method) dan diteruskan lewat route state; tanpa state
+     (buka langsung / refresh) tidak ada pembayaran aktif. */
+  const payment = (location.state?.qrImageUrl || location.state?.qrUrl || location.state?.qrContent)
+    ? location.state
+    : null;
+
+  useEffect(() => {
+    if (!payment) {
+      showNotif({ title: 'Data Pembayaran Tidak Ditemukan', description: 'Silakan ulangi proses isi ulang saldo.' });
+      navigate('/index/transactions/isi-ulang', { replace: true });
+    }
+  }, [navigate, payment, showNotif]);
+
+  if (!payment) return null;
+
+  const amountLabel = formatIDR(Number(payment.amount) || 0);
+  const expiryLabel = formatExpiry(payment.expiresAt);
+  /* QR tampil sebagai gambar (`pay_data` QR_URL atau `qr_image`); bila
+     gambar tidak ada / gagal dimuat, kontennya (`pay_data` mentah /
+     `qr_string`) digenerate lokal lewat QRCodeCanvas. */
+  const showQrImage = Boolean(payment.qrImageUrl) && !imageFailed;
+  const qrContent = payment.qrContent || payment.qrUrl || '';
 
   const getQrCanvas = () => qrBoxRef.current?.querySelector('canvas') || null;
 
-  /* "Simpan Gambar": unduh kode QR sebagai berkas PNG. */
+  /* "Simpan Gambar": QR generatan lokal diunduh sebagai berkas PNG; gambar
+     gateway berupa data URL (LPAY) diunduh langsung, gambar lintas-origin
+     (MGM) dibuka di tab baru karena tak bisa ditarik lewat canvas. */
   const handleSaveImage = () => {
     const canvas = getQrCanvas();
-    try {
-      if (!canvas) throw new Error('QR belum dirender');
+    if (canvas) {
+      try {
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = 'qris-jelajah-emas.png';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        showNotif({ variant: 'success', title: 'Gambar Disimpan', description: 'Kode QR disimpan ke perangkat kamu.' });
+        return;
+      } catch {
+        /* Unduhan gagal — coba jalur gambar gateway di bawah. */
+      }
+    }
+    if (payment.qrImageUrl) {
+      /* data URL bisa diunduh langsung (atribut download); navigasi tab ke
+         data URL diblokir browser. Gambar lintas-origin dibuka di tab baru. */
+      const isDataUrl = /^data:/i.test(payment.qrImageUrl);
       const link = document.createElement('a');
-      link.href = canvas.toDataURL('image/png');
-      link.download = 'qris-jelajah-emas.png';
+      link.href = payment.qrImageUrl;
+      if (isDataUrl) {
+        link.download = 'qris-jelajah-emas.png';
+      } else {
+        link.target = '_blank';
+        link.rel = 'noopener';
+      }
       document.body.appendChild(link);
       link.click();
       link.remove();
-      showNotif({ variant: 'success', title: 'Gambar Disimpan', description: 'Kode QR disimpan ke perangkat kamu.' });
-    } catch {
-      showNotif({ title: 'Gagal Menyimpan', description: 'Tidak dapat menyimpan gambar. Coba lagi ya.' });
+      showNotif({
+        variant: 'success',
+        title: isDataUrl ? 'Gambar Disimpan' : 'Gambar QR Dibuka',
+        description: isDataUrl ? 'Kode QR disimpan ke perangkat kamu.' : 'Tekan lama gambar QR untuk menyimpannya ke perangkat.',
+      });
+      return;
     }
+    showNotif({ title: 'Gagal Menyimpan', description: 'Tidak dapat menyimpan gambar. Coba lagi ya.' });
   };
 
   /* "Bagikan": pakai Web Share API — utamakan berbagi gambar QR kalau
      didukung; kalau tidak tersedia, detail pembayaran disalin ke clipboard. */
   const handleShare = async () => {
-    const text = 'Bayar Rp 100.000 via QRIS Jelajah Emas. Pilih menu Scan QR di e-wallet atau m-Banking, lalu pindai kodenya.';
+    const text = `Bayar ${amountLabel} via QRIS Jelajah Emas. Pilih menu Scan QR di e-wallet atau m-Banking, lalu pindai kodenya.`;
     const canvas = getQrCanvas();
     let file = null;
     if (canvas) {
@@ -396,7 +479,7 @@ export default function Qris() {
       <div>
               <section id="section-header">
                 <header className="site-header">
-                  <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/transactions/isi-ulang'); }}>
                     <img src={img_1} alt="Back Icon" />
                   </button>
                   <h1 className="page-title">Instruksi Pembayaran</h1>
@@ -409,7 +492,11 @@ export default function Qris() {
                   </div>
                   <div className="status-content">
                     <h2 className="status-title">Menunggu Pembayaran</h2>
-                    <p className="status-subtitle">Selesaikan dalam <span className="highlight-time">14:59</span></p>
+                    <p className="status-subtitle">
+                      {expiryLabel
+                        ? <>Selesaikan sebelum <span className="highlight-time">{expiryLabel}</span></>
+                        : 'Segera selesaikan pembayaran sebelum waktu kedaluwarsa.'}
+                    </p>
                   </div>
                 </div>
               </section>
@@ -419,11 +506,17 @@ export default function Qris() {
                     <img src={img_3} alt="QRIS Logo" className="qris-logo" />
                   </div>
                   <div className="qr-placeholder" ref={qrBoxRef}>
-                    <QRCodeCanvas value={QRIS_PAYLOAD} size={196} fgColor="#1a1410" bgColor="#ffffff" level="M" />
+                    {showQrImage ? (
+                      <img className="qr-image" src={payment.qrImageUrl} alt="Kode QRIS pembayaran" onError={() => setImageFailed(true)} />
+                    ) : qrContent ? (
+                      <QRCodeCanvas value={qrContent} size={196} fgColor="#1a1410" bgColor="#ffffff" level="M" />
+                    ) : (
+                      <p className="qr-fallback-text">Kode QR tidak tersedia. Kembali dan buat ulang pembayaran ya.</p>
+                    )}
                   </div>
                   <div className="billing-info">
                     <p className="billing-label">Total Tagihan</p>
-                    <p className="billing-amount">Rp 100.000</p>
+                    <p className="billing-amount">{amountLabel}</p>
                   </div>
                   <div className="action-buttons">
                     <button className="action-btn" onClick={(e) => { e.preventDefault(); handleSaveImage(); }}>
@@ -452,7 +545,7 @@ export default function Qris() {
                     </li>
                     <li>
                       <div className="step-bullet" />
-                      <p className="step-text">Periksa detail transaksi, pastikan nominal sesuai dengan <strong>Rp 100.000</strong>.</p>
+                      <p className="step-text">Periksa detail transaksi, pastikan nominal sesuai dengan <strong>{amountLabel}</strong>.</p>
                     </li>
                     <li>
                       <div className="step-bullet" />

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { pages } from './pages-data.js';
+import { setBackNavigate } from './lib/backNav.js';
 import ScreenIndex from './ScreenIndex.jsx';
 import WelcomePage from './pages/auth/WelcomePage.jsx';
 import PopupAwal from './pages/auth/PopupAwal.jsx';
@@ -60,10 +61,10 @@ import NotifOverlay from './components/NotifOverlay.jsx';
 
 const labelByPath = Object.fromEntries(pages.map((page) => [page.path, page.label]));
 
-/* Pre-migration paths no longer exist as routes. A tab or bookmark still
-   running the old JS (stale module cache, e.g. via the Cloudflare tunnel)
-   navigates to e.g. /auth/register-02; without this it would miss every
-   route and fall into the catch-all that bounces to Welcome. */
+/* Pre-migration paths no longer exist as routes. Old bookmarks and links
+   arrive here as #/auth/register-02 (main.jsx rewrites the hash-less form
+   into that); without this they would miss every route and fall into the
+   catch-all that bounces to Welcome. */
 const LEGACY_ROOTS = ['auth', 'home', 'assets', 'rewards', 'transactions', 'profil', 'affiliate', 'berita', 'support', 'landing', 'sitemap'];
 
 function LegacyPathRedirect() {
@@ -72,7 +73,7 @@ function LegacyPathRedirect() {
 }
 
 function AppEffects() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -81,28 +82,37 @@ function AppEffects() {
     document.title = label ? `${label} · Jelajah Emas` : 'Jelajah Emas';
   }, [pathname]);
 
+  /* Back buttons call goBack() from lib/backNav.js — it walks in-app
+     history when it exists and otherwise opens the caller's fallback
+     route. The router's navigate() is handed over here because that module
+     lives outside the component tree. */
+  useEffect(() => {
+    setBackNavigate(navigate);
+  }, [navigate]);
+
   /* apiClient emits this when a token-bearing request gets a 401 (the
      session was already cleared there): send the user to login and remember
      where they were so login can send them back. While already on login,
-     leave the form alone. */
+     leave the form alone. The router's location is used (not
+     window.location) because with hash routing the path lives in the hash. */
   useEffect(() => {
     const onUnauthorized = () => {
-      if (window.location.pathname === '/index/auth/login') return;
+      if (pathname === '/index/auth/login') return;
       navigate('/index/auth/login', {
         replace: true,
-        state: { from: `${window.location.pathname}${window.location.search}` },
+        state: { from: `${pathname}${search}` },
       });
     };
     window.addEventListener('je:unauthorized', onUnauthorized);
     return () => window.removeEventListener('je:unauthorized', onUnauthorized);
-  }, [navigate]);
+  }, [navigate, pathname, search]);
 
   return null;
 }
 
 export default function App() {
   return (
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AppEffects />
       {/* Floating notif host — outside <Routes> so it survives route changes. */}
       <NotifOverlay />
@@ -200,6 +210,6 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/index/auth/welcome" replace />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }

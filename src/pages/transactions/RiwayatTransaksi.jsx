@@ -1,17 +1,18 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { goBack } from '../../lib/backNav.js';
 import img_1 from '../../assets/images/109_2465.svg';
-import img_2 from '../../assets/images/77ee91c8dada95217ef849cd09311a9e69dfd60e.png';
+import img_2 from '../../assets/images/77ee91c8dada95217ef849cd09311a9e69dfd60e.webp';
 import img_3 from '../../assets/images/109_2590.svg';
-import img_4 from '../../assets/images/26f0f85c3f131cbe6775a26cf4afe79775404786.png';
+import img_4 from '../../assets/images/26f0f85c3f131cbe6775a26cf4afe79775404786.webp';
 import img_5 from '../../assets/images/109_2590.svg';
-import img_6 from '../../assets/images/b13b7a474443dcb448772d73d8251dbab67b8f14.png';
+import img_6 from '../../assets/images/b13b7a474443dcb448772d73d8251dbab67b8f14.webp';
 import img_7 from '../../assets/images/109_2590.svg';
-import img_8 from '../../assets/images/a0f4e57692255e6234cdb5455f19fda6e1a96e82.png';
+import img_8 from '../../assets/images/a0f4e57692255e6234cdb5455f19fda6e1a96e82.webp';
 import img_9 from '../../assets/images/109_2590.svg';
-import img_10 from '../../assets/images/3996294870fd174373ab40264b02a36e21eea57f.png';
+import img_10 from '../../assets/images/3996294870fd174373ab40264b02a36e21eea57f.webp';
 import img_11 from '../../assets/images/109_2590.svg';
-import pageBg from '../../assets/images/083535.png';
+import pageBg from '../../assets/images/083535.webp';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -204,7 +205,7 @@ export default function RiwayatTransaksi() {
       <div>
               <section id="section-header">
                 <header className="header">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                     <img src={img_1} alt="Back Icon" />
                   </button>
                   <h1 className="page-title">Riwayat Transaksi</h1>

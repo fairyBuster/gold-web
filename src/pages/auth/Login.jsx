@@ -8,7 +8,7 @@ import img_3 from '../../assets/images/9_185.svg';
 import img_4 from '../../assets/images/9_191.svg';
 import img_5 from '../../assets/images/a.png';
 import img_6 from '../../assets/images/b.png';
-import img_7 from '../../assets/images/all_bg.png';
+import img_7 from '../../assets/images/all_bg.webp';
 
 /* API layer — the login form calls POST /api/auth/jwt/identifier-login/. */
 import { loginUser } from '../../lib/authApi.js';

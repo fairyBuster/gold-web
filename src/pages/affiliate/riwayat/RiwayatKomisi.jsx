@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import img_1 from '../../../assets/images/67_135.svg';
-import img_2 from '../../../assets/images/d8da7d40a36530662fd38ce2db2d88617de3e965.png';
+import img_2 from '../../../assets/images/d8da7d40a36530662fd38ce2db2d88617de3e965.webp';
 import img_3 from '../../../assets/images/402d907c628503f9f6fc98788c4a2ed737081803.png';
-import pageBg from '../../../assets/images/083535.png';
+import pageBg from '../../../assets/images/083535.webp';
 import NotifCard from '../../../components/NotifCard.jsx';
 import ListPagination from '../../../components/ListPagination.jsx';
 import ListState from '../../../components/ListState.jsx';
@@ -322,7 +323,7 @@ export default function RiwayatKomisi() {
       <div>
               <section id="section-header">
                 <header className="header">
-                  <a href="#" className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <a href="#" className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                     <img src={img_1} alt="" />
                   </a>
                   <h1 className="page-title">Riwayat Komisi</h1>

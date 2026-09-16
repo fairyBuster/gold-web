@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VA-E2E-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="metrics">pending</pre>
+  <script type="module">
+    /* Verifikasi alur isi ulang terhadap bentuk response asli gateway:
+       - kartu VIRTUAL ACCOUNT memuat VA BRI, Permata, Mandiri, Danamon berurutan;
+       - Lanjutkan pada VA BRI memanggil POST /api/deposits/atpay/initiate-va/
+         dengan { amount, wallet_type: 'BALANCE_DEPOSIT', method: 'BRI' };
+       - kartu VA Danamon mengirim method 'DANAMON' (daftar valid backend:
+         BRI, DANAMON, MANDIRI, PERMATA);
+       - halaman instruksi menampilkan nomor VA dari field `va`, nominal,
+         masa berlaku (expire_time), dan langkah dari method_guide gateway;
+       - kartu QRIS 2 memanggil POST /api/deposits/mgm/initiate/ dengan
+         { amount, wallet_type: 'BALANCE_DEPOSIT', expiry_period: 1440 };
+       - halaman QRIS menampilkan gambar dari `pay_data`, nominal, dan masa
+         berlaku dari `expires_at`;
+       - kartu QRIS 1 (LPAY) memanggil POST /api/deposits/lpay/initiate/
+         { amount, wallet_type, expiry_period }; halaman QRIS menampilkan
+         gambar qr_image (data URL), dan beralih ke QR lokal dari qr_string
+         saat gambar gagal dimuat;
+       - kartu QRIS 4 memanggil POST /api/deposits/ffpay/initiate/ lalu
+         POST /api/deposits/ffpay/select-method/ { ref_id, method: 'QRIS' };
+         halaman QRIS menampilkan QR generatan lokal dari konten pay_data
+         (pay_data_type 'PG_URL') + nominal + masa berlaku dari initiate;
+       - kartu Bank Transfer Manual memanggil POST /api/deposits/bankpay/
+         initiate/ { amount, wallet_type, bankcode: 'bank' }; halaman Virtual
+         Account menampilkan nomor VA, nominal unik display_amount, nama
+         pemilik VA, dan langkah cadangan bank BRI;
+       - buka langsung / refresh halaman instruksi (tanpa route state) harus
+         dialihkan kembali ke Isi Ulang disertai notifikasi.
+       Skenario dipilih dari hash awal: .../isi-ulang (full-flow),
+       .../isi-ulang?danamon-check, .../isi-ulang?qris-check,
+       .../isi-ulang?lpay-check, .../isi-ulang?ffpay-check,
+       .../isi-ulang?bankpay-check, .../virtual-account (guard), atau
+       .../qris?qris-guard (guard). */
+    const metrics = {
+      scenario: location.hash.includes('qris-guard')
+        ? 'qris-guard'
+        : location.hash.includes('danamon-check')
+          ? 'danamon-check'
+          : location.hash.includes('qris-check')
+            ? 'qris-check'
+            : location.hash.includes('lpay-check')
+              ? 'lpay-check'
+              : location.hash.includes('ffpay-check')
+                ? 'ffpay-check'
+                : location.hash.includes('bankpay-check')
+                  ? 'bankpay-check'
+                  : location.hash.includes('virtual-account')
+                    ? 'direct-open-guard'
+                    : 'full-flow',
+      errors: [],
+    };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    /* Response asli initiate-va (contoh order BRI dari backend). */
+    const REAL_RESPONSE = {
+      order_num: 'DAT26091619380240994B31',
+      amount: '10000.00',
+      order_sn: 'POLY2026091600051',
+      payment_url: 'https://zSpey8-payment.wowpayidr.com?uuid=f20c7a3c-e4af-4162-bfe4-582d6dd999f3',
+      va: '1456118590022359',
+      selected_method: 'BRI',
+      merchant_reference_id: 'POLY2026091600051',
+      expire_time: '2026-09-17 19:38:04',
+      msn: '220260916193804112692',
+      additional_info: {},
+      method_guide: [
+        { subject: 'Cara Pembayaran melalui ATM', content: '1. Input kartu ATM dan PIN Anda\n2. Pilih menu Transaksi lain\n3. Pilih menu Pembayaran\n4. Pilih menu Lain-lain\n5. Pilih menu BRIVA\n6. Masukkan Nomor Virtual Account ,misal 12345678xxxx\nPilih Ya\n7. Ambil Bukti Bayar\n8. Selesai' },
+        { subject: 'Cara Pembayaran melalui Mobile Banking', content: '1. Login BRI Mobile\n2. Pilih Mobile Banking BRI\n3. Pilih menu Pembayaran\n4. Pilih menu BRIVA\n5. Masukkan Nomor Virtual Account ,misal 88788XXXXXXXXX\n6. Masukkan nominal, misal 100000\n7. Klik Kirim\n8. Masukkan PIN Mobile\n9. Klik Kirim\n10. Bukti Bayar akan dikirim melalui sms\n11. Selesai' },
+        { subject: 'Cara Pembayaran melalui Internet Banking', content: '1. Login Internet Banking\n2. Pilih Pembayaran\n3. Pilih BRIVA\n4. Masukkan Nomor Virtual Account, misal 887XXXXX\n5. Klik Kirim\n6. Masukkan Password\n7. Masukkan mToken\n8. Klik Kirim\n9. Bukti Bayar akan ditampilkan\n10. Selesai' },
+      ],
+      provider: {
+        code: 100,
+        data: { order_sn: 'POLY2026091600051', trade_url: 'https://zSpey8-payment.wowpayidr.com?uuid=f20c7a3c-e4af-4162-bfe4-582d6dd999f3' },
+        message: 'ok',
+      },
+    };
+
+    /* Response asli initiate MGM (QRIS) — `pay_data` diganti data URL PNG 1×1
+       supaya probe deterministik; di produksi berisi URL gambar QR asli. */
+    const QRIS_IMG_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const REAL_QRIS_RESPONSE = {
+      order_num: 'DMG2609162122268B710FF2',
+      ref_id: 'TXN260916EFKS8HXK',
+      amount: 100000,
+      pay_url: 'https://paycash.mgm-pay.com/cashier/payment/PIDN1000872100228826457051136',
+      pay_data: QRIS_IMG_DATA_URL,
+      pay_data_type: 'QR_URL',
+      qr_url: 'https://yCwVLg-payment.plonicstosuva.com/qris/v2/0c8a2b8e88324dc0af5b4a04ff9ba8b0s3sifsusdcljcaa',
+      qr_image: '',
+      expires_at: '2026-09-16T14:52:29.088005+00:00',
+      provider: {
+        success: true,
+        code: '0000',
+        message: 'success',
+        data: {
+          ref_id: 'TXN260916EFKS8HXK',
+          merchant_ref: 'DMG2609162122268B710FF2',
+          status: 'pending',
+          amount: '100000',
+          method: 'QRCODE',
+          pay_url: 'https://paycash.mgm-pay.com/cashier/payment/PIDN1000872100228826457051136',
+          pay_data: QRIS_IMG_DATA_URL,
+          pay_data_type: 'QR_URL',
+          qr_url: 'https://yCwVLg-payment.plonicstosuva.com/qris/v2/0c8a2b8e88324dc0af5b4a04ff9ba8b0s3sifsusdcljcaa',
+          extracted: true,
+          merchant_fee: '0.00',
+          return_url: 'https://jelajahemas.com/#/index/transactions/isi-ulang',
+          expires_at: '2026-09-16T14:52:29.088005+00:00',
+        },
+      },
+    };
+
+    /* Response asli FF Pay: initiate (QR belum ada) + select-method 'QRIS'
+       (pay_data = konten EMV QRIS mentah, pay_data_type 'PG_URL'). */
+    const REAL_FFPAY_INITIATE = {
+      order_num: 'DFF2609162124444D564B03',
+      ref_id: 'TXN260916JJWIW8BJ',
+      amount: 100000,
+      pay_url: 'https://cashier.nextcdn.online/pay/TXN260916JJWIW8BJ/9808360ae89b6abc459bf7bf',
+      pay_data: null,
+      pay_data_type: null,
+      qr_url: null,
+      qr_image: '',
+      expires_at: '2026-09-16T14:54:44.762295Z',
+      provider: {
+        success: true,
+        code: '0000',
+        message: 'success',
+        data: {
+          ref_id: 'TXN260916JJWIW8BJ',
+          merchant_ref: 'DFF2609162124444D564B03',
+          status: 'pending',
+          amount: '100000',
+          method: '',
+          pay_data: null,
+          pay_data_type: null,
+          pay_url: 'https://cashier.nextcdn.online/pay/TXN260916JJWIW8BJ/9808360ae89b6abc459bf7bf',
+          return_url: 'https://jelajahemas.com/#/index/transactions/isi-ulang',
+          expires_at: '2026-09-16T14:54:44.762295Z',
+        },
+      },
+    };
+    const FFPay_QR_CONTENT = '00020101021226670016COM.NOBUBANK.WWW01189360050300000885700214260603000007650303UBE51440014ID.CO.QRIS.WWW0303UBE0215ID10265286000125204481253033605409100000.005802ID5917ADJ ALFALLAH CELL6006MALANG61056511162710108MAXL2ON10618pay_MafgsArezy55020703A010804POSP99180002000108202609166304B49D';
+    const REAL_FFPAY_SELECT = {
+      ref_id: 'TXN260916JJWIW8BJ',
+      merchant_ref: 'DFF2609162124444D564B03',
+      method: 'QRIS',
+      pay_data: FFPay_QR_CONTENT,
+      pay_data_type: 'PG_URL',
+      pay_url: 'https://safe.everlastting.com/static/index.html?amount=100000&code=' + encodeURIComponent(FFPay_QR_CONTENT) + '&msn=220260916212634149895&type=QRIS',
+    };
+
+    /* Response asli lpay/initiate: gambar QR (qr_image, data URL) + konten
+       EMV (qr_string) langsung tersedia; gambar diganti data URL PNG 1×1
+       supaya probe deterministik. */
+    const LPAY_QR_CONTENT = '00020101021226670016COM.NOBUBANK.WWW01189360050312600002000214260716000013460303UKE51440014ID.CO.QRIS.WWW0303UKE0215ID10265507988665204481253033605409100000.005802ID5914Jupriyono cell6015JAKARTA SELATAN61051292062780108MAXMM6AB062526091600000000001177725520703A010804POSP99180002000108202609166304F29E';
+    const REAL_LPAY_RESPONSE = {
+      order_num: 'DLP2609162306549996690A',
+      ref_id: 'TXN260916MNIG1MUO',
+      amount: 100000,
+      pay_url: 'https://payment.voqzen.com/pay?sessionId=b0a9cbf3-938a-4ca5-8554-080c44dc3985',
+      pay_data: null,
+      pay_data_type: 'PG_URL',
+      qr_url: null,
+      qr_string: LPAY_QR_CONTENT,
+      qr_image: QRIS_IMG_DATA_URL,
+      expires_at: '2026-09-16T16:36:55.817784Z',
+      provider: {
+        success: true,
+        code: '0000',
+        message: 'success',
+        data: {
+          ref_id: 'TXN260916MNIG1MUO',
+          merchant_ref: 'DLP2609162306549996690A',
+          status: 'pending',
+          amount: '100000',
+          method: '3560',
+          pay_data: null,
+          pay_data_type: 'PG_URL',
+          pay_url: 'https://payment.voqzen.com/pay?sessionId=b0a9cbf3-938a-4ca5-8554-080c44dc3985',
+          return_url: 'https://jelajahemas.com/#/index/transactions/isi-ulang',
+          expires_at: '2026-09-16T16:36:55.817784Z',
+        },
+      },
+    };
+
+    /* Response asli bankpay/initiate: transfer bank manual via VA BRI dengan
+       nominal unik display_amount ("50,862" untuk request 50000). */
+    const REAL_BANKPAY_RESPONSE = {
+      order_num: 'DBP26091622301463D4C31F',
+      amount: '50000.00',
+      display_amount: '50,862',
+      pay_url: 'https://recall.bkpay.top/Pay-pay-bankpay.aspx?token=YTgwZGY5ZTViZTRkODAwNTMxNGMyYzcxNWIxMTVkN2NBNHArYm4zYTgrYnlJREd5L3JiaklqOWw0eVVZamVQMjU2SjJYU2VXNURwakd0M25YTlhJN0phZ2ZMZWdoZ1ZiVVgraUgyQVhOaEE4dzVKWlhXNW9jZ21kVnNOVGFlWXV2MjhMZ3pLaGpxMFZveVdXVnNyU2FTL2I4U1lwc2JiYg%3D%3D',
+      qr_code: '',
+      va_number: '479401000081562',
+      va_bank: 'BRI Virtual Account',
+      va_name: 'IRWATI YUNITA',
+      provider: {
+        returncode: '200',
+        payurl: 'https://recall.bkpay.top/Pay-pay-bankpay.aspx?token=YTgwZGY5ZTViZTRkODAwNTMxNGMyYzcxNWIxMTVkN2NBNHArYm4zYTgrYnlJREd5L3JiaklqOWw0eVVZamVQMjU2SjJYU2VXNURwakd0M25YTlhJN0phZ2ZMZWdoZ1ZiVVgraUgyQVhOaEE4dzVKWlhXNW9jZ21kVnNOVGFlWXV2MjhMZ3pLaGpxMFZveVdXVnNyU2FTL2I4U1lwc2JiYg%3D%3D',
+      },
+    };
+
+    /* Mock backend: initiate-va mengembalikan payload asli di atas (body
+       request direkam), sisanya /api/* dijawab {} supaya halaman tetap tenang. */
+    const realFetch = window.fetch.bind(window);
+    window.fetch = async (url, init = {}) => {
+      const target = String(url);
+      if (target.includes('/api/deposits/mgm/initiate/')) {
+        try { metrics.qrisRequestBody = JSON.parse(init.body); } catch { metrics.qrisRequestBody = init.body; }
+        return new Response(JSON.stringify(REAL_QRIS_RESPONSE), {
+          status: 200, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (target.includes('/api/deposits/ffpay/initiate/')) {
+        try { metrics.ffpayInitiateBody = JSON.parse(init.body); } catch { metrics.ffpayInitiateBody = init.body; }
+        return new Response(JSON.stringify(REAL_FFPAY_INITIATE), {
+          status: 200, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (target.includes('/api/deposits/ffpay/select-method/')) {
+        try { metrics.ffpaySelectBody = JSON.parse(init.body); } catch { metrics.ffpaySelectBody = init.body; }
+        return new Response(JSON.stringify(REAL_FFPAY_SELECT), {
+          status: 200, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (target.includes('/api/deposits/lpay/initiate/')) {
+        try { metrics.lpayRequestBody = JSON.parse(init.body); } catch { metrics.lpayRequestBody = init.body; }
+        return new Response(JSON.stringify(REAL_LPAY_RESPONSE), {
+          status: 200, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (target.includes('/api/deposits/bankpay/initiate/')) {
+        try { metrics.bankpayRequestBody = JSON.parse(init.body); } catch { metrics.bankpayRequestBody = init.body; }
+        return new Response(JSON.stringify(REAL_BANKPAY_RESPONSE), {
+          status: 200, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (target.includes('/api/deposits/atpay/initiate-va/')) {
+        try { metrics.requestBody = JSON.parse(init.body); } catch { metrics.requestBody = init.body; }
+        return new Response(JSON.stringify(REAL_RESPONSE), {
+          status: 200, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (target.includes('/api/')) {
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return realFetch(url, init);
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+    if (!location.hash) location.hash = '#/index/transactions/isi-ulang';
+
+    /* Nama asset ber-hash diambil dari index.html dist, lalu bundle diimpor
+       supaya SPA berjalan persis seperti produksi. */
+    const html = await (await realFetch('/index.html')).text();
+    for (const m of html.matchAll(/href="(\/assets\/[^"]+\.css)"/g)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = m[1];
+      document.head.appendChild(link);
+    }
+    const entry = html.match(/src="(\/assets\/[^"]+\.js)"/);
+    if (!entry) {
+      metrics.fatal = 'entry asset not found';
+      document.getElementById('metrics').textContent = JSON.stringify(metrics, null, 2);
+      throw new Error('no entry asset');
+    }
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, timeout = 10000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const value = fn();
+        if (value) return value;
+        await sleep(50);
+      }
+      return null;
+    };
+
+    await import(entry[1]);
+
+    if (metrics.scenario === 'direct-open-guard') {
+      /* Tanpa route state tidak ada deposit aktif: harus bounce + notifikasi. */
+      metrics.bouncedToIsiUlang = Boolean(await waitFor(() => location.hash.includes('isi-ulang')));
+      metrics.guardNotifShown = Boolean(await waitFor(() => document.body.textContent.includes('Data Pembayaran Tidak Ditemukan'), 3000));
+      metrics.passed = metrics.bouncedToIsiUlang && metrics.guardNotifShown && metrics.errors.length === 0;
+    } else if (metrics.scenario === 'danamon-check') {
+      /* Kartu VA Danamon harus mengirim method 'DANAMON'. */
+      await waitFor(() => document.querySelector('.page-isi-ulang'));
+      const card = [...document.querySelectorAll('.page-isi-ulang .payment-card')]
+        .find((el) => el.querySelector('.method-name')?.textContent.trim() === 'VA Danamon');
+      card?.click();
+      const input = document.querySelector('.page-isi-ulang .amount-input');
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      setter.call(input, '10000');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('.page-isi-ulang .btn-primary')?.click();
+      await waitFor(() => metrics.requestBody);
+      metrics.danamonMethodSent = metrics.requestBody?.method || '';
+      metrics.passed = metrics.danamonMethodSent === 'DANAMON' && metrics.errors.length === 0;
+    } else if (metrics.scenario === 'qris-check') {
+      /* Kartu QRIS 2 harus memanggil mgm/initiate (amount number), lalu
+         halaman QRIS menampilkan gambar pay_data + nominal + masa berlaku. */
+      await waitFor(() => document.querySelector('.page-isi-ulang'));
+      const card = [...document.querySelectorAll('.page-isi-ulang .payment-card')]
+        .find((el) => el.querySelector('.method-name')?.textContent.trim() === 'QRIS 2');
+      card?.click();
+      const input = document.querySelector('.page-isi-ulang .amount-input');
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      setter.call(input, '100000');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('.page-isi-ulang .btn-primary')?.click();
+      metrics.qrisNavigated = Boolean(await waitFor(() => location.hash.includes('transactions/qris') && document.querySelector('.page-qris .qr-image')));
+      metrics.qrisImageSrc = document.querySelector('.page-qris .qr-image')?.getAttribute('src') || '';
+      metrics.qrisAmountShown = document.querySelector('.page-qris .billing-amount')?.textContent.trim() || '';
+      metrics.qrisExpiryShown = document.querySelector('.page-qris .highlight-time')?.textContent.trim() || '';
+      metrics.qrisStepAmount = [...document.querySelectorAll('.page-qris .step-text strong')].map((el) => el.textContent.trim());
+      const expires = new Date('2026-09-16T14:52:29.088005+00:00');
+      const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const qrisExpiryExpected = `${expires.getDate()} ${MONTHS[expires.getMonth()]} ${expires.getFullYear()}, ${String(expires.getHours()).padStart(2, '0')}:${String(expires.getMinutes()).padStart(2, '0')}`;
+      metrics.passed =
+        JSON.stringify(metrics.qrisRequestBody) === JSON.stringify({ amount: 100000, wallet_type: 'BALANCE_DEPOSIT', expiry_period: 1440 }) &&
+        metrics.qrisNavigated &&
+        metrics.qrisImageSrc === QRIS_IMG_DATA_URL &&
+        metrics.qrisAmountShown === 'Rp 100.000' &&
+        metrics.qrisExpiryShown === qrisExpiryExpected &&
+        metrics.qrisStepAmount.includes('Rp 100.000') &&
+        metrics.errors.length === 0;
+    } else if (metrics.scenario === 'lpay-check') {
+      /* Kartu QRIS 1 (LPAY): lpay/initiate membawa qr_image (data URL) +
+         qr_string; halaman QRIS menampilkan gambar QR, lalu jatuh ke QR
+         generatan lokal dari qr_string begitu gambar gagal dimuat. */
+      await waitFor(() => document.querySelector('.page-isi-ulang'));
+      const card = [...document.querySelectorAll('.page-isi-ulang .payment-card')]
+        .find((el) => el.querySelector('.method-name')?.textContent.trim() === 'QRIS 1');
+      card?.click();
+      const input = document.querySelector('.page-isi-ulang .amount-input');
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      setter.call(input, '100000');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('.page-isi-ulang .btn-primary')?.click();
+      metrics.lpayNavigated = Boolean(await waitFor(() => location.hash.includes('transactions/qris') && document.querySelector('.page-qris .qr-image')));
+      metrics.lpayImageSrc = document.querySelector('.page-qris .qr-image')?.getAttribute('src') || '';
+      metrics.lpayAmountShown = document.querySelector('.page-qris .billing-amount')?.textContent.trim() || '';
+      metrics.lpayExpiryShown = document.querySelector('.page-qris .highlight-time')?.textContent.trim() || '';
+      /* Simulasi gambar gagal dimuat → konten qr_string digenerate lokal. */
+      document.querySelector('.page-qris .qr-image')?.dispatchEvent(new Event('error'));
+      metrics.lpayCanvasFallback = Boolean(await waitFor(() => document.querySelector('.page-qris .qr-placeholder canvas')));
+      metrics.lpayImageGone = !document.querySelector('.page-qris .qr-image');
+      const lexpires = new Date('2026-09-16T16:36:55.817784Z');
+      const LMONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const lpayExpiryExpected = `${lexpires.getDate()} ${LMONTHS[lexpires.getMonth()]} ${lexpires.getFullYear()}, ${String(lexpires.getHours()).padStart(2, '0')}:${String(lexpires.getMinutes()).padStart(2, '0')}`;
+      metrics.passed =
+        JSON.stringify(metrics.lpayRequestBody) === JSON.stringify({ amount: 100000, wallet_type: 'BALANCE_DEPOSIT', expiry_period: 1440 }) &&
+        metrics.lpayNavigated &&
+        metrics.lpayImageSrc === QRIS_IMG_DATA_URL &&
+        metrics.lpayAmountShown === 'Rp 100.000' &&
+        metrics.lpayExpiryShown === lpayExpiryExpected &&
+        metrics.lpayCanvasFallback &&
+        metrics.lpayImageGone &&
+        metrics.errors.length === 0;
+    } else if (metrics.scenario === 'ffpay-check') {
+      /* Kartu QRIS 4: ffpay/initiate (ref_id) → select-method 'QRIS' (konten
+         QR pay_data) → halaman QRIS (QR generatan lokal + nominal + expiry). */
+      await waitFor(() => document.querySelector('.page-isi-ulang'));
+      const card = [...document.querySelectorAll('.page-isi-ulang .payment-card')]
+        .find((el) => el.querySelector('.method-name')?.textContent.trim() === 'QRIS 4');
+      card?.click();
+      const input = document.querySelector('.page-isi-ulang .amount-input');
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      setter.call(input, '100000');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('.page-isi-ulang .btn-primary')?.click();
+      metrics.ffpayNavigated = Boolean(await waitFor(() => location.hash.includes('transactions/qris') && document.querySelector('.page-qris .qr-placeholder canvas')));
+      metrics.ffpayQrCanvasShown = Boolean(document.querySelector('.page-qris .qr-placeholder canvas'));
+      metrics.ffpayQrImageAbsent = !document.querySelector('.page-qris .qr-image');
+      metrics.ffpayAmountShown = document.querySelector('.page-qris .billing-amount')?.textContent.trim() || '';
+      metrics.ffpayExpiryShown = document.querySelector('.page-qris .highlight-time')?.textContent.trim() || '';
+      const fexpires = new Date('2026-09-16T14:54:44.762295Z');
+      const FMONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const ffpayExpiryExpected = `${fexpires.getDate()} ${FMONTHS[fexpires.getMonth()]} ${fexpires.getFullYear()}, ${String(fexpires.getHours()).padStart(2, '0')}:${String(fexpires.getMinutes()).padStart(2, '0')}`;
+      metrics.passed =
+        JSON.stringify(metrics.ffpayInitiateBody) === JSON.stringify({ amount: 100000, wallet_type: 'BALANCE_DEPOSIT', expiry_period: 1440 }) &&
+        JSON.stringify(metrics.ffpaySelectBody) === JSON.stringify({ ref_id: 'TXN260916JJWIW8BJ', method: 'QRIS' }) &&
+        metrics.ffpayNavigated &&
+        metrics.ffpayQrCanvasShown &&
+        metrics.ffpayQrImageAbsent &&
+        metrics.ffpayAmountShown === 'Rp 100.000' &&
+        metrics.ffpayExpiryShown === ffpayExpiryExpected &&
+        metrics.errors.length === 0;
+    } else if (metrics.scenario === 'bankpay-check') {
+      /* Kartu Bank Transfer Manual: bankpay/initiate → halaman VA dengan
+         nomor VA, nominal unik display_amount, dan nama pemilik VA. */
+      await waitFor(() => document.querySelector('.page-isi-ulang'));
+      const card = [...document.querySelectorAll('.page-isi-ulang .payment-card')]
+        .find((el) => el.querySelector('.method-name')?.textContent.trim() === 'Bank Transfer Manual');
+      card?.click();
+      const input = document.querySelector('.page-isi-ulang .amount-input');
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      setter.call(input, '50000');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('.page-isi-ulang .btn-primary')?.click();
+      metrics.bankpayNavigated = Boolean(await waitFor(() => location.hash.includes('virtual-account') && document.querySelector('.page-virtual-account .number')));
+      metrics.bankpayVaShown = document.querySelector('.page-virtual-account .number')?.textContent.trim() || '';
+      metrics.bankpayTitle = document.querySelector('.page-virtual-account .card-header h2')?.textContent.trim() || '';
+      metrics.bankpayAmountShown = document.querySelector('.page-virtual-account .amount')?.textContent.trim() || '';
+      metrics.bankpayStatusDesc = document.querySelector('.page-virtual-account .status-desc')?.textContent.trim() || '';
+      metrics.bankpayNameShown = document.querySelector('.page-virtual-account .account-name')?.textContent.trim() || '';
+      metrics.bankpayFirstStep = document.querySelector('.page-virtual-account .step-item p')?.textContent.trim() || '';
+      metrics.passed =
+        JSON.stringify(metrics.bankpayRequestBody) === JSON.stringify({ amount: 50000, wallet_type: 'BALANCE_DEPOSIT', bankcode: 'bank' }) &&
+        metrics.bankpayNavigated &&
+        metrics.bankpayVaShown === '479401000081562' &&
+        metrics.bankpayTitle === 'Virtual Account BRI' &&
+        metrics.bankpayAmountShown === 'Rp 50.862' &&
+        metrics.bankpayStatusDesc.includes('sesuai nominal') &&
+        metrics.bankpayNameShown === 'a.n. IRWATI YUNITA' &&
+        metrics.bankpayFirstStep === 'Buka aplikasi BRImo, lalu pilih menu pembayaran BRIVA.' &&
+        metrics.errors.length === 0;
+    } else if (metrics.scenario === 'qris-guard') {
+      /* Tanpa route state tidak ada pembayaran aktif: harus bounce + notifikasi. */
+      metrics.bouncedToIsiUlang = Boolean(await waitFor(() => location.hash.includes('isi-ulang')));
+      metrics.guardNotifShown = Boolean(await waitFor(() => document.body.textContent.includes('Data Pembayaran Tidak Ditemukan'), 3000));
+      metrics.passed = metrics.bouncedToIsiUlang && metrics.guardNotifShown && metrics.errors.length === 0;
+    } else {
+      await waitFor(() => document.querySelector('.page-isi-ulang'));
+      metrics.methodNames = [...document.querySelectorAll('.page-isi-ulang .method-name')].map((el) => el.textContent.trim());
+
+      const card = [...document.querySelectorAll('.page-isi-ulang .payment-card')]
+        .find((el) => el.querySelector('.method-name')?.textContent.trim() === 'VA BRI');
+      card?.click();
+      const input = document.querySelector('.page-isi-ulang .amount-input');
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      setter.call(input, '10000');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+
+      document.querySelector('.page-isi-ulang .btn-primary')?.click();
+      metrics.navigatedToVa = Boolean(await waitFor(() => location.hash.includes('virtual-account') && document.querySelector('.page-virtual-account .number')));
+      metrics.vaNumberShown = document.querySelector('.page-virtual-account .number')?.textContent.trim() || '';
+      metrics.cardTitle = document.querySelector('.page-virtual-account .card-header h2')?.textContent.trim() || '';
+      metrics.amountShown = document.querySelector('.page-virtual-account .amount')?.textContent.trim() || '';
+      metrics.expiryShown = document.querySelector('.page-virtual-account .status-desc')?.textContent.trim() || '';
+      metrics.firstStepMobile = document.querySelector('.page-virtual-account .step-item p')?.textContent.trim() || '';
+      metrics.mobileStepCount = document.querySelectorAll('.page-virtual-account .step-item').length;
+
+      [...document.querySelectorAll('.page-virtual-account .tab')].find((t) => t.textContent.trim() === 'ATM')?.click();
+      await sleep(150);
+      metrics.firstStepAtm = document.querySelector('.page-virtual-account .step-item p')?.textContent.trim() || '';
+
+      [...document.querySelectorAll('.page-virtual-account .tab')].find((t) => t.textContent.trim() === 'Internet Banking')?.click();
+      await sleep(150);
+      metrics.firstStepIbank = document.querySelector('.page-virtual-account .step-item p')?.textContent.trim() || '';
+
+      const EXPECTED_METHODS = ['VA BRI', 'VA Permata', 'VA Mandiri', 'VA Danamon'];
+      metrics.passed =
+        EXPECTED_METHODS.every((name, i) => metrics.methodNames[i] === name) &&
+        JSON.stringify(metrics.requestBody) === JSON.stringify({ amount: '10000.00', wallet_type: 'BALANCE_DEPOSIT', method: 'BRI' }) &&
+        metrics.navigatedToVa &&
+        metrics.vaNumberShown === '1456118590022359' &&
+        metrics.cardTitle === 'Virtual Account BRI' &&
+        metrics.amountShown === 'Rp 10.000' &&
+        metrics.expiryShown.includes('17 Sep 2026, 19:38') &&
+        metrics.firstStepMobile === 'Login BRI Mobile' &&
+        metrics.mobileStepCount === 11 &&
+        metrics.firstStepAtm === 'Input kartu ATM dan PIN Anda' &&
+        metrics.firstStepIbank === 'Login Internet Banking' &&
+        metrics.errors.length === 0;
+    }
+
+    document.getElementById('metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'VA-E2E-DONE ' + JSON.stringify({ passed: metrics.passed, scenario: metrics.scenario });
+  </script>
+</body>
+</html>

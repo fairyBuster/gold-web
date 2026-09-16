@@ -9,6 +9,7 @@
    ============================================================================ */
 
 import { Link, useNavigate } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import img_3 from '../../../assets/images/15_353.svg';
 import img_4 from '../../../assets/images/11_384.svg';
 import img_5 from '../../../assets/images/11_384.svg';
@@ -32,7 +33,7 @@ import S2_img_2 from '../../../assets/images/15_353.svg';
 import S3_img_1 from '../../../assets/images/15_398.svg';
 
 /* Step 4 imports (renamed to avoid collisions with other steps) */
-import S4_img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.png';
+import S4_img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.webp';
 
 
 /* ================= Step 1 — /auth/register-01 (was Register01.jsx) ================= */
@@ -311,10 +312,14 @@ const Register01Styles = `
 }
 `;
 
-/* Referral links (e.g. /auth/register-01?ref=KODE) pre-fill the promo code;
-   when that happens the field is locked so the user cannot remove it. */
+/* Referral links (e.g. /#/index/auth/register-01?ref=KODE) pre-fill the promo
+   code; when that happens the field is locked so the user cannot remove it.
+   With hash routing the query sits inside the hash, so read that first and
+   keep the plain search string as a fallback for old-style links. */
 function readReferralFromLink() {
-  const params = new URLSearchParams(window.location.search);
+  const { hash, search } = window.location;
+  const query = hash.includes('?') ? hash.slice(hash.indexOf('?')) : search;
+  const params = new URLSearchParams(query);
   for (const key of ['ref', 'referral', 'referral_code', 'kode']) {
     const value = params.get(key);
     if (value && value.trim()) return value.trim();
@@ -383,7 +388,7 @@ function Register01() {
               <div className="app-container">
                 {/* Header */}
                 <header className="header">
-                  <button className="back-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); goBack('/index/auth/welcome'); }}>
                     <img src={S1_img_1} alt="" />
                   </button>
                   <h1 className="header-title">Buat Akun</h1>
@@ -756,7 +761,7 @@ function Register02() {
       <style>{Register02Styles}</style>
       <section id="section-register" className="app-container">
               <header className="app-header">
-                <button className="btn-back" aria-label="Kembali" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                <button className="btn-back" aria-label="Kembali" onClick={(e) => { e.preventDefault(); goBack('/index/auth/register-01'); }}>
                   <img src={S2_img_1} alt="" />
                 </button>
                 <h1 className="header-title">Buat Password</h1>

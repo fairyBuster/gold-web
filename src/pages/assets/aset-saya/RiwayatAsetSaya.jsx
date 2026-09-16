@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { goBack } from '../../../lib/backNav.js';
 import img_1 from '../../../assets/images/109_2784.svg';
-import img_2 from '../../../assets/images/915ddfcd2308a67f93cb52100b8c074abaa5928b.png';
-import img_3 from '../../../assets/images/b13b7a474443dcb448772d73d8251dbab67b8f14.png';
+import img_2 from '../../../assets/images/915ddfcd2308a67f93cb52100b8c074abaa5928b.webp';
+import img_3 from '../../../assets/images/b13b7a474443dcb448772d73d8251dbab67b8f14.webp';
 import NotifCard from '../../../components/NotifCard.jsx';
 import ListPagination from '../../../components/ListPagination.jsx';
 import ListState from '../../../components/ListState.jsx';
@@ -352,7 +353,7 @@ export default function RiwayatAsetSaya() {
       <div>
               <section id="section-header">
                 <header className="app-header">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/assets/aset-saya-01'); }}>
                     <img src={img_1} alt="Back" />
                   </button>
                   <h1 className="header-title">Riwayat Aset Saya</h1>

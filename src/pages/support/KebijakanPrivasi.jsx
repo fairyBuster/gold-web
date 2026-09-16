@@ -1,4 +1,5 @@
 import img_1 from '../../assets/images/156_1523.svg';
+import { goBack } from '../../lib/backNav.js';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -178,7 +179,7 @@ export default function KebijakanPrivasi() {
               <section id="section-header">
                 <header className="site-header">
                   <div className="container header-container">
-                    <button className="icon-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <button className="icon-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); goBack('/index/auth/welcome'); }}>
                       <img src={img_1} alt="Back Icon" />
                     </button>
                     <h1 className="page-title">KEBIJAKAN PRIVASI JELAJAH EMAS</h1>

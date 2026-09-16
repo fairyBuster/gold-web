@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import img_1 from '../../../assets/images/41_1038.svg';
 import img_2 from '../../../assets/images/33_71.svg';
 /* Page background artwork — assigned inline on the root node (see styles). */
-import img_3 from '../../../assets/images/083535.png';
+import img_3 from '../../../assets/images/083535.webp';
 import { useShowNotif } from '../../../lib/useShowNotif.js';
 /* Saldo dompet isi ulang — GET /api/auth/account-info/. */
 import { getAccountInfo } from '../../../lib/authApi.js';
 import { formatIDR } from '../../../lib/goldPriceApi.js';
+/* VA channels create their deposit through ATPAY; QRIS channels through MGM,
+   LPAY, or FF Pay (initiate + select-method); Bank Transfer Manual through
+   BankPay (nomor VA). */
+import { extractBankpayInfo, extractExpireTime, extractMethodGuide, extractQrisData, extractRefId, extractVaNumber, initiateDepositBankpay, initiateDepositFfpay, initiateDepositLpay, initiateDepositQris, initiateDepositVa, selectFfpayMethod } from '../../../lib/depositsApi.js';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -296,13 +301,21 @@ const styles = `
   }
 `;
 
-/* Deposit channels, grouped per category; each channel opens its payment page. */
+/* Deposit channels, grouped per category; each channel opens its payment page.
+   VA channels carry the ATPAY `method` bank code used by
+   POST /api/deposits/atpay/initiate-va/; `qris: true` channels go through
+   POST /api/deposits/mgm/initiate/; `lpay: true` channels through
+   POST /api/deposits/lpay/initiate/; `ffpayQris: true` channels through
+   POST /api/deposits/ffpay/initiate/ + select-method; `bankpay: true` channel
+   through POST /api/deposits/bankpay/initiate/ (nomor VA). */
 const PAYMENT_CATEGORIES = ['VIRTUAL ACCOUNT', 'E-WALLET & QRIS'];
+const MIN_DEPOSIT = 10000;
 const PAYMENT_METHODS = [
   {
     id: 'va_bri',
     category: 'VIRTUAL ACCOUNT',
     name: 'VA BRI',
+    method: 'BRI',
     desc: 'Bayar melalui ATM, m-Banking, atau Internet Banking BRI.',
     route: '/index/transactions/virtual-account',
   },
@@ -310,21 +323,40 @@ const PAYMENT_METHODS = [
     id: 'va_permata',
     category: 'VIRTUAL ACCOUNT',
     name: 'VA Permata',
+    method: 'PERMATA',
     desc: "Bayar melalui ATM, Mbanking Permata, atau Internet Banking Permata.",
+    route: '/index/transactions/virtual-account',
+  },
+  {
+    id: 'va_mandiri',
+    category: 'VIRTUAL ACCOUNT',
+    name: 'VA Mandiri',
+    method: 'MANDIRI',
+    desc: 'Bayar melalui ATM, m-Banking, atau Internet Banking Mandiri.',
+    route: '/index/transactions/virtual-account',
+  },
+  {
+    id: 'va_danamon',
+    category: 'VIRTUAL ACCOUNT',
+    name: 'VA Danamon',
+    method: 'DANAMON',
+    desc: 'Bayar melalui ATM, m-Banking, atau Internet Banking Danamon.',
     route: '/index/transactions/virtual-account',
   },
   {
     id: 'qris_0',
     category: 'E-WALLET & QRIS',
     name: 'Bank Transfer Manual',
-    desc: 'Pindai kode QR menggunakan aplikasi e-wallet atau m-Banking apa pun.',
-    route: '/index/transactions/qris',
+    bankpay: true,
+    desc: 'Transfer ke nomor Virtual Account melalui ATM, m-Banking, atau Internet Banking.',
+    route: '/index/transactions/virtual-account',
   },
 
   {
     id: 'qris_1',
     category: 'E-WALLET & QRIS',
     name: 'QRIS 1',
+    lpay: true,
     desc: 'Pindai kode QR menggunakan aplikasi e-wallet atau m-Banking apa pun.',
     route: '/index/transactions/qris',
   },
@@ -332,6 +364,7 @@ const PAYMENT_METHODS = [
     id: 'qris_2',
     category: 'E-WALLET & QRIS',
     name: 'QRIS 2',
+    qris: true,
     desc: 'Pindai kode QR menggunakan aplikasi e-wallet atau m-Banking apa pun.',
     route: '/index/transactions/qris',
   },
@@ -339,6 +372,7 @@ const PAYMENT_METHODS = [
     id: 'qris_3',
     category: 'E-WALLET & QRIS',
     name: 'QRIS 3',
+    qris: true,
     desc: 'Pindai kode QR menggunakan aplikasi e-wallet atau m-Banking apa pun.',
     route: '/index/transactions/qris',
   },
@@ -346,6 +380,7 @@ const PAYMENT_METHODS = [
     id: 'qris_4',
     category: 'E-WALLET & QRIS',
     name: 'QRIS 4',
+    ffpayQris: true,
     desc: 'Pindai kode QR menggunakan aplikasi e-wallet atau m-Banking apa pun.',
     route: '/index/transactions/qris',
   },
@@ -358,6 +393,8 @@ export default function IsiUlang() {
   /* Saldo dompet isi ulang — `balance_deposit` dari GET /api/auth/account-info/.
      "—" tampil sampai datanya landing. */
   const [account, setAccount] = useState(null);
+  /* Tombol Lanjutkan terkunci selama deposit dibuat (VA/QRIS, cegah dobel). */
+  const [submitting, setSubmitting] = useState(false);
   const showNotif = useShowNotif();
   const method = PAYMENT_METHODS.find((item) => item.id === methodId) || PAYMENT_METHODS[0];
   const depositBalanceText = account ? formatIDR(Number(account.balance_deposit) || 0) : '';
@@ -376,14 +413,109 @@ export default function IsiUlang() {
     };
   }, []);
 
-  /* Validasi kosong tampil lewat halaman /notif; nominal terisi lanjut ke
-     halaman pembayaran sesuai metode terpilih. */
-  const handleContinue = () => {
-    if (!amountText.replace(/\D/g, '')) {
+  /* Validasi tampil lewat notifikasi mengambang; channel VA, QRIS, dan bank
+     transfer membuat depositnya dulu (ATPAY initiate-va / MGM initiate / LPAY
+     initiate / FF Pay initiate + select-method / BankPay initiate) lalu data
+     bayaran dari gateway diteruskan ke halaman instruksi lewat route state.
+     Channel tanpa flow khusus lanjut seperti biasa. */
+  const handleContinue = async () => {
+    const digits = amountText.replace(/\D/g, '');
+    if (!digits) {
       showNotif({ title: 'Lengkapi Data', description: 'Masukkan nominal isi ulang.' });
       return;
     }
-    navigate(method.route);
+    if (Number(digits) < MIN_DEPOSIT) {
+      showNotif({ title: 'Nominal Terlalu Kecil', description: `Minimal pengisian ${formatIDR(MIN_DEPOSIT)}.` });
+      return;
+    }
+    if (!method.method && !method.qris && !method.ffpayQris && !method.bankpay && !method.lpay) {
+      navigate(method.route);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      if (method.bankpay) {
+        /* Bank transfer manual: BankPay mengembalikan nomor VA + nominal
+           unik (display_amount) → halaman instruksi Virtual Account. */
+        const payload = await initiateDepositBankpay({ amount: Number(digits) });
+        const info = extractBankpayInfo(payload);
+        if (!info.vaNumber) {
+          setSubmitting(false);
+          showNotif({ title: 'Gagal Membuat Virtual Account', description: 'Nomor Virtual Account tidak diterima dari server. Coba lagi ya.' });
+          return;
+        }
+        const bankCode = info.bank || 'BRI';
+        navigate(method.route, {
+          state: {
+            vaNumber: info.vaNumber,
+            amount: info.amount || Number(digits),
+            methodCode: bankCode,
+            methodName: `VA ${bankCode}`,
+            expireTime: '',
+            methodGuide: [],
+            vaName: info.vaName,
+          },
+        });
+        return;
+      }
+      if (method.ffpayQris) {
+        /* FF Pay: initiate dulu (dapat ref_id), lalu select-method 'QRIS'
+           untuk mendapat konten QR; masa berlaku dari respons initiate. */
+        const initiated = await initiateDepositFfpay({ amount: Number(digits) });
+        const refId = extractRefId(initiated);
+        if (!refId) {
+          setSubmitting(false);
+          showNotif({ title: 'Gagal Membuat Kode QRIS', description: 'Ref ID pembayaran tidak diterima dari server. Coba lagi ya.' });
+          return;
+        }
+        const selected = await selectFfpayMethod({ refId, method: 'QRIS' });
+        const qris = { ...extractQrisData(selected), expiresAt: extractQrisData(initiated).expiresAt };
+        if (!qris.qrImageUrl && !qris.qrContent && !qris.qrUrl) {
+          setSubmitting(false);
+          showNotif({ title: 'Gagal Membuat Kode QRIS', description: 'Data pembayaran tidak diterima dari server. Coba lagi ya.' });
+          return;
+        }
+        navigate(method.route, { state: { amount: Number(digits), ...qris } });
+        return;
+      }
+      if (method.qris || method.lpay) {
+        /* QRIS: deposit dibuat lewat MGM (`qris`) atau LPAY (`lpay`) — satu
+           panggilan initiate langsung membawa data QR; nominal dikirim
+           sebagai number. */
+        const payload = method.lpay
+          ? await initiateDepositLpay({ amount: Number(digits) })
+          : await initiateDepositQris({ amount: Number(digits) });
+        const qris = extractQrisData(payload);
+        if (!qris.qrImageUrl && !qris.qrContent && !qris.qrUrl) {
+          setSubmitting(false);
+          showNotif({ title: 'Gagal Membuat Kode QRIS', description: 'Data pembayaran tidak diterima dari server. Coba lagi ya.' });
+          return;
+        }
+        navigate(method.route, { state: { amount: Number(digits), ...qris } });
+        return;
+      }
+      const payload = await initiateDepositVa({ amount: Number(digits).toFixed(2), method: method.method });
+      const vaNumber = extractVaNumber(payload);
+      if (!vaNumber) {
+        setSubmitting(false);
+        showNotif({ title: 'Gagal Membuat Virtual Account', description: 'Nomor Virtual Account tidak diterima dari server. Coba lagi ya.' });
+        return;
+      }
+      navigate(method.route, {
+        state: {
+          vaNumber,
+          amount: Number(digits),
+          methodCode: method.method,
+          methodName: method.name,
+          expireTime: extractExpireTime(payload),
+          methodGuide: extractMethodGuide(payload),
+        },
+      });
+    } catch (err) {
+      setSubmitting(false);
+      /* LPAY & FF Pay juga alur QRIS — judul notifikasi ikut menyesuaikan. */
+      showNotif({ title: (method.qris || method.lpay || method.ffpayQris) ? 'Gagal Membuat Kode QRIS' : 'Gagal Membuat Virtual Account', description: err?.message || 'Coba lagi beberapa saat lagi ya.' });
+    }
   };
 
   return (
@@ -392,7 +524,7 @@ export default function IsiUlang() {
       <div>
               <section id="section-header">
                 <header className="header">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                     <img src={img_1} alt="Back Icon" />
                   </button>
                   <h1 className="header-title">Isi Ulang Saldo</h1>
@@ -406,7 +538,7 @@ export default function IsiUlang() {
                     <input type="text" inputMode="numeric" className="amount-input" placeholder="Masukkan nominal di sini" value={amountText} onChange={(e) => setAmountText(e.target.value.replace(/\D/g, ''))} />
                   </div>
                   <div className="helper-texts">
-                    <p className="min-amount">Minimal pengisian Rp 10.000</p>
+                    <p className="min-amount">Minimal pengisian {formatIDR(MIN_DEPOSIT)}</p>
                     <p className="current-balance">Saldo saat ini {depositBalanceText}</p>
                   </div>
                 </div>
@@ -464,7 +596,7 @@ export default function IsiUlang() {
               <section id="section-footer">
                 <div className="footer-divider" />
                 <div className="footer-content">
-                  <button className="btn-primary" onClick={(e) => { e.preventDefault(); handleContinue(); }}>Lanjutkan Pembayaran</button>
+                  <button className="btn-primary" disabled={submitting} onClick={(e) => { e.preventDefault(); handleContinue(); }}>{submitting ? 'Memproses...' : 'Lanjutkan Pembayaran'}</button>
                 </div>
               </section>
             </div>

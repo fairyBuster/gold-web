@@ -14,6 +14,7 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import NotifCard from '../../../components/NotifCard.jsx';
 /* GET /api/investments/ — the logged-in user's investment plans. */
 import { listAllInvestments } from '../../../lib/investmentsApi.js';
@@ -30,7 +31,7 @@ import img_2 from '../../../assets/images/6e7afc8beed777ee8ad0a014432f7422da8ce4
 import img_3 from '../../../assets/images/120_3286.svg';
 
 /* Step 1 imports (renamed to avoid collisions with other steps) */
-import S1_img_4 from '../../../assets/images/3a72c27da1899801de05252ae1048c69d8c58ce0.png';
+import S1_img_4 from '../../../assets/images/3a72c27da1899801de05252ae1048c69d8c58ce0.webp';
 import S1_img_5 from '../../../assets/images/62_921.svg';
 
 /* Step 2 imports (renamed to avoid collisions with other steps) */
@@ -188,7 +189,13 @@ function InvestmentCard({ investment }) {
   return (
     <div className="product-card">
       <div className="card-header">
-        <div className="product-icon" />
+        {/* Ikon diambil dari product_image API (path relatif /media/products/...
+            yang lewat proxy dev/preview); kotak kosong kalau tidak ada gambar. */}
+        {investment.product_image ? (
+          <img className="product-icon" src={investment.product_image} alt="" />
+        ) : (
+          <div className="product-icon" />
+        )}
         <div className="product-title-group">
           <span className="product-name">{investment.product_name}</span>
           {spec ? <span className="product-spec">{spec}</span> : null}
@@ -527,6 +534,9 @@ const AsetSaya01Styles = `
     background-color: #f6f1e9;
     border: 1px solid rgba(26, 20, 16, 0.22);
     border-radius: 9px;
+    display: block;
+    object-fit: cover;
+    flex: none;
 }
 
 .page-aset-saya-01 .product-title-group {
@@ -680,7 +690,7 @@ function AsetSaya01() {
               <section id="section-top">
                 <div className="top-container">
                   <header className="header">
-                    <button className="back-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <button className="back-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                       <img src={img_1} alt="Back Icon" />
                     </button>
                     <h1 className="header-title">Kumpulkan Aset Anda</h1>
@@ -972,6 +982,9 @@ const AsetSaya02Styles = `
     background-color: #f6f1e9;
     border: 1px solid rgba(26, 20, 16, 0.22);
     border-radius: 9px;
+    display: block;
+    object-fit: cover;
+    flex: none;
   }
   .page-aset-saya-02 .product-title-group {
     display: flex;
@@ -1113,7 +1126,7 @@ function AsetSaya02() {
               <header id="top-header">
                 <div className="top-header-bg">
                   <div className="header-nav">
-                    <button className="back-btn" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <button className="back-btn" onClick={(e) => { e.preventDefault(); goBack('/index/assets/aset-saya-01'); }}>
                       <img src={img_1} alt="Back" />
                     </button>
                     <h1 className="header-title">Kumpulkan Aset Anda</h1>

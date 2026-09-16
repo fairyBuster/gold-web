@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { goBack } from '../../lib/backNav.js';
 /* GET /api/auth/account-info/ untuk prefill form, PUT /api/auth/profile-update/
    untuk menyimpan perubahan (full_name, username, telegram, date_of_birth,
    gender — email hanya tampil di response, tidak bisa diubah), POST
@@ -395,7 +396,7 @@ export default function EditProfil() {
       <style>{styles}</style>
       <div>
               <header id="section-header" className="header-section">
-                <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/profil'); }}>
                   <img src={img_1} alt="" />
                 </button>
                 <h1 className="page-title">Edit Profil</h1>

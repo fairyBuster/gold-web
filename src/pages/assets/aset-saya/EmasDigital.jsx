@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { goBack } from '../../../lib/backNav.js';
 /* Total emas digital = balance_hold ÷ harga emas per gram dari backend —
    sumber angka yang sama dengan CetakEmas step 1 (GET /api/gold/info/). */
 import { getGoldInfo } from '../../../lib/goldApi.js';
@@ -6,7 +7,7 @@ import { getGoldInfo } from '../../../lib/goldApi.js';
 import { getBalanceStatistics } from '../../../lib/authApi.js';
 import { formatRupiah } from '../../../lib/transactionFormat.js';
 import img_1 from '../../../assets/images/41_1038.svg';
-import img_2 from '../../../assets/images/615cb7874b4304ede07a379f82cc29690a4f8ed1.png';
+import img_2 from '../../../assets/images/615cb7874b4304ede07a379f82cc29690a4f8ed1.webp';
 import img_3 from '../../../assets/images/82_901.svg';
 import img_4 from '../../../assets/images/82_910.svg';
 import img_5 from '../../../assets/images/82_919.svg';
@@ -337,7 +338,7 @@ export default function EmasDigital() {
               <section id="section-header">
                 <div className="app-container">
                   <header className="site-header">
-                    <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/assets/aset-saya-01'); }}>
                       <img src={img_1} alt="" />
                     </button>
                     <h1 className="page-title">Emas Digital Saya</h1>

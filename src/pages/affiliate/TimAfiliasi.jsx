@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
+import { goBack } from '../../lib/backNav.js';
 import img_1 from '../../assets/images/41_1038.svg';
-import img_2 from '../../assets/images/d8da7d40a36530662fd38ce2db2d88617de3e965.png';
+import img_2 from '../../assets/images/d8da7d40a36530662fd38ce2db2d88617de3e965.webp';
 import img_3 from '../../assets/images/53_210.svg';
 import img_4 from '../../assets/images/53_217.svg';
 import img_5 from '../../assets/images/53_289.svg';
@@ -485,7 +486,7 @@ export default function TimAfiliasi() {
       <div>
               <section id="section-header" className="mobile-section">
                 <header className="header">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                     <img src={img_1} alt="" />
                   </button>
                   <h1 className="title">Tim &amp; Afiliasi</h1>

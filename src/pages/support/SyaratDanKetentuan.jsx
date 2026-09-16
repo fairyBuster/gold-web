@@ -1,4 +1,5 @@
 import img_1 from '../../assets/images/156_1523.svg';
+import { goBack } from '../../lib/backNav.js';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -161,7 +162,7 @@ export default function SyaratDanKetentuan() {
       <div>
               <section id="section-header" className="app-container">
                 <header className="header">
-                  <button className="back-btn" aria-label="Back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Back" onClick={(e) => { e.preventDefault(); goBack('/index/auth/welcome'); }}>
                     <img src={img_1} alt="Back Icon" />
                   </button>
                   <h1 className="header-title">Syarat &amp; Ketentuan</h1>

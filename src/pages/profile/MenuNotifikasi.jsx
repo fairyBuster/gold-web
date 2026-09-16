@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { goBack } from '../../lib/backNav.js';
 import NotifCard from '../../components/NotifCard.jsx';
 import ListPagination from '../../components/ListPagination.jsx';
 import ListState from '../../components/ListState.jsx';
@@ -6,9 +7,9 @@ import { useTransactionFeed } from '../../lib/useTransactionFeed.js';
 import { formatRupiah, formatTime, groupByDay, statusKind } from '../../lib/transactionFormat.js';
 import { getSeenAt, isUnseen, markSeenUpTo } from '../../lib/notifSeen.js';
 import img_1 from '../../assets/images/156_1523.svg';
-import img_2 from '../../assets/images/f9c5183ac158cef9ca41f24d7c27c0a86cc4e6fd.png';
-import img_3 from '../../assets/images/0e9552200559b01fbf7792e280655b0f9c3b5705.png';
-import img_4 from '../../assets/images/1a3342ff63aa8a0ae78e698732cdce70f07c9d3c.png';
+import img_2 from '../../assets/images/f9c5183ac158cef9ca41f24d7c27c0a86cc4e6fd.webp';
+import img_3 from '../../assets/images/0e9552200559b01fbf7792e280655b0f9c3b5705.webp';
+import img_4 from '../../assets/images/1a3342ff63aa8a0ae78e698732cdce70f07c9d3c.webp';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -229,7 +230,7 @@ export default function MenuNotifikasi() {
       <div>
               <section id="section-header">
                 <header className="app-header">
-                  <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/profil'); }}>
                     <img src={img_1} alt="Back Icon" />
                   </button>
                   <h1 className="header-title">Notifikasi</h1>

@@ -1,12 +1,14 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import img_1 from '../../../assets/images/36_421.svg';
 import img_2 from '../../../assets/images/34_313.svg';
-import img_3 from '../../../assets/images/ce5e15fdc0235c8752e5673a09627b9fdbe74d46.png';
+import img_3 from '../../../assets/images/ce5e15fdc0235c8752e5673a09627b9fdbe74d46.webp';
 /* Page background artwork — assigned inline on the root node (see styles). */
-import img_4 from '../../../assets/images/083535.png';
+import img_4 from '../../../assets/images/083535.webp';
 /* Hasil salin tampil lewat halaman /notif kalau clipboard diblokir browser. */
 import { useShowNotif } from '../../../lib/useShowNotif.js';
+import { formatIDR } from '../../../lib/goldPriceApi.js';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -169,6 +171,10 @@ const styles = `
   font-weight: 700;
   letter-spacing: 0.5px;
 }
+.page-virtual-account .account-name {
+  color: rgba(255, 249, 242, 0.75);
+  font-size: 12px;
+}
 .page-virtual-account .copy-btn {
   background-color: #f6f1e9;
   color: #514840;
@@ -314,37 +320,31 @@ const styles = `
 }
 `;
 
-/* Nomor Virtual Account — satu sumber untuk tampilan dan tombol Salin. */
-const VA_NUMBER = '8808 1234 5678 90';
+/* Payment channels shown as tabs; instruction steps differ per bank, so each
+   bank carries its own five-step list for every channel. */
+const CHANNELS = [
+  { id: 'm-banking', label: 'm-Banking' },
+  { id: 'atm', label: 'ATM' },
+  { id: 'internet-banking', label: 'Internet Banking' },
+];
 
-/* Payment channels shown as tabs, with the instruction steps per channel. */
-const PAYMENT_METHODS = [
-  {
-    id: 'm-banking',
-    label: 'm-Banking',
-    steps: [
+const STEPS_BY_BANK = {
+  BRI: {
+    'm-banking': [
       'Buka aplikasi BRImo, lalu pilih menu pembayaran BRIVA.',
       'Masukkan nomor BRI Virtual Account yang tertera di atas.',
       'Periksa detail transaksi dan pastikan nominal pembayaran sesuai dengan total tagihan.',
       'Ikuti petunjuk pada aplikasi dan lakukan verifikasi untuk menyelesaikan pembayaran.',
       'Pembayaran selesai. Simpan bukti transaksi sampai saldo terkonfirmasi masuk.',
     ],
-  },
-  {
-    id: 'atm',
-    label: 'ATM',
-    steps: [
+    atm: [
       'Masukkan kartu ATM BRI kamu, lalu masukkan PIN.',
       'Pilih menu "Transaksi Lain", lalu pilih "Pembayaran" dan pilih "BRIVA".',
       'Masukkan nomor BRI Virtual Account yang tertera di atas.',
       'Periksa detail transaksi dan pastikan nominal pembayaran sesuai dengan total tagihan.',
       'Konfirmasi pembayaran, lalu simpan struk sebagai bukti transaksi.',
     ],
-  },
-  {
-    id: 'internet-banking',
-    label: 'Internet Banking',
-    steps: [
+    'internet-banking': [
       'Login ke Internet Banking BRI (ib.bri.co.id) dengan user ID dan password kamu.',
       'Pilih menu "Pembayaran", lalu pilih "BRIVA".',
       'Masukkan nomor BRI Virtual Account yang tertera di atas.',
@@ -352,20 +352,148 @@ const PAYMENT_METHODS = [
       'Masukkan mToken untuk menyelesaikan pembayaran, lalu simpan bukti transaksi.',
     ],
   },
-];
+  PERMATA: {
+    'm-banking': [
+      'Buka aplikasi PermataMobile X, lalu pilih menu Pembayaran > Virtual Account.',
+      'Masukkan nomor Virtual Account Permata yang tertera di atas.',
+      'Periksa detail transaksi dan pastikan nominal pembayaran sesuai dengan total tagihan.',
+      'Ikuti petunjuk pada aplikasi dan lakukan verifikasi untuk menyelesaikan pembayaran.',
+      'Pembayaran selesai. Simpan bukti transaksi sampai saldo terkonfirmasi masuk.',
+    ],
+    atm: [
+      'Masukkan kartu ATM Permata kamu, lalu masukkan PIN.',
+      'Pilih menu "Transaksi Lainnya", lalu pilih "Pembayaran" dan pilih "Virtual Account".',
+      'Masukkan nomor Virtual Account Permata yang tertera di atas.',
+      'Periksa detail transaksi dan pastikan nominal pembayaran sesuai dengan total tagihan.',
+      'Konfirmasi pembayaran, lalu simpan struk sebagai bukti transaksi.',
+    ],
+    'internet-banking': [
+      'Login ke PermataNet (internet banking Permata) dengan user ID dan password kamu.',
+      'Pilih menu "Pembayaran", lalu pilih "Virtual Account".',
+      'Masukkan nomor Virtual Account Permata yang tertera di atas.',
+      'Periksa detail transaksi dan pastikan nominal pembayaran sesuai dengan total tagihan.',
+      'Masukkan kode OTP untuk menyelesaikan pembayaran, lalu simpan bukti transaksi.',
+    ],
+  },
+  MANDIRI: {
+    'm-banking': [
+      "Buka aplikasi Livin' by Mandiri, lalu pilih menu Bayar > Virtual Account.",
+      'Masukkan nomor Virtual Account Mandiri yang tertera di atas.',
+      'Periksa detail transaksi dan pastikan nominal pembayaran sesuai dengan total tagihan.',
+      'Ikuti petunjuk pada aplikasi dan lakukan verifikasi untuk menyelesaikan pembayaran.',
+      'Pembayaran selesai. Simpan bukti transaksi sampai saldo terkonfirmasi masuk.',
+    ],
+    atm: [
+      'Masukkan kartu ATM Mandiri kamu, lalu masukkan PIN.',
+      'Pilih menu "Bayar/Beli", lalu pilih "Lainnya" dan pilih "Virtual Account".',
+      'Masukkan nomor Virtual Account Mandiri yang tertera di atas.',
+      'Periksa detail transaksi dan pastikan nominal pembayaran sesuai dengan total tagihan.',
+      'Konfirmasi pembayaran, lalu simpan struk sebagai bukti transaksi.',
+    ],
+    'internet-banking': [
+      'Login ke Internet Banking Mandiri (ibank.bankmandiri.co.id) dengan user ID dan password kamu.',
+      'Pilih menu "Bayar", lalu pilih "Virtual Account".',
+      'Masukkan nomor Virtual Account Mandiri yang tertera di atas.',
+      'Periksa detail transaksi dan pastikan nominal pembayaran sesuai dengan total tagihan.',
+      'Masukkan PIN / kode OTP untuk menyelesaikan pembayaran, lalu simpan bukti transaksi.',
+    ],
+  },
+  DANAMON: {
+    'm-banking': [
+      'Buka aplikasi D-Mobile, lalu pilih menu Bayar > Virtual Account.',
+      'Masukkan nomor Virtual Account Danamon yang tertera di atas.',
+      'Periksa detail transaksi dan pastikan nominal pembayaran sesuai dengan total tagihan.',
+      'Ikuti petunjuk pada aplikasi dan lakukan verifikasi untuk menyelesaikan pembayaran.',
+      'Pembayaran selesai. Simpan bukti transaksi sampai saldo terkonfirmasi masuk.',
+    ],
+    atm: [
+      'Masukkan kartu ATM Danamon kamu, lalu masukkan PIN.',
+      'Pilih menu "Pembayaran", lalu pilih "Virtual Account".',
+      'Masukkan nomor Virtual Account Danamon yang tertera di atas.',
+      'Periksa detail transaksi dan pastikan nominal pembayaran sesuai dengan total tagihan.',
+      'Konfirmasi pembayaran, lalu simpan struk sebagai bukti transaksi.',
+    ],
+    'internet-banking': [
+      'Login ke Danamon Online Banking dengan user ID dan password kamu.',
+      'Pilih menu "Pembayaran", lalu pilih "Virtual Account".',
+      'Masukkan nomor Virtual Account Danamon yang tertera di atas.',
+      'Periksa detail transaksi dan pastikan nominal pembayaran sesuai dengan total tagihan.',
+      'Masukkan kode OTP untuk menyelesaikan pembayaran, lalu simpan bukti transaksi.',
+    ],
+  },
+};
+
+/* method_guide dari gateway memakai judul "Cara Pembayaran melalui …" yang
+   dipetakan ke tab channel lewat kata kuncinya. */
+function channelFromSubject(subject) {
+  const text = String(subject || '');
+  if (/mobile/i.test(text)) return 'm-banking';
+  if (/internet/i.test(text)) return 'internet-banking';
+  if (/\bATM\b/.test(text)) return 'atm';
+  return '';
+}
+
+/* Konten panduan berupa teks bernomor ("1. … 2. …"); baris lanjutan tanpa
+   nomor digabung ke langkah sebelumnya sebelum dipotong per nomor. Pemisah
+   wajib diawali spasi supaya "10." tidak terbelah jadi "1" + "0.". */
+function parseGuideSteps(content) {
+  if (typeof content !== 'string' || !content.trim()) return [];
+  return content
+    .replace(/\r/g, '')
+    .replace(/\s*\n+\s*/g, ' ')
+    .split(/\s+(?=\d{1,2}\.\s)/)
+    .map((part) => part.replace(/^\d{1,2}\.\s*/, '').trim())
+    .filter(Boolean);
+}
+
+/* expire_time gateway ("2026-09-17 19:38:04") ditampilkan tanpa konversi
+   zona waktu: "17 Sep 2026, 19:38". */
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+function formatExpiry(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(String(value || '').trim());
+  if (!match) return '';
+  const [, year, month, day, hour, minute] = match;
+  const label = MONTH_LABELS[Number(month) - 1];
+  return label ? `${Number(day)} ${label} ${year}, ${hour}:${minute}` : '';
+}
 
 export default function VirtualAccount() {
+  const location = useLocation();
   const navigate = useNavigate();
-  const [activeMethod, setActiveMethod] = useState(PAYMENT_METHODS[0].id);
+  const [activeMethod, setActiveMethod] = useState(CHANNELS[0].id);
   const [copied, setCopied] = useState(false);
   const showNotif = useShowNotif();
-  const method = PAYMENT_METHODS.find((item) => item.id === activeMethod) || PAYMENT_METHODS[0];
+  /* Nomor VA, masa berlaku, dan panduan bayar dibuat oleh IsiUlang (ATPAY
+     initiate-va / BankPay initiate) dan diteruskan lewat route state; tanpa
+     state (buka langsung / refresh) tidak ada deposit aktif. */
+  const payment = location.state?.vaNumber ? location.state : null;
+
+  useEffect(() => {
+    if (!payment) {
+      showNotif({ title: 'Data Pembayaran Tidak Ditemukan', description: 'Silakan ulangi proses isi ulang saldo.' });
+      navigate('/index/transactions/isi-ulang', { replace: true });
+    }
+  }, [navigate, payment, showNotif]);
+
+  if (!payment) return null;
+
+  const bankLabel = payment.methodName ? payment.methodName.replace(/^VA\s+/i, '') : 'BRI';
+  /* Panduan resmi dari gateway dipakai per channel bila dikirim; langkah
+     bawaan bank menjadi cadangan. */
+  const guideSteps = (Array.isArray(payment.methodGuide) ? payment.methodGuide : []).reduce((acc, item) => {
+    const channel = channelFromSubject(item?.subject);
+    const parsed = channel ? parseGuideSteps(item?.content) : [];
+    if (parsed.length) acc[channel] = parsed;
+    return acc;
+  }, {});
+  const steps = guideSteps[activeMethod] || (STEPS_BY_BANK[payment.methodCode] || STEPS_BY_BANK.BRI)[activeMethod];
+  const expiryLabel = formatExpiry(payment.expireTime);
 
   /* "Salin" menyalin nomor Virtual Account ke clipboard; label tombol berubah
      sesaat sebagai umpan balik (mengikuti pola halaman Misi). */
   const handleCopyNumber = async () => {
     try {
-      await navigator.clipboard.writeText(VA_NUMBER);
+      await navigator.clipboard.writeText(payment.vaNumber);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -379,7 +507,7 @@ export default function VirtualAccount() {
       <div>
               <section id="section-header">
                 <header className="header">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/transactions/isi-ulang'); }}>
                     <img src={img_1} alt="" />
                   </button>
                   <h1 className="title">Instruksi Pembayaran</h1>
@@ -392,7 +520,11 @@ export default function VirtualAccount() {
                   </div>
                   <div className="status-info">
                     <div className="status-title">Menunggu Pembayaran</div>
-                    <div className="status-desc">Selesaikan dalam <span className="highlight">23:41:09</span></div>
+                    <div className="status-desc">
+                      {expiryLabel
+                        ? <>Selesaikan pembayaran sebelum <span className="highlight">{expiryLabel}</span></>
+                        : 'Selesaikan pembayaran sesuai nominal yang tertera.'}
+                    </div>
                   </div>
                 </div>
               </section>
@@ -400,20 +532,21 @@ export default function VirtualAccount() {
                 <div className="card-container">
                   <img src={img_3} alt="Mascot" className="mascot-img" />
                   <div className="card-header">
-                    <h2>Virtual Account BRI</h2>
+                    <h2>Virtual Account {bankLabel}</h2>
                   </div>
                   <div className="account-section">
                     <div className="label">Nomor Virtual Account</div>
                     <div className="number-box">
-                      <span className="number">{VA_NUMBER}</span>
+                      <span className="number">{payment.vaNumber}</span>
                       <button className="copy-btn" onClick={(e) => { e.preventDefault(); handleCopyNumber(); }}>
                         {copied ? 'Tersalin!' : 'Salin'}
                       </button>
                     </div>
+                    {payment.vaName && <div className="account-name">a.n. {payment.vaName}</div>}
                   </div>
                   <div className="total-section">
                     <div className="label">Total Tagihan</div>
-                    <div className="amount">Rp 100.000</div>
+                    <div className="amount">{formatIDR(payment.amount)}</div>
                   </div>
                 </div>
               </section>
@@ -423,7 +556,7 @@ export default function VirtualAccount() {
                   <p>Ikuti langkah-langkah berikut sesuai channel yang kamu gunakan untuk menyelesaikan pembayaran.</p>
                 </div>
                 <div className="tabs">
-                  {PAYMENT_METHODS.map((item) => (
+                  {CHANNELS.map((item) => (
                     <button
                       key={item.id}
                       type="button"
@@ -435,8 +568,8 @@ export default function VirtualAccount() {
                   ))}
                 </div>
                 <div className="steps-list">
-                  {method.steps.map((step) => (
-                    <div className="step-item" key={step}>
+                  {steps.map((step, index) => (
+                    <div className="step-item" key={`${index}-${step}`}>
                       <div className="step-circle" />
                       <p>{step}</p>
                     </div>

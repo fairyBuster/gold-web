@@ -13,6 +13,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import NotifCard from '../../../components/NotifCard.jsx';
 import { useShowNotif } from '../../../lib/useShowNotif.js';
 import { createUserBank, listUserBanks } from '../../../lib/banksApi.js';
@@ -21,7 +22,7 @@ import img_1 from '../../../assets/images/67_61.svg';
 
 /* Step artwork. The chip and info icons are shared by several steps, so each
    of those files is imported once under a shared name. */
-import S1_img_2 from '../../../assets/images/3a72c27da1899801de05252ae1048c69d8c58ce0.png';
+import S1_img_2 from '../../../assets/images/3a72c27da1899801de05252ae1048c69d8c58ce0.webp';
 import S1_img_3 from '../../../assets/images/62_921.svg';
 import S2_img_2 from '../../../assets/images/67_79.svg';
 import S2_img_3 from '../../../assets/images/67_101.svg';
@@ -450,7 +451,7 @@ function KartuBank01() {
       <section id="section-app">
         <div className="mobile-app-container">
           <header className="app-header">
-            <button className="btn-back" aria-label="Kembali" onClick={(e) => { e.preventDefault(); navigate('/index/profil'); }}>
+            <button className="btn-back" aria-label="Kembali" onClick={(e) => { e.preventDefault(); goBack('/index/profil'); }}>
               <img src={img_1} alt="" />
             </button>
             <h1 className="header-title">Rekening Bank</h1>
@@ -819,7 +820,7 @@ function KartuBank02() {
       <style>{KartuBank02Styles}</style>
       <section id="section-header">
         <header className="site-header">
-          <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+          <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/profil/kartu-bank'); }}>
             <img src={img_1} alt="Back" />
           </button>
           <h1 className="page-title">Tambah Rekening Bank</h1>
@@ -1161,7 +1162,7 @@ function KartuBank03() {
       <style>{KartuBank03Styles}</style>
       <section id="section-header">
         <header className="app-header">
-          <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+          <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/profil/kartu-bank-02'); }}>
             <img src={img_1} alt="" />
           </button>
           <h1 className="header-title">Rekening Bank</h1>

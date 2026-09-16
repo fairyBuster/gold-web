@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { goBack } from '../lib/backNav.js';
 import imgClose from '../assets/images/167_476.svg';
 import imgTelegram from '../assets/images/167_489.svg';
 import imgWhatsapp from '../assets/images/167_493.svg';
@@ -226,7 +227,7 @@ export default function PopupKomunitas({
   const handleClose = (e) => {
     e.preventDefault();
     if (onClose) onClose();
-    else window.history.back();
+    else goBack('/index/home');
   };
 
   return (

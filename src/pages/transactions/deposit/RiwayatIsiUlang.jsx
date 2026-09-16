@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { goBack } from '../../../lib/backNav.js';
 import img_1 from '../../../assets/images/109_2465.svg';
-import img_2 from '../../../assets/images/915ddfcd2308a67f93cb52100b8c074abaa5928b.png';
-import img_3 from '../../../assets/images/77ee91c8dada95217ef849cd09311a9e69dfd60e.png';
+import img_2 from '../../../assets/images/915ddfcd2308a67f93cb52100b8c074abaa5928b.webp';
+import img_3 from '../../../assets/images/77ee91c8dada95217ef849cd09311a9e69dfd60e.webp';
 import NotifCard from '../../../components/NotifCard.jsx';
 import ListPagination from '../../../components/ListPagination.jsx';
 import ListState from '../../../components/ListState.jsx';
@@ -272,7 +273,7 @@ export default function RiwayatIsiUlang() {
               <section id="section-header">
                 <div className="section-wrapper">
                   <header className="header">
-                    <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/transactions/riwayat-transaksi'); }}>
                       <img src={img_1} alt="" />
                     </button>
                     <h1 className="page-title">Riwayat Isi Ulang</h1>

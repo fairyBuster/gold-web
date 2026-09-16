@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { goBack } from '../../../lib/backNav.js';
 import img_1 from '../../../assets/images/109_2784.svg';
-import img_2 from '../../../assets/images/915ddfcd2308a67f93cb52100b8c074abaa5928b.png';
-import img_3 from '../../../assets/images/a0f4e57692255e6234cdb5455f19fda6e1a96e82.png';
+import img_2 from '../../../assets/images/915ddfcd2308a67f93cb52100b8c074abaa5928b.webp';
+import img_3 from '../../../assets/images/a0f4e57692255e6234cdb5455f19fda6e1a96e82.webp';
 import NotifCard from '../../../components/NotifCard.jsx';
 import ListPagination from '../../../components/ListPagination.jsx';
 import ListState from '../../../components/ListState.jsx';
@@ -300,7 +301,7 @@ export default function RiwayatDetailKomisi() {
       <div>
               <section id="section-header">
                 <header className="header">
-                  <a href="#" className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <a href="#" className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/affiliate/riwayat-komisi'); }}>
                     <img src={img_1} alt="" />
                   </a>
                   <h1 className="header-title">Riwayat Komisi Afiliasi</h1>

@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { goBack } from '../../lib/backNav.js';
 import NotifCard from '../../components/NotifCard.jsx';
 import img_1 from '../../assets/images/67_135.svg';
 import img_2 from '../../assets/images/67_142.svg';
@@ -137,6 +138,8 @@ const styles = `
   border: 1px solid rgba(26, 20, 16, 0.22);
   border-radius: 14px;
   flex-shrink: 0;
+  object-fit: cover;
+  display: block;
 }
 .page-berita .news-content {
   display: flex;
@@ -239,7 +242,7 @@ export default function Berita() {
       <div>
               <section id="header-section">
                 <header className="header">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                     <img src={img_1} alt="" />
                   </button>
                   <h1 className="page-title">Berita</h1>
@@ -294,7 +297,11 @@ export default function Berita() {
                         className="news-item"
                         onClick={() => sessionStorage.setItem('je_news_id', String(item.id))}
                       >
-                        <div className="news-image" />
+                        {item.image ? (
+                          <img className="news-image" src={item.image} alt={item.title} />
+                        ) : (
+                          <div className="news-image" />
+                        )}
                         <div className="news-content">
                           <span className="news-tag">{item.category_name}</span>
                           <h2 className="news-title">{item.title}</h2>

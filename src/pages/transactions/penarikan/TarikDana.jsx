@@ -16,10 +16,11 @@
 
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import NotifCard from '../../../components/NotifCard.jsx';
 import { useShowNotif } from '../../../lib/useShowNotif.js';
 import img_4 from '../../../assets/images/33_71.svg';
-import pageBg from '../../../assets/images/083535.png';
+import pageBg from '../../../assets/images/083535.webp';
 
 /* Withdrawal API + the cross-step store for the wizard. */
 import { getAccountInfo } from '../../../lib/authApi.js';
@@ -29,11 +30,11 @@ import * as withdrawFlow from '../../../lib/withdrawFlow.js';
 /* Step 1 imports (renamed to avoid collisions with other steps) */
 import S1_img_1 from '../../../assets/images/91_1307.svg';
 import S1_img_2 from '../../../assets/images/56_737.svg';
-import S1_img_3 from '../../../assets/images/2fda28c0e5f311c7fab98e8bdc58fe3c951564bf.png';
+import S1_img_3 from '../../../assets/images/2fda28c0e5f311c7fab98e8bdc58fe3c951564bf.webp';
 
 /* Step 2 imports (renamed to avoid collisions with other steps) */
 import S2_img_1 from '../../../assets/images/67_61.svg';
-import S2_img_2 from '../../../assets/images/3a72c27da1899801de05252ae1048c69d8c58ce0.png';
+import S2_img_2 from '../../../assets/images/3a72c27da1899801de05252ae1048c69d8c58ce0.webp';
 import S2_img_3 from '../../../assets/images/56_799.svg';
 
 /* Step 3 imports (renamed to avoid collisions with other steps) */
@@ -44,7 +45,7 @@ import S3_img_3 from '../../../assets/images/33_71.svg';
 /* Step 4 imports (renamed to avoid collisions with other steps) */
 import S4_img_1 from '../../../assets/images/67_61.svg';
 import S4_img_2 from '../../../assets/images/58_873.svg';
-import S4_img_3 from '../../../assets/images/4ff45e57bc897e30533b9ea96068fac470c7dbbe.png';
+import S4_img_3 from '../../../assets/images/4ff45e57bc897e30533b9ea96068fac470c7dbbe.webp';
 
 
 /* ================= shared helpers for the wizard ================= */
@@ -457,7 +458,7 @@ function TarikDana01() {
               <section id="section-header">
                 <header className="header-container">
                   <div className="top-bar">
-                    <button className="back-btn" aria-label="Back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <button className="back-btn" aria-label="Back" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                       <img src={S1_img_1} alt="" />
                     </button>
                     <h1 className="page-title">Tarik Dana</h1>
@@ -789,7 +790,7 @@ function TarikDana02() {
       <div>
               <section id="section-header">
                 <header className="header-container">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/transactions/tarik-dana-01'); }}>
                     <img src={S2_img_1} alt="" />
                   </button>
                   <h1 className="header-title">Tarik Dana</h1>
@@ -1196,7 +1197,7 @@ function TarikDana03() {
               <section id="section-header">
                 <div className="mobile-container header-bg">
                   <header className="top-nav">
-                    <button className="back-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <button className="back-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); goBack('/index/transactions/tarik-dana-02'); }}>
                       <img src={S3_img_1} alt="Back Icon" />
                     </button>
                     <h1 className="nav-title">Tarik Dana</h1>
@@ -1633,7 +1634,7 @@ function TarikDana04() {
       <div className="page-body">
               <section id="section-header">
                 <header className="top-nav">
-                  <button className="back-btn" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" onClick={(e) => { e.preventDefault(); goBack('/index/transactions/tarik-dana-03'); }}>
                     <img src={S4_img_1} alt="Back" />
                   </button>
                   <h1 className="page-title">Tarik Dana</h1>

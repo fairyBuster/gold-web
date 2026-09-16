@@ -14,6 +14,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import BottomNav from '../../../components/BottomNav.jsx';
 import NotifCard from '../../../components/NotifCard.jsx';
 import { useShowNotif } from '../../../lib/useShowNotif.js';
@@ -23,7 +24,7 @@ import img_3 from '../../../assets/images/88_973.svg';
 
 /* Step 1 imports (renamed to avoid collisions with other steps) */
 import S1_img_1 from '../../../assets/images/41_1038.svg';
-import S1_img_2 from '../../../assets/images/cd4321a034b318f75c488cf1f2e3603c65cc1a7f.png';
+import S1_img_2 from '../../../assets/images/cd4321a034b318f75c488cf1f2e3603c65cc1a7f.webp';
 
 /* Step 2 imports (renamed to avoid collisions with other steps) */
 import S2_img_1 from '../../../assets/images/67_135.svg';
@@ -32,7 +33,7 @@ import S2_img_2 from '../../../assets/images/88_1102.svg';
 import S2_img_3 from '../../../assets/images/empty.jpg';
 
 /* Step 3 imports (renamed to avoid collisions with other steps) */
-import S3_img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.png';
+import S3_img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.webp';
 
 
 /* ---- shared display helpers for the steps ---- */
@@ -280,6 +281,8 @@ const PoinMall01Styles = `
     border-bottom: 1px solid rgba(26, 20, 16, 0.15);
     aspect-ratio: 1 / 1;
     width: 100%;
+    display: block;
+    object-fit: cover;
   }
   .page-poin-mall-01 .card-content {
     padding: 10px 12px 12px 12px;
@@ -368,7 +371,7 @@ function PoinMall01() {
       <div className="app-container">
               <section id="section-header" className="app-section">
                 <header className="header-content">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                     <img src={S1_img_1} alt="Back" />
                   </button>
                   <h1 className="page-title">Tukar Poin</h1>
@@ -424,9 +427,13 @@ function PoinMall01() {
                           className="catalog-card"
                           onClick={() => sessionStorage.setItem('je_poinmall_prize_id', String(prize.id))}
                         >
-                          {/* Prize artwork stays a placeholder — media files
-                              are not reachable on the local backend. */}
-                          <div className="card-image-placeholder" />
+                          {/* Gambar hadiah dari API (path /media/... yang lewat
+                              proxy dev/preview); kotak kosong kalau tidak ada. */}
+                          {prize.image ? (
+                            <img className="card-image-placeholder" src={prize.image} alt="" />
+                          ) : (
+                            <div className="card-image-placeholder" />
+                          )}
                           <div className="card-content">
                             <span className="card-category">{prizeTypeLabel(prize.prize_type)}</span>
                             <h3 className="card-title">{prize.name}</h3>
@@ -527,7 +534,7 @@ const PoinMall02Styles = `
 .page-poin-mall-02 .hero-container {
   padding: 14px 20px 18px 20px;
 }
-.page-poin-mall-02 .image-placeholder {
+.page-poin-mall-02 .image-placeholder, .page-poin-mall-02 .prize-image {
   background-color: #f6f1e9;
   border: 1px solid rgba(26, 20, 16, 0.22);
   border-radius: 18px;
@@ -536,6 +543,11 @@ const PoinMall02Styles = `
   justify-content: center;
   align-items: center;
   width: 100%;
+}
+/* Foto asli hadiah dari API; menimpa display flex agar object-fit bekerja. */
+.page-poin-mall-02 .prize-image {
+  display: block;
+  object-fit: cover;
 }
 .page-poin-mall-02 .placeholder-text {
   color: #a79c8f;
@@ -772,7 +784,7 @@ function PoinMall02() {
       <div>
               <section id="section-header">
                 <header className="header">
-                  <a href="#" className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <a href="#" className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/rewards/poin-mall-01'); }}>
                     <img src={S2_img_1} alt="" />
                   </a>
                   <h1 className="header-title">Detail Penukaran</h1>
@@ -792,11 +804,13 @@ function PoinMall02() {
                 <>
                   <section id="section-hero">
                     <div className="hero-container">
-                      <div className="image-placeholder">
-                        {/* Prize artwork stays a placeholder — media files
-                            are not reachable on the local backend. */}
-                        <span className="placeholder-text">+ Gambar Produk</span>
-                      </div>
+                      {prize.image ? (
+                        <img className="prize-image" src={prize.image} alt={prize.name} />
+                      ) : (
+                        <div className="image-placeholder">
+                          <span className="placeholder-text">+ Gambar Produk</span>
+                        </div>
+                      )}
                     </div>
                   </section>
                   <section id="section-product-title">

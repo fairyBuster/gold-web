@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { goBack } from '../../lib/backNav.js';
 
 import img_1 from '../../assets/images/67_135.svg';
 import img_2 from '../../assets/images/53_353.svg';
@@ -500,7 +501,7 @@ export default function LihatDetailTim() {
       <div>
               <section id="section-header">
                 <header className="header">
-                  <button className="back-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); goBack('/index/affiliate/tim-afiliasi'); }}>
                     <img src={img_1} alt="" />
                   </button>
                   <h1 className="page-title">Detail Tim</h1>

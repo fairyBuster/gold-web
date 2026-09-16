@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import NotifCard from '../../../components/NotifCard.jsx';
 import { getProduct, listProducts } from '../../../lib/productsApi.js';
 import { formatRupiah } from '../../../lib/transactionFormat.js';
@@ -26,7 +27,7 @@ import { getGoldInfo } from '../../../lib/goldApi.js';
 
 /* Step 1 imports (renamed to avoid collisions with other steps) */
 import S1_img_1 from '../../../assets/images/141_595.svg';
-import S1_img_2 from '../../../assets/images/27d2feb51364f020c6b57863d6f2929526f97178.png';
+import S1_img_2 from '../../../assets/images/27d2feb51364f020c6b57863d6f2929526f97178.webp';
 
 /* Step 2 imports (renamed to avoid collisions with other steps) */
 import S2_img_1 from '../../../assets/images/41_1038.svg';
@@ -323,6 +324,9 @@ const Asset01Styles = `
   background-color: #f6f1e9;
   border: 1px solid rgba(26, 20, 16, 0.22);
   border-radius: 9px;
+  display: block;
+  object-fit: cover;
+  flex: none;
 }
 .page-asset-01 .product-info {
   display: flex;
@@ -583,7 +587,7 @@ function Asset01() {
       <div>
               <section id="section-hero" className="hero-section">
                 <div className="top-nav">
-                  <a href="#" className="back-btn" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <a href="#" className="back-btn" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                     <img src={S1_img_1} alt="Back" />
                   </a>
                   <h1 className="page-title">Kumpulkan Aset Anda</h1>
@@ -649,7 +653,14 @@ function Asset01() {
                       <div className="program-card" key={product.id}>
                         <div className="card-main">
                           <div className="card-header">
-                            <div className="product-icon" />
+                            {/* Ikon diambil dari gambar produk (path relatif
+                                /media/products/... yang lewat proxy dev/preview);
+                                kotak kosong kalau produk tidak punya gambar. */}
+                            {product.image ? (
+                              <img className="product-icon" src={product.image} alt="" />
+                            ) : (
+                              <div className="product-icon" />
+                            )}
                             <div className="product-info">
                               <h3 className="product-name">{product.name}</h3>
                               {productSpecLine(product) && (
@@ -802,6 +813,9 @@ const Asset02Styles = `
     background-color: #f6f1e9;
     border: 1px solid rgba(26, 20, 16, 0.22);
     border-radius: 10px;
+    display: block;
+    object-fit: cover;
+    flex: none;
   }
   .page-asset-02 .card-info {
     display: flex;
@@ -1052,7 +1066,7 @@ function Asset02() {
       <div>
               <section id="header">
                 <header className="header-container">
-                  <button className="back-btn" aria-label="Back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Back" onClick={(e) => { e.preventDefault(); goBack('/index/assets/asset-01'); }}>
                     <img src={S2_img_1} alt="Back Icon" />
                   </button>
                   <h1 className="header-title">Detail &amp; Simulasi</h1>
@@ -1087,7 +1101,13 @@ function Asset02() {
                 <>
               <section id="product-card" className="container">
                 <div className="card">
-                  <div className="card-icon" />
+                  {/* Ikon diambil dari gambar produk; kotak kosong kalau
+                      produk tidak punya gambar. */}
+                  {product.image ? (
+                    <img className="card-icon" src={product.image} alt="" />
+                  ) : (
+                    <div className="card-icon" />
+                  )}
                   <div className="card-info">
                     <h2 className="product-name">{product.name}</h2>
                     {isMeaningful(product.golongan) && (
@@ -1150,7 +1170,7 @@ function Asset02() {
                 </div>
               </section>
               <section id="action" className="container">
-                <button className="primary-btn" onClick={() => navigate('/index/assets/konfirmasi', { state: { productId: product.id } })}>Aktifkan Paket Ini</button>
+                <button className="primary-btn" onClick={() => navigate('/index/assets/konfirmasi', { state: { productId: product.id } })}>Ambil Penawaran Ini</button>
               </section>
                 </>
               )}

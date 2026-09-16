@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { goBack } from '../../lib/backNav.js';
 import { useShowNotif } from '../../lib/useShowNotif.js';
 import img_1 from '../../assets/images/102_2017.svg';
-import img_2 from '../../assets/images/6ea7969d642adfbb038f569e995e7ac2259bb145.png';
+import img_2 from '../../assets/images/6ea7969d642adfbb038f569e995e7ac2259bb145.webp';
 import img_3 from '../../assets/images/102_2039.svg';
 import img_4 from '../../assets/images/102_2053.svg';
 import img_5 from '../../assets/images/83771caf3290878852dfea1999f709535d158b8b.png';
@@ -273,7 +274,7 @@ export default function VipRedeemKode() {
       <div>
               <section id="section-header">
                 <header className="header-container">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/rewards/vip'); }}>
                     <img src={img_1} alt="Back" />
                   </button>
                   <h1 className="header-title">Redeem Kode</h1>

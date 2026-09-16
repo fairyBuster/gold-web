@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import img_1 from '../../assets/images/3d6fb697a044e75c7a6c789438a276b40b37b5b9.png';
+import img_1 from '../../assets/images/3d6fb697a044e75c7a6c789438a276b40b37b5b9.webp';
 import img_2 from '../../assets/images/155_1183.svg';
 import img_3 from '../../assets/images/payment.jpg';
 import img_4 from '../../assets/images/secure.jpg';
 import img_5 from '../../assets/images/fast.jpg';
-import img_7 from '../../assets/images/one.png';
-import img_8 from '../../assets/images/two.png';
-import img_9 from '../../assets/images/three.png';
+import img_7 from '../../assets/images/one.webp';
+import img_8 from '../../assets/images/two.webp';
+import img_9 from '../../assets/images/three.webp';
 import img_10 from '../../assets/images/155_1354.svg';
 import img_11 from '../../assets/images/155_1362.svg';
 import img_12 from '../../assets/images/155_1362.svg';
@@ -16,17 +16,17 @@ import img_15 from '../../assets/images/77d24c42cf84c32b2b4b166aa82a20eab63965b9
 import img_16 from '../../assets/images/155_1477.svg';
 import img_17 from '../../assets/images/155_1480.svg';
 import img_18 from '../../assets/images/155_1484.svg';
-import imgHandphone from '../../assets/images/handphone.png';
+import imgHandphone from '../../assets/images/handphone.webp';
 import promoVideo from '../../assets/video/video.mp4';
 /* Foto profil (pp) pengulas di section Testimoni — file .jpg per nama depan. */
-import imgSalsa from '../../assets/images/salsa.jpg';
-import imgAndi from '../../assets/images/andi.jpg';
-import imgMaya from '../../assets/images/maya.jpg';
-import imgRizki from '../../assets/images/rizki.jpg';
-import imgCitra from '../../assets/images/citra.jpg';
-import imgFajar from '../../assets/images/fajar.jpg';
-import imgNadia from '../../assets/images/nadia.jpg';
-import imgKevin from '../../assets/images/kevin.jpg';
+import imgSalsa from '../../assets/images/salsa.webp';
+import imgAndi from '../../assets/images/andi.webp';
+import imgMaya from '../../assets/images/maya.webp';
+import imgRizki from '../../assets/images/rizki.webp';
+import imgCitra from '../../assets/images/citra.webp';
+import imgFajar from '../../assets/images/fajar.webp';
+import imgNadia from '../../assets/images/nadia.webp';
+import imgKevin from '../../assets/images/kevin.webp';
 import { useShowNotif } from '../../lib/useShowNotif.js';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.png';
+import img_1 from '../../../assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.webp';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `

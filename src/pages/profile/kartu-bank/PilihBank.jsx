@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { goBack } from '../../../lib/backNav.js';
 import NotifCard from '../../../components/NotifCard.jsx';
 import img_1 from '../../../assets/images/91_1307.svg';
 import img_2 from '../../../assets/images/91_1320.svg';
@@ -241,7 +242,7 @@ export default function PilihBank() {
               <section id="section-header">
                 <div className="app-container">
                   <header className="header-container">
-                    <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                    <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/profil/kartu-bank-02'); }}>
                       <img src={img_1} alt="Back Icon" />
                     </button>
                     <h1 className="page-title">Pilih Bank</h1>

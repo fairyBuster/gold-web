@@ -1,11 +1,12 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { goBack } from '../../lib/backNav.js';
 /* Live Chat: GET/POST /api/support/chat/... (thread dibuat otomatis backend). */
 import { fetchChatMessages, sendChatMessage } from '../../lib/supportChatApi.js';
 import NotifCard from '../../components/NotifCard.jsx';
 import ListState from '../../components/ListState.jsx';
 import { formatTime, groupByDay } from '../../lib/transactionFormat.js';
 import img_1 from '../../assets/images/105_2418.svg';
-import img_2 from '../../assets/images/7f43db77fdc0a54172b923d3fc56ba8f36714aa6.png';
+import img_2 from '../../assets/images/7f43db77fdc0a54172b923d3fc56ba8f36714aa6.webp';
 import img_3 from '../../assets/images/105_2458.svg';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
@@ -426,7 +427,7 @@ export default function Livechat() {
       <div>
               <section id="section-header">
                 <header className="header-container">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/support/hubungi-cs'); }}>
                     <img src={img_1} alt="" />
                   </button>
                   <div className="avatar-wrapper">

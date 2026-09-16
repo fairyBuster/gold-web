@@ -1,0 +1,90 @@
+[notice] To update, run: pip install --upgrade pip
+      old       new  file
+   501.0K     56.8K  src/assets/images/0682ccf19a5ccac05cf1b55cdf4ce11990d20ded.png
+   871.2K      4.9K  src/assets/images/083535.png
+  1354.2K    183.4K  src/assets/images/0e9552200559b01fbf7792e280655b0f9c3b5705.png
+  1415.3K     44.0K  src/assets/images/129_85.svg (embedded raster)
+  1415.3K     44.0K  src/assets/images/129_87.svg (embedded raster)
+  1415.3K     44.0K  src/assets/images/142_750.svg (embedded raster)
+  1415.3K     44.0K  src/assets/images/144_766.svg (embedded raster)
+   113.4K     10.3K  src/assets/images/156_1676.svg (embedded raster)
+   383.6K      4.1K  src/assets/images/156_1696.svg (embedded raster)
+  1574.8K     45.4K  src/assets/images/157_1699.svg (embedded raster)
+   163.1K     47.9K  src/assets/images/17e7f2f606a56322420437f792ab8f3eef96e321.png
+  1423.3K    169.1K  src/assets/images/1a3342ff63aa8a0ae78e698732cdce70f07c9d3c.png
+  4936.8K     90.2K  src/assets/images/24884b821f483719b32ae83be95f5938906ed0a4.png
+  2453.7K     46.4K  src/assets/images/26f0f85c3f131cbe6775a26cf4afe79775404786.png
+  1438.2K    164.5K  src/assets/images/27d2feb51364f020c6b57863d6f2929526f97178.png
+  1345.6K    170.7K  src/assets/images/2a3095d968e2d2a8159ef070663bf69a50f6efb9.png
+   219.7K      7.1K  src/assets/images/2d27e5e57ff1783ed10941fbbd9cc56c2b708170.png
+  1676.5K    116.8K  src/assets/images/2fda28c0e5f311c7fab98e8bdc58fe3c951564bf.png
+  3165.1K     80.2K  src/assets/images/340e645f2f26798f02677e2c98422f58aea39efc.png
+  3302.3K     79.4K  src/assets/images/35b20deded0e19912844b6fdf8f9fd2008b94258.png
+  4803.6K     87.6K  src/assets/images/37bf07f68b14d7eb18658f6d01b3f9b6012b0779.png
+   781.2K     96.1K  src/assets/images/38a55ef245471fd7a368a8008013cd81b2525d61.png
+  2083.8K     41.6K  src/assets/images/3996294870fd174373ab40264b02a36e21eea57f.png
+  1030.5K    135.6K  src/assets/images/3a72c27da1899801de05252ae1048c69d8c58ce0.png
+   383.6K     40.7K  src/assets/images/3d6fb697a044e75c7a6c789438a276b40b37b5b9.png
+   317.7K     33.1K  src/assets/images/488ceb8a244e7d386619c31c6d4e0de7cea5748b.png
+  2974.7K     81.6K  src/assets/images/4efc6fe0afcfc3c59becc39e7b39f3b8af76471d.png
+  1494.0K    155.9K  src/assets/images/4ff45e57bc897e30533b9ea96068fac470c7dbbe.png
+  2674.5K     75.1K  src/assets/images/535c8f9574b2f9baf9949b53f996ee4685220aa4.png
+  4010.3K     84.7K  src/assets/images/56b2ad6f2b2c68460fa3d5fcbc77ac17528d20db.png
+   939.1K     56.2K  src/assets/images/615cb7874b4304ede07a379f82cc29690a4f8ed1.png
+   871.2K      4.9K  src/assets/images/6412e25d5ba5c5e93d27bf0d202fd0549440c072.png
+   533.4K    127.7K  src/assets/images/6cb5bd9ac1f6d69bd474bb083eb9aef1b43ece63.png
+   247.5K     85.4K  src/assets/images/6ea7969d642adfbb038f569e995e7ac2259bb145.png
+  3913.0K     71.5K  src/assets/images/729874bc8fdae9508a7d6edd0fbcab0fc2297acd.png
+  5369.8K     80.5K  src/assets/images/763617fd2eddebaebccfb9989d93f996b484d69a.png
+  2666.0K     48.5K  src/assets/images/77ee91c8dada95217ef849cd09311a9e69dfd60e.png
+  1415.3K    164.3K  src/assets/images/7ad23d77f11622cbb0af82a44395f1afe17db1bf.png
+  1378.1K    188.5K  src/assets/images/7f43db77fdc0a54172b923d3fc56ba8f36714aa6.png
+  3357.8K     79.4K  src/assets/images/81569fcc73114198ebce603270d2876bde8f85e9.png
+   271.7K     67.5K  src/assets/images/915ddfcd2308a67f93cb52100b8c074abaa5928b.png
+   318.7K     86.5K  src/assets/images/9248a93a677bc363e73808d6da7651b37a1c67e1.png
+  3676.3K     65.4K  src/assets/images/94ca8f344e5fb407a20caa7b64b18f1f69f1c241.png
+   309.1K     69.1K  src/assets/images/97d547b383343261074c45a251276c6f944091c3.png
+  5120.7K     86.6K  src/assets/images/9b5ad71549ef79083a8ec75cc09e48d716da84b5.png
+  2131.6K     59.4K  src/assets/images/9fcc473ba5f784d0b2060fecc81d824e08c1f8ef.png
+  3122.6K     48.8K  src/assets/images/a0f4e57692255e6234cdb5455f19fda6e1a96e82.png
+   249.3K      8.5K  src/assets/images/a183fe7f42819438be5c49935567e464a5e56f98.png
+  1574.8K    177.5K  src/assets/images/a2e642134a81c06da92ec2afc6d0074bf61bb78b.png
+   871.2K      4.9K  src/assets/images/all_bg.png
+   667.5K    181.7K  src/assets/images/andi.jpg
+  1784.7K     85.9K  src/assets/images/b1.png
+  2848.4K     51.1K  src/assets/images/b13b7a474443dcb448772d73d8251dbab67b8f14.png
+  1742.8K     82.6K  src/assets/images/b2.png
+  1627.3K     63.9K  src/assets/images/b3.png
+  3926.9K    114.8K  src/assets/images/b47d68fcca5d9906fa4b670a4e2ba97595b53d85.png
+  3535.4K     74.0K  src/assets/images/b81e15c346e04436d4942dcc3db210c53fb02cde.png
+  1530.2K    180.9K  src/assets/images/cd4321a034b318f75c488cf1f2e3603c65cc1a7f.png
+  1357.9K    146.3K  src/assets/images/ce5e15fdc0235c8752e5673a09627b9fdbe74d46.png
+   407.7K     88.5K  src/assets/images/citra.jpg
+  1384.5K    205.4K  src/assets/images/d0c88bff3940350d94087b6d99bd4af93d239625.png
+  3298.2K     79.5K  src/assets/images/d8666664ad04dfe2e0ca0eab6760afd9981cbdda.png
+  1590.3K    185.6K  src/assets/images/d8da7d40a36530662fd38ce2db2d88617de3e965.png
+   262.6K     85.3K  src/assets/images/d9af9b39efedfae7ea21b76fa659e5a945332389.png
+  3413.4K     76.1K  src/assets/images/da5c0c73940a74f9c3800abf541fd5f52b003bdc.png
+   527.7K     65.1K  src/assets/images/daa433f6e9556af856198e9d4ecedd96ef8128a8.png
+   968.1K    123.4K  src/assets/images/e1b6a897bc21b04dbaf80b15b093a845dcebf04d.png
+  1564.4K     92.5K  src/assets/images/ea189c93af3cf445b247df84a4c0aac9334bc27d.png
+  1208.0K    133.5K  src/assets/images/ea1bb9cef82aba4ecc7496b3f5ea8102b089a13d.png
+  4178.0K     80.2K  src/assets/images/ec972c6bbdb7f31b7256dac0dd419e926ac47b3f.png
+   187.9K     17.9K  src/assets/images/f3c7efd176c45912c54a20b6ff3074df704d1292.png
+   326.1K     73.8K  src/assets/images/f8f1a5b57a11f48b4845177ed85bf0e0ce6512a1.png
+  1263.7K    165.2K  src/assets/images/f9c5183ac158cef9ca41f24d7c27c0a86cc4e6fd.png
+   619.7K    172.7K  src/assets/images/fajar.jpg
+  1134.1K     24.1K  src/assets/images/gold.png
+   665.7K     49.7K  src/assets/images/handphone.png
+   578.9K    174.2K  src/assets/images/kevin.jpg
+   962.0K    354.5K  src/assets/images/maya.jpg
+   940.5K    328.9K  src/assets/images/nadia.jpg
+   678.5K     75.3K  src/assets/images/one.png
+   489.4K    133.0K  src/assets/images/rizki.jpg
+   322.8K     86.8K  src/assets/images/salsa.jpg
+  1024.6K    124.5K  src/assets/images/three.png
+  1199.5K    116.3K  src/assets/images/two.png
+
+rasters+svgs: 143.6 MB -> 8.2 MB
+renamed to .webp: 77 files
+WARN: no reference found for 6412e25d5ba5c5e93d27bf0d202fd0549440c072.png

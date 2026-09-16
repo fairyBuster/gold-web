@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import { goBack } from '../../lib/backNav.js';
 import { getRankLevels, getRankStatus } from '../../lib/authApi.js';
 import { formatRupiah } from '../../lib/transactionFormat.js';
 import img_1 from '../../assets/images/102_1724.svg';
-import img_2 from '../../assets/images/915ddfcd2308a67f93cb52100b8c074abaa5928b.png';
-import img_3 from '../../assets/images/97d547b383343261074c45a251276c6f944091c3.png';
+import img_2 from '../../assets/images/915ddfcd2308a67f93cb52100b8c074abaa5928b.webp';
+import img_3 from '../../assets/images/97d547b383343261074c45a251276c6f944091c3.webp';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
 const styles = `
@@ -368,7 +369,7 @@ export default function Vip() {
       <div>
               <section id="section-header">
                 <header className="vip-header">
-                  <a href="#" className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); window.history.back(); }}>
+                  <a href="#" className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
                     <img src={img_1} alt="" />
                   </a>
                   <h1 className="header-title">VIP JelajahEmas</h1>
