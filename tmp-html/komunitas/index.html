@@ -32,7 +32,7 @@
     window.fetch = (url) => {
       const target = String(url);
       if (target.includes('/api/auth/account-info/')) {
-        return Promise.resolve(json({ full_name: 'Budi Santoso', username: '628123456789', balance: '1234567' }));
+        return Promise.resolve(json({ full_name: 'Andrew Fernandez', username: '628123456789', balance: '1234567' }));
       }
       if (target.includes('/api/auth/balance-statistics/')) {
         return Promise.resolve(json({ total_income: '0', total_expense: '0' }));

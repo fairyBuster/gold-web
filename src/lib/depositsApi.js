@@ -176,8 +176,10 @@ export function initiateDepositLpay({ amount }) {
   });
 }
 
-/* POST /api/deposits/bankpay/initiate/ — deposit transfer bank manual via
-   BankPay; payload berisi nomor VA + nominal unik yang harus ditransfer.
+/* POST /api/deposits/bankpay/initiate/ — deposit transfer bank BRI via
+   BankPay; payload berisi nomor rekening tujuan + nominal unik yang harus
+   ditransfer. Gateway menamai field nomornya va_number/va_bank meski UI
+   menampilkan alur ini sebagai Bank Transfer (bukan Virtual Account).
    Body: { amount: 50000, wallet_type: 'BALANCE_DEPOSIT', bankcode: 'bank' }.
    Success payload (confirmed against the live gateway): { order_num,
    amount: "50000.00", display_amount: "50,862" (nominal transfer — termasuk
@@ -193,10 +195,11 @@ export function initiateDepositBankpay({ amount }) {
   });
 }
 
-/* Data deposit bankpay untuk halaman instruksi Virtual Account: nomor VA,
-   nominal transfer (display_amount — nominal unik yang harus dibayar; jatuh
-   ke `amount` bila kosong), kode bank dari va_bank ("BRI Virtual Account"
-   → 'BRI'), nama pemilik VA, dan halaman bayar gateway. */
+/* Data deposit bankpay untuk halaman instruksi Bank Transfer: nomor rekening
+   tujuan (field va_number dari gateway), nominal transfer (display_amount —
+   nominal unik yang harus dibayar; jatuh ke `amount` bila kosong), kode bank
+   dari va_bank ("BRI Virtual Account" → 'BRI'), nama pemilik rekening, dan
+   halaman bayar gateway. */
 export function extractBankpayInfo(payload) {
   const source = payload && typeof payload === 'object' ? payload : {};
   const read = (key) => (typeof source[key] === 'string' ? source[key].trim() : '');

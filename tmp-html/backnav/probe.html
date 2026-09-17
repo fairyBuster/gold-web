@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BACKNAV-RUNNING</title>
+</head>
+<body>
+<div id="root"></div>
+<pre id="backnav-metrics">pending</pre>
+<script type="module">
+  /* Probe back navigation deterministik (lib/backNav.js):
+     - case=mall-back     : buka vip → poin-mall-01 → tombol back. Dulu history.back()
+                            berhenti di halaman sebelumnya (vip); sekarang harus
+                            langsung ke menu home.
+     - case=sending-back  : buka vip → transactions/sending → tombol back → home.
+     - case=wizard-back   : buka vip → tarik-dana-02 → tombol back → langkah
+                            sebelumnya (transactions/sending).
+     - case=wizard-back-3 : buka vip → tarik-dana-03 dengan rekening tersimpan →
+                            tombol back → transactions/sending. (tarik-dana-02
+                            auto-redirect ke tarik-dana-03 saat user punya rekening,
+                            jadi tidak boleh jadi tujuan back.)
+     - case=wizard-back-3nb: tarik-dana-03 tanpa rekening → tombol back →
+                            tarik-dana-02 (halaman tambah rekening). */
+  /* Probe standalone (tanpa dev server): salt harus sama dengan fallback
+     VITE_RESPONSE_SALT aplikasi. */
+  const SALT = 'KXXADFDFDF';
+  const probeCase = new URLSearchParams(location.search).get('case') || 'mall-back';
+
+  const encodeSalted = (obj) => {
+    const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+    return { data: [...(base64 + SALT)].reverse().join('') };
+  };
+  const json = (obj) => Promise.resolve(new Response(JSON.stringify(encodeSalted(obj)), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+
+  const TARGETS = {
+    'mall-back': { page: '#/index/rewards/poin-mall-01', waitSel: '.page-poin-mall-01 .back-btn', expect: '#/index/home', expectSel: '.page-home' },
+    'sending-back': { page: '#/index/transactions/sending', waitSel: '.page-tarik-dana-01 .back-btn', expect: '#/index/home', expectSel: '.page-home' },
+    'wizard-back': { page: '#/index/transactions/tarik-dana-02', waitSel: '.page-tarik-dana-02 .back-btn', expect: '#/index/transactions/sending', expectSel: '.page-tarik-dana-01' },
+    'wizard-back-3': { page: '#/index/transactions/tarik-dana-03', waitSel: '.page-tarik-dana-03 .back-btn', expect: '#/index/transactions/sending', expectSel: '.page-tarik-dana-01', withBanks: true },
+    'wizard-back-3nb': { page: '#/index/transactions/tarik-dana-03', waitSel: '.page-tarik-dana-03 .back-btn', expect: '#/index/transactions/tarik-dana-02', expectSel: '.page-tarik-dana-02 .back-btn' },
+  }[probeCase];
+
+  const realFetch = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    const url = typeof input === 'string' ? input : (input?.url || '');
+    if (url.includes('/api/banks/user/')) {
+      return json(TARGETS.withBanks
+        ? [{ id: 1, bank_name: 'BCA', account_number: '1234567890', account_name: 'Budi Santoso', is_default: true }]
+        : []);
+    }
+    if (url.includes('/api/')) return json({});
+    return realFetch(input, init);
+  };
+
+  localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+  /* Halaman perantara supaya riwayat berisi halaman LAIN, bukan home. */
+  location.hash = '#/index/rewards/vip';
+
+  const metrics = { probeCase, steps: [] };
+  const write = () => {
+    document.getElementById('backnav-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'BACKNAV-DONE ' + JSON.stringify(metrics);
+  };
+  const waitFor = async (fn, timeout = 15000, step = 200) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      try { if (fn()) return true; } catch { /* belum siap */ }
+      await new Promise((r) => setTimeout(r, step));
+    }
+    return false;
+  };
+
+  try {
+    /* Bundle dist diimpor dari index.html supaya SPA berjalan persis seperti
+       produksi — probe berdiri sendiri, tanpa dev server. */
+    const html = await (await realFetch('/index.html')).text();
+    for (const m of html.matchAll(/href="(\/assets\/[^"]+\.css)"/g)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = m[1];
+      document.head.appendChild(link);
+    }
+    const entry = html.match(/src="(\/assets\/[^"]+\.js)"/);
+    if (!entry) throw new Error('entry asset not found');
+    await import(entry[1]);
+
+    /* Pastikan entry perantara (vip) sudah tercatat di riwayat, lalu pindah. */
+    await waitFor(() => location.hash === '#/index/rewards/vip');
+    await new Promise((r) => setTimeout(r, 700));
+    metrics.hashBefore = location.hash;
+    location.hash = TARGETS.page;
+
+    const ready = await waitFor(() => document.querySelector(TARGETS.waitSel));
+    metrics.steps.push(['halaman target tampil', ready]);
+    metrics.hashAtTarget = location.hash;
+
+    document.querySelector(TARGETS.waitSel).click();
+    const landed = await waitFor(() => location.hash === TARGETS.expect && document.querySelector(TARGETS.expectSel));
+    metrics.hashAfter = location.hash;
+    metrics.expected = TARGETS.expect;
+    metrics.destinationRendered = !!document.querySelector(TARGETS.expectSel);
+    metrics.steps.push(['back → ' + TARGETS.expect, landed]);
+    metrics.allPassed = ready && landed && metrics.hashAfter === TARGETS.expect && metrics.destinationRendered &&
+      metrics.hashAtTarget === TARGETS.page;
+  } catch (error) {
+    metrics.error = String(error);
+    metrics.allPassed = false;
+  }
+  write();
+</script>
+</body>
+</html>

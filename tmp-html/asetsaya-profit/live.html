@@ -9,7 +9,7 @@
   <div id="root"></div>
   <pre id="as-live-metrics">pending</pre>
   <script type="module">
-    /* Live probe: /assets/aset-saya-01 against the real API (no fetch stub).
+    /* Live probe: /index/assets/all against the real API (no fetch stub).
        Expected "Pembagian / Periode" rows are computed from the same live
        /api/investments/ list the page renders from (via the app's own
        decoding client), then compared card by card: random plans -> the
@@ -49,7 +49,7 @@
       return isRandom ? `${fmtRange(min, max)} / hari` : `${fmt(inv.daily_profit)} / hari`;
     });
 
-    history.replaceState(null, '', '/index/assets/aset-saya-01');
+    history.replaceState(null, '', '/index/assets/all');
     await import('/src/main.jsx');
 
     await waitFor('.page-aset-saya-01 .product-card');

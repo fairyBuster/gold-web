@@ -26,7 +26,7 @@
     window.fetch = async (url, init = {}) => {
       metrics.fetchCalls.push({ url: String(url), body: typeof init.body === 'string' ? init.body : null });
       if (String(url).includes('/api/auth/register/')) {
-        return new Response(JSON.stringify({ id: 1, username: '628123456789', full_name: 'Budi Santoso' }), {
+        return new Response(JSON.stringify({ id: 1, username: '628123456789', full_name: 'Andrew Fernandez' }), {
           status: 201,
           headers: { 'Content-Type': 'application/json' },
         });
@@ -97,7 +97,7 @@
       history.replaceState(null, '', '/index/auth/register-01');
       await import('/src/main.jsx');
 
-      const name = await waitFor('.page-register-01 input[placeholder="Contoh: Budi Santoso"]');
+      const name = await waitFor('.page-register-01 input[placeholder="Contoh: Andrew Fernandez"]');
       const email = await waitFor('.page-register-01 input[placeholder="contoh@email.com"]');
       const phone = await waitFor('.page-register-01 input[placeholder="Nomor ponsel"]');
       const referral = await waitFor('.page-register-01 input[placeholder="Masukkan kode"]');
@@ -110,20 +110,20 @@
       await dismissNotif();
 
       /* B — name with forbidden symbols. */
-      await feed(name, 'Budi #123');
+      await feed(name, 'Andrew #123');
       await submitStep1();
       expectNotif('nameBadFormat', 'Nama pengguna hanya boleh berisi huruf, angka, dan spasi.');
       await dismissNotif();
 
       /* C — email missing "@". */
-      await feed(name, 'Budi Santoso');
+      await feed(name, 'Andrew Fernandez');
       await feed(email, 'notanemail');
       await submitStep1();
       expectNotif('emailBadFormat', 'Masukkan alamat email yang valid.');
       await dismissNotif();
 
       /* D — phone empty. */
-      await feed(email, 'budi@example.com');
+      await feed(email, 'andrew@example.com');
       await feed(phone, '');
       await submitStep1();
       expectNotif('phoneEmpty', 'Masukkan nomor ponsel yang valid.');
@@ -170,8 +170,8 @@
           const body = JSON.parse(call.body);
           metrics.registerPayload = body;
           metrics.payloadChecks = {
-            fullName: body.full_name === 'Budi Santoso',
-            email: body.email === 'budi@example.com',
+            fullName: body.full_name === 'Andrew Fernandez',
+            email: body.email === 'andrew@example.com',
             username: body.username === '628123456789',
             phone: body.phone === '628123456789',
             referral: body.referral_code === 'REF123',

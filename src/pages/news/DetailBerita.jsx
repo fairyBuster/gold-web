@@ -101,11 +101,12 @@ const styles = `
     font-size: 14px;
     font-weight: 400;
   }
+  /* Banner tampil utuh mengikuti rasio aslinya — tinggi tetap sebelumnya
+     (233.5px + object-fit: cover) memotong berita dengan rasio berbeda. */
   .page-detail-berita .cover-image {
     width: 100%;
-    height: 233.5px;
+    height: auto;
     border-radius: 16px;
-    object-fit: cover;
     display: block;
     margin-bottom: 16px;
   }

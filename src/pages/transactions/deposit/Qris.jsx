@@ -375,7 +375,7 @@ export default function Qris() {
   useEffect(() => {
     if (!payment) {
       showNotif({ title: 'Data Pembayaran Tidak Ditemukan', description: 'Silakan ulangi proses isi ulang saldo.' });
-      navigate('/index/transactions/isi-ulang', { replace: true });
+      navigate('/index/transactions/topup', { replace: true });
     }
   }, [navigate, payment, showNotif]);
 
@@ -479,7 +479,7 @@ export default function Qris() {
       <div>
               <section id="section-header">
                 <header className="site-header">
-                  <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/transactions/isi-ulang'); }}>
+                  <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/transactions/topup'); }}>
                     <img src={img_1} alt="Back Icon" />
                   </button>
                   <h1 className="page-title">Instruksi Pembayaran</h1>
@@ -578,7 +578,7 @@ export default function Qris() {
               </section>
               <section id="section-footer-actions">
                 <div className="actions-wrapper">
-                  <button className="btn-primary" onClick={(e) => { e.preventDefault(); navigate('/index/transactions/riwayat-isi-ulang'); }}>Saya sudah membayar</button>
+                  <button className="btn-primary" onClick={(e) => { e.preventDefault(); navigate('/index/transactions/balance'); }}>Saya sudah membayar</button>
                   <button className="btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/index/support/hubungi-cs'); }}>Butuh Bantuan? Hubungi Kontak Jelajah</button>
                 </div>
               </section>

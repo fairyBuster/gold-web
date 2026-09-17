@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RIWAYAT-CHANNEL-E2E-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="metrics">pending</pre>
+  <script type="module">
+    /* Verifikasi label metode bayar di RiwayatIsiUlang.jsx (route
+       #/index/transactions/balance): nama gateway pembayaran (LPAY, MGM,
+       FF Pay, ATPAY, BankPay, ClientHub, SiTransfer Hub) TIDAK boleh tampil
+       di subtitle kartu riwayat — yang tampil hanya nama channel generik:
+       QRIS / Virtual Account / Bank Transfer BRI. Provider yang tidak
+       dikenali tampil tanpa label channel (subtitle hanya jam). */
+    const metrics = { scenario: 'riwayat-channel-labels', errors: [] };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const row = (id, created, description) => ({
+      id,
+      type: 'DEPOSIT',
+      amount: '100000.00',
+      status: 'COMPLETED',
+      created_at: created,
+      description,
+    });
+
+    const DEPOSIT_ROWS = [
+      row(8801, '2026-09-17 20:01:00', 'Deposit via LPAY (BALANCE_DEPOSIT)'),
+      row(8802, '2026-09-17 19:02:00', 'Deposit via MGM (BALANCE_DEPOSIT)'),
+      row(8803, '2026-09-17 18:03:00', 'Deposit via FF Pay (BALANCE_DEPOSIT)'),
+      row(8804, '2026-09-17 17:04:00', 'Deposit via SiTransfer Hub (BALANCE_DEPOSIT)'),
+      row(8805, '2026-09-17 16:05:00', 'Deposit via ClientHub (BALANCE_DEPOSIT)'),
+      row(8806, '2026-09-17 15:06:00', 'Deposit via ATPAY (BALANCE_DEPOSIT)'),
+      row(8807, '2026-09-17 14:07:00', 'Deposit via BankPay (BALANCE_DEPOSIT)'),
+      row(8808, '2026-09-17 13:08:00', 'Deposit via Xyz Gateway (BALANCE_DEPOSIT)'),
+    ];
+
+    const envelope = (results) => ({ count: results.length, next: null, previous: null, results });
+
+    const realFetch = window.fetch.bind(window);
+    window.fetch = async (url, init = {}) => {
+      const target = String(url);
+      if (target.includes('/api/transactions/')) {
+        return new Response(JSON.stringify(envelope(DEPOSIT_ROWS)), {
+          status: 200, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (target.includes('/api/')) {
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return realFetch(url, init);
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+    if (!location.hash) location.hash = '#/index/transactions/balance';
+
+    /* Nama asset ber-hash diambil dari index.html dist, lalu bundle diimpor
+       supaya SPA berjalan persis seperti produksi. */
+    const html = await (await realFetch('/index.html')).text();
+    for (const m of html.matchAll(/href="(\/assets\/[^"]+\.css)"/g)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = m[1];
+      document.head.appendChild(link);
+    }
+    const entry = html.match(/src="(\/assets\/[^"]+\.js)"/);
+    if (!entry) {
+      metrics.fatal = 'entry asset not found';
+      document.getElementById('metrics').textContent = JSON.stringify(metrics, null, 2);
+      throw new Error('no entry asset');
+    }
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, timeout = 10000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const value = fn();
+        if (value) return value;
+        await sleep(50);
+      }
+      return null;
+    };
+
+    await import(entry[1]);
+
+    await waitFor(() => document.querySelector('.page-riwayat-isi-ulang'));
+    await waitFor(() => document.querySelectorAll('.page-riwayat-isi-ulang .history-subtitle').length >= DEPOSIT_ROWS.length, 8000);
+
+    const subtitles = [...document.querySelectorAll('.page-riwayat-isi-ulang .history-subtitle')].map((el) => el.textContent.trim());
+    metrics.subtitles = subtitles;
+    metrics.rowCount = subtitles.length;
+
+    const countEnding = (suffix) => subtitles.filter((s) => s.endsWith(`• ${suffix}`)).length;
+    metrics.qrisRows = countEnding('QRIS');
+    metrics.vaRows = countEnding('Virtual Account');
+    metrics.bankTransferRows = countEnding('Bank Transfer BRI');
+    metrics.timeOnlyRows = subtitles.filter((s) => /^\d{2}:\d{2}$/.test(s)).length;
+    metrics.allFormatOk = subtitles.every((s) => /^\d{2}:\d{2}( • .+)?$/.test(s));
+
+    /* Teks root saja — <script> probe memuat nama gateway sebagai literal,
+       dan body.textContent akan ikut membacanya (false positive). */
+    const rootText = document.getElementById('root').textContent || '';
+    metrics.gatewayLeak = /lpay|mgm|ff\s*pay|sistransfer|clienthub|bankpay|atpay|xyz/gi.test(rootText);
+
+    metrics.passed = metrics.rowCount === 8
+      && metrics.qrisRows === 4
+      && metrics.vaRows === 2
+      && metrics.bankTransferRows === 1
+      && metrics.timeOnlyRows === 1
+      && metrics.allFormatOk
+      && metrics.gatewayLeak === false
+      && metrics.errors.length === 0;
+
+    document.getElementById('metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = (metrics.passed ? 'RIWAYAT-CHANNEL-PASS ' : 'RIWAYAT-CHANNEL-FAIL ') + JSON.stringify(metrics);
+  </script>
+</body>
+</html>

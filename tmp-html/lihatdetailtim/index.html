@@ -32,9 +32,9 @@
       total_investment_amount: `${1000000 * id}.00`,
     });
     const LEVELS = {
-      1: [member(1, 'Ahmad Satu')],
-      2: [member(2, 'Budi Dua')],
-      3: [member(3, 'Cici Tiga')],
+      1: [member(1, 'Alex One')],
+      2: [member(2, 'Bella Two')],
+      3: [member(3, 'Cindy Three')],
     };
 
     const json = (data, status = 200) => new Response(JSON.stringify(data), {
@@ -115,15 +115,15 @@
     const passed =
       metrics.state.defaultInfo === INFO_1
       && metrics.state.defaultDark === 'Level 1'
-      && eq(metrics.state.defaultMembers, ['Ahmad Satu', 'Budi Dua', 'Cici Tiga'])
+      && eq(metrics.state.defaultMembers, ['Alex One', 'Bella Two', 'Cindy Three'])
       && metrics.state.level2Info === 'Level 2 — teman yang diajak oleh anggota Level 1 kamu.'
       && metrics.state.level2Dark === 'Level 2'
-      && eq(metrics.state.level2Members, ['Budi Dua'])
+      && eq(metrics.state.level2Members, ['Bella Two'])
       && metrics.state.level3Info === 'Level 3 — teman yang diajak oleh anggota Level 2 kamu.'
-      && eq(metrics.state.level3Members, ['Cici Tiga'])
+      && eq(metrics.state.level3Members, ['Cindy Three'])
       && metrics.state.deselectInfo === INFO_1
       && metrics.state.deselectDark === 'Level 1'
-      && eq(metrics.state.deselectMembers, ['Ahmad Satu', 'Budi Dua', 'Cici Tiga'])
+      && eq(metrics.state.deselectMembers, ['Alex One', 'Bella Two', 'Cindy Three'])
       && metrics.state.level1Info === INFO_1
       && metrics.errors.length === 0;
     writeMetrics(passed);

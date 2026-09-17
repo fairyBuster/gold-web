@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DIGITAL-RENAME-RUNNING</title>
+</head>
+<body>
+<div id="root"></div>
+<pre id="digital-rename-metrics">pending</pre>
+<script type="module">
+  /* Probe rename path aset — emas-digital → digital (TANPA alias: path lama
+     mati total dan jatuh ke catch-all welcome):
+     - case=digital      : #/index/assets/digital langsung — halaman Emas Digital render.
+     - case=digital-old  : #/index/assets/emas-digital → mati → welcome.
+     - case=digital-links: kartu "Lihat aset digital saya" (di /index/assets/all) dan fitur
+                           "Emas Digital" di Profil mengarah ke /index/assets/digital,
+                           tanpa path lama. */
+  /* Probe standalone (tanpa dev server): salt harus sama dengan fallback
+     VITE_RESPONSE_SALT aplikasi. */
+  const SALT = 'KXXADFDFDF';
+  const probeCase = new URLSearchParams(location.search).get('case') || 'digital';
+
+  const encodeSalted = (obj) => {
+    const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+    return { data: [...(base64 + SALT)].reverse().join('') };
+  };
+  const json = (obj) => Promise.resolve(new Response(JSON.stringify(encodeSalted(obj)), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+
+  const ENTRY = {
+    digital: '#/index/assets/digital',
+    'digital-old': '#/index/assets/emas-digital',
+    'digital-links': '#/index/assets/all',
+  }[probeCase];
+
+  const realFetch = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    const url = typeof input === 'string' ? input : (input?.url || '');
+    /* Satu rencana aktif supaya InvestmentCard — dan link "Lihat aset digital
+       saya" di dalamnya — ikut ter-render di /index/assets/all. */
+    if (url.includes('/api/investments/')) {
+      return json([{ id: 1, product_name: 'Paket Emas Digital', status: 'ACTIVE', daily_profit: 5000,
+        total_claimed_profit: 25000, duration_days: 30, created_at: '2026-09-01T00:00:00Z',
+        next_claim_time_calculated: '2026-09-17T08:00:00Z' }]);
+    }
+    if (url.includes('/api/')) return json({});
+    return realFetch(input, init);
+  };
+
+  localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+  location.hash = ENTRY;
+
+  const metrics = { probeCase, entry: ENTRY, steps: [] };
+  const write = () => {
+    document.getElementById('digital-rename-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'DIGITAL-RENAME-DONE ' + JSON.stringify(metrics);
+  };
+  const waitFor = async (fn, timeout = 15000, step = 200) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      try { if (fn()) return true; } catch { /* belum siap */ }
+      await new Promise((r) => setTimeout(r, step));
+    }
+    return false;
+  };
+
+  try {
+    /* Bundle dist diimpor dari index.html supaya SPA berjalan persis seperti
+       produksi — probe berdiri sendiri, tanpa dev server. */
+    const html = await (await realFetch('/index.html')).text();
+    for (const m of html.matchAll(/href="(\/assets\/[^"]+\.css)"/g)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = m[1];
+      document.head.appendChild(link);
+    }
+    const entry = html.match(/src="(\/assets\/[^"]+\.js)"/);
+    if (!entry) throw new Error('entry asset not found');
+    await import(entry[1]);
+
+    if (probeCase === 'digital-links') {
+      const cardReady = await waitFor(() => document.querySelector('.page-aset-saya-01 a.card-link'));
+      metrics.steps.push(['kartu aset + link tampil', cardReady]);
+      metrics.cardHref = document.querySelector('.page-aset-saya-01 a.card-link')?.getAttribute('href') || null;
+      location.hash = '#/index/profil';
+      const profilReady = await waitFor(() => document.querySelector('.page-profil a.feature-item'));
+      metrics.steps.push(['halaman profil tampil', profilReady]);
+      await new Promise((r) => setTimeout(r, 400)); /* beri waktu fetch settle */
+      metrics.featureHrefs = [...document.querySelectorAll('.page-profil a.feature-item')]
+        .map((a) => a.getAttribute('href'));
+      metrics.allPassed = cardReady && profilReady &&
+        metrics.cardHref === '#/index/assets/digital' &&
+        metrics.featureHrefs.includes('#/index/assets/digital') &&
+        ![...metrics.featureHrefs, metrics.cardHref].some((h) => h && h.includes('emas-digital'));
+    } else {
+      const expectations = {
+        digital: { page: '.page-emas-digital', hash: '#/index/assets/digital', title: 'Emas Digital \u00b7 Jelajah Emas' },
+        'digital-old': { dead: true, hash: '#/index/auth/welcome', forbid: '.page-emas-digital' },
+      }[probeCase];
+      metrics.expected = expectations;
+      if (expectations.dead) {
+        const ready = await waitFor(() => location.hash === expectations.hash);
+        await new Promise((r) => setTimeout(r, 400)); /* beri waktu render settle */
+        metrics.hashNow = location.hash;
+        metrics.forbiddenPresent = Boolean(document.querySelector(expectations.forbid));
+        metrics.allPassed = ready && location.hash === expectations.hash && !metrics.forbiddenPresent;
+      } else {
+        const ready = await waitFor(() => document.querySelector(expectations.page) && location.hash === expectations.hash);
+        metrics.steps.push(['halaman + hash akhir', ready]);
+        await new Promise((r) => setTimeout(r, 300));
+        metrics.hashNow = location.hash;
+        metrics.title = document.title;
+        metrics.allPassed = ready && location.hash === expectations.hash && document.title === expectations.title;
+      }
+    }
+  } catch (error) {
+    metrics.error = String(error);
+    metrics.allPassed = false;
+  }
+  write();
+</script>
+</body>
+</html>

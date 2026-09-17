@@ -241,6 +241,20 @@ const styles = `
   .page-home .change-text.is-down {
     color: #e24c4c;
   }
+  /* Saldo dompet isi ulang (BALANCE_DEPOSIT) di ujung kanan baris perubahan — label atas, nominal bawah. */
+  .page-home .deposit-balance {
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    color: #a79c8f;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .page-home .deposit-balance strong {
+    color: #514840;
+    font-weight: 700;
+  }
 
 /* CSS for section section:MarketPrice */
 .page-home .market-section {
@@ -664,6 +678,10 @@ export default function Home() {
   // is in flight the card shows a skeleton bar; on failure it falls back
   // to "—".
   const balanceText = account ? formatIDR(Number(account.balance) || 0) : '—';
+  /* Saldo dompet isi ulang — the `balance_deposit` field of the same
+     account-info payload (the wallet IsiUlang tops up). Sits at the end of
+     the change line and is masked by the same eye toggle. */
+  const depositBalanceText = account ? formatIDR(Number(account.balance_deposit) || 0) : '—';
   /* Change line under the balance: today's income in Rupiah plus the percent
      change of that income against yesterday ("Rp X (Y%)"). The mockup
      "Rp 0 (0,0%)" stays until both stats requests land. */
@@ -714,7 +732,7 @@ export default function Home() {
                 <div className="asset-card" style={{ backgroundImage: `url(${img_18})` }}>
                   <div className="asset-header">
                     <span className="asset-label">Saldo sekarang</span>
-                    <Link to="/index/assets/aset-saya-01" className="asset-link">
+                    <Link to="/index/assets/all" className="asset-link">
                       Lihat Milik Saya
                       <img src={img_5} alt=">" />
                     </Link>
@@ -736,6 +754,7 @@ export default function Home() {
                   <div className="asset-change">
                     <img src={incomeTrendUp ? img_7 : img_9} alt={incomeTrendUp ? 'Up' : 'Down'} />
                     <span className={`change-text${incomeTrendUp ? '' : ' is-down'}`}>{assetVisible ? incomeChangeText : 'Rp •••••• (•••%)'}</span>
+                    <span className="deposit-balance">Saldo Isi Ulang <strong>{assetVisible ? depositBalanceText : 'Rp ••••••'}</strong></span>
                   </div>
                 </div>
               </section>
@@ -756,7 +775,7 @@ export default function Home() {
               <section id="section-features" className="features-section">
                 <h3 className="section-title">Fitur Lainnya</h3>
                 <div className="features-grid">
-                  <Link to="/index/transactions/isi-ulang" className="feature-item">
+                  <Link to="/index/transactions/topup" className="feature-item">
                     <img src={img_10} alt="Isi Ulang" />
                     <span>Isi Ulang</span>
                   </Link>
@@ -768,7 +787,7 @@ export default function Home() {
                     <img src={img_12} alt="Tim/Afiliasi" />
                     <span>Tim/Afiliasi</span>
                   </Link>
-                  <Link to="/index/transactions/tarik-dana-01" className="feature-item">
+                  <Link to="/index/transactions/sending" className="feature-item">
                     <img src={img_13} alt="Tarik Dana" />
                     <span>Tarik Dana</span>
                   </Link>

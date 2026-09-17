@@ -50,7 +50,7 @@
       metrics.errors.push('token fetch failed: ' + e);
     }
 
-    history.replaceState(null, '', '/index/transactions/tarik-dana-01');
+    history.replaceState(null, '', '/index/transactions/sending');
     await import('/src/main.jsx');
 
     await waitFor('.page-tarik-dana-01 .quick-amounts');

@@ -31,7 +31,7 @@
   window.fetch = (input, init = {}) => {
     const url = typeof input === 'string' ? input : (input?.url ?? String(input));
     if (url.includes('/api/auth/account-info/')) {
-      return json({ phone: '6281234567890', full_name: 'Budi Santoso', username: 'budi' });
+      return json({ phone: '6281234567890', full_name: 'Andrew Fernandez', username: 'andrew' });
     }
     if (url.includes('/api/auth/change-password/')) {
       changeCalls.push({ method: init.method, body: JSON.parse(init.body || '{}') });

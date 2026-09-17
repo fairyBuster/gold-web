@@ -8,7 +8,7 @@
 <div id="root"></div>
 <pre id="asetsaya-metrics">pending</pre>
 <script type="module">
-  /* Probe AsetSaya (route /index/assets/aset-saya-01 & -02):
+  /* Probe AsetSaya (route /index/assets/all & aset-saya-02):
      - kartu "Total Aset Emas Kamu" bersumber GET /api/gold/info/:
        gram = balance_hold ÷ price_per_gram, rupiah = ≈ formatRupiah(balance_hold);
      - selama gold info dimuat: 2 bar shimmer (asset-metric-skeleton);
@@ -80,7 +80,7 @@
   /* Cache harga emas publik untuk kartu "Harga Emas Hari Ini" saja. */
   localStorage.setItem('je_gold_price', JSON.stringify({ ts: Date.now(), pricePerGram: 2500000, changePercent: 0.5 }));
   localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
-  history.replaceState(null, '', CASE.startsWith('step02') ? '/index/assets/aset-saya-02' : '/index/assets/aset-saya-01');
+  history.replaceState(null, '', CASE.startsWith('step02') ? '/index/assets/aset-saya-02' : '/index/assets/all');
 
   const metrics = { case: CASE, steps: [] };
   const write = () => { document.getElementById('asetsaya-metrics').textContent = JSON.stringify(metrics, null, 2); };

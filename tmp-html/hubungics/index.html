@@ -17,7 +17,9 @@
      - case=missing  : results tanpa id 11, 12 & 13 → ketiga href tetap '#'.
      - case=inactive : id 11, 12 & 13 ada tapi is_active=false → tetap '#'.
      - case=error    : request gagal → ketiga href tetap '#'. */
-  const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+  /* Probe standalone (tanpa dev server): salt harus sama dengan fallback
+     VITE_RESPONSE_SALT aplikasi. */
+  const SALT = 'KXXADFDFDF';
   const probeCase = new URLSearchParams(location.search).get('case') || 'loaded';
 
   const encodeSalted = (obj) => {
@@ -41,20 +43,25 @@
   if (probeCase === 'missing') LINKS.results = LINKS.results.filter((item) => !WIRED_IDS.includes(item.id));
   if (probeCase === 'inactive') LINKS.results = LINKS.results.map((item) => (WIRED_IDS.includes(item.id) ? { ...item, is_active: false } : item));
 
-  window.fetch = (input) => {
-    const url = typeof input === 'string' ? input : input.url;
+  const realFetch = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    const url = typeof input === 'string' ? input : (input?.url || '');
     if (url.includes('/api/support/links/')) {
       if (probeCase === 'error') return Promise.reject(new Error('probe: network down'));
       return json(LINKS);
     }
-    return json({});
+    if (url.includes('/api/')) return json({});
+    return realFetch(input, init);
   };
 
   localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
-  history.replaceState(null, '', '/index/support/hubungi-cs');
+  location.hash = '#/index/support/hubungi-cs';
 
   const metrics = { probeCase, steps: [] };
-  const write = () => { document.getElementById('hubungics-metrics').textContent = JSON.stringify(metrics, null, 2); };
+  const write = () => {
+    document.getElementById('hubungics-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = `HUBUNGICS-DONE ${JSON.stringify(metrics)}`;
+  };
   const waitFor = async (fn, timeout = 15000, step = 200) => {
     const start = Date.now();
     while (Date.now() - start < timeout) {
@@ -65,7 +72,18 @@
   };
 
   try {
-    await import('/src/main.jsx');
+    /* Bundle dist diimpor dari index.html supaya SPA berjalan persis seperti
+       produksi — probe berdiri sendiri, tanpa dev server. */
+    const html = await (await realFetch('/index.html')).text();
+    for (const m of html.matchAll(/href="(\/assets\/[^"]+\.css)"/g)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = m[1];
+      document.head.appendChild(link);
+    }
+    const entry = html.match(/src="(\/assets\/[^"]+\.js)"/);
+    if (!entry) throw new Error('entry asset not found');
+    await import(entry[1]);
 
     const snapshot = () => {
       const cards = [...document.querySelectorAll('.page-hubungi-cs .channel-card')];
@@ -101,7 +119,15 @@
       metrics.steps.push(['href id 11 (2 kartu), 13 & 12 terpasang', hrefsSet]);
       const snap = snapshot();
       metrics.rendered = snap;
+      /* Kartu Email memakai href '#' — klik harus di-preventDefault supaya
+         hash tidak kosong (HashRouter akan membuang user dari halaman). */
+      [...document.querySelectorAll('.page-hubungi-cs .channel-card')]
+        .find((a) => a.querySelector('h4')?.textContent === 'Email')?.click();
+      await new Promise((r) => setTimeout(r, 200));
+      metrics.emailClickKeepsRoute = location.hash.includes('hubungi-cs') && !!document.querySelector('.page-hubungi-cs');
+      metrics.steps.push(['klik Email tidak menggeser route', metrics.emailClickKeepsRoute]);
       metrics.allPassed = pageReady && hrefsSet &&
+        metrics.emailClickKeepsRoute &&
         snap.cardCount === 6 &&
         snap.callHref === 'https://t.me/jelajahemas' &&
         snap.csJelajahHref === 'https://t.me/jelajahemas' &&
@@ -110,12 +136,20 @@
         snap.communityHref === 'https://t.me/jelajahemasindonesia' &&
         snap.whatsAppHref === 'https://whatsapp.com/channel/0029VbDLjWgGpLHMw51xCe2l' &&
         snap.emailHref === '#' &&
-        snap.liveChatHref === '/index/support/livechat';
+        snap.liveChatHref === '#/index/support/livechat';
     } else {
       await new Promise((r) => setTimeout(r, 1200)); /* beri waktu fetch settle */
       const snap = snapshot();
       metrics.rendered = snap;
+      /* Semua kartu kanal ber-href '#' — klik tidak boleh mengosongkan hash. */
+      [...document.querySelectorAll('.page-hubungi-cs .channel-card')]
+        .filter((a) => a.getAttribute('href') === '#')
+        .forEach((a) => a.click());
+      await new Promise((r) => setTimeout(r, 200));
+      metrics.hashCardsKeepRoute = location.hash.includes('hubungi-cs') && !!document.querySelector('.page-hubungi-cs');
+      metrics.steps.push(['klik kartu # tetap di route', metrics.hashCardsKeepRoute]);
       metrics.allPassed = pageReady && snap.cardCount === 6 &&
+        metrics.hashCardsKeepRoute &&
         snap.callHref === '#' && snap.csJelajahHref === '#' &&
         snap.communityHref === '#' && snap.whatsAppHref === '#';
     }

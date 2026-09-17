@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NOTIF-TEXT-E2E-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="metrics">pending</pre>
+  <script type="module">
+    /* Verifikasi halaman notifikasi (MenuNotifikasi.jsx):
+       - notifikasi DEPOSIT tidak lagi dimuat — hanya tipe WITHDRAW dan
+         INVESTMENTS yang di-fetch (type=DEPOSIT tidak pernah dipanggil);
+       - kalimat INVESTMENTS sukses memakai product_name: "Pembelian Logam 999
+         berhasil. Aset emas kamu aktif dan siap digunakan.";
+       - pending / gagal juga menyebut product_name + nominal;
+       - tanpa product_name, gram tetap jadi cadangan ("Pembelian emas 1 gr …").
+       Mock GET /api/transactions/ mengembalikan baris INVESTMENTS + satu baris
+       WITHDRAW; tipe lain dijawab kosong. */
+    const metrics = { scenario: 'notif-text', errors: [] };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    /* Baris transaksi mengikuti contoh response asli (field penting saja). */
+    const invRow = (id, { product, status, quantity, amount, createdAt }) => ({
+      id,
+      user_phone: '+6289595959595',
+      product_name: product,
+      investment_status: 'ACTIVE',
+      trx_id: `PO-20260915185${id}-TEST`,
+      type: 'INVESTMENTS',
+      amount,
+      currency_code: '',
+      description: `Purchase ${product || 'Logam 24K'} (x1)`,
+      status,
+      wallet_type: 'BALANCE_DEPOSIT',
+      investment_quantity: quantity,
+      created_at: createdAt,
+      user: 2,
+      product: 134,
+    });
+
+    const INVESTMENT_ROWS = [
+      invRow(10521, { product: 'Logam 999', status: 'COMPLETED', quantity: 1, amount: '50000.00', createdAt: '2026-09-15 18:51:01' }),
+      invRow(10519, { product: 'Logam 24K', status: 'PENDING', quantity: 1, amount: '50000.00', createdAt: '2026-09-15 18:50:58' }),
+      invRow(10518, { product: 'Logam 24K', status: 'FAILED', quantity: 2, amount: '100000.00', createdAt: '2026-09-15 18:49:00' }),
+      invRow(10517, { product: '', status: 'COMPLETED', quantity: 1, amount: '50000.00', createdAt: '2026-09-15 18:48:00' }),
+    ];
+
+    /* Satu baris WITHDRAW untuk memastikan feed tarik dana tetap tampil. */
+    const WITHDRAW_ROWS = [
+      {
+        id: 9901,
+        type: 'WITHDRAW',
+        amount: '100000.00',
+        status: 'COMPLETED',
+        created_at: '2026-09-15 18:52:00',
+        description: 'Withdraw to bank',
+      },
+    ];
+
+    const envelope = (results) => ({ count: results.length, next: null, previous: null, results });
+
+    /* Mock backend: /api/transactions/ melayani INVESTMENTS + WITHDRAW; tipe
+       lain dijawab kosong — sekaligus mencatat jenis tipe yang benar-benar
+       diminta aplikasi untuk memastikan DEPOSIT tidak ikut dimuat lagi. */
+    const realFetch = window.fetch.bind(window);
+    window.fetch = async (url, init = {}) => {
+      const target = String(url);
+      if (target.includes('/api/transactions/')) {
+        metrics.transactionsQueried = (metrics.transactionsQueried || 0) + 1;
+        const typeMatch = target.match(/[?&]type=([A-Z_]+)/);
+        if (typeMatch) {
+          metrics.queriedTypes = metrics.queriedTypes || [];
+          metrics.queriedTypes.push(typeMatch[1]);
+        }
+        const rows = target.includes('type=INVESTMENTS')
+          ? INVESTMENT_ROWS
+          : target.includes('type=WITHDRAW')
+          ? WITHDRAW_ROWS
+          : [];
+        return new Response(JSON.stringify(envelope(rows)), {
+          status: 200, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (target.includes('/api/')) {
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return realFetch(url, init);
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+    if (!location.hash) location.hash = '#/index/profil/notifikasi';
+
+    /* Nama asset ber-hash diambil dari index.html dist, lalu bundle diimpor
+       supaya SPA berjalan persis seperti produksi. */
+    const html = await (await realFetch('/index.html')).text();
+    for (const m of html.matchAll(/href="(\/assets\/[^"]+\.css)"/g)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = m[1];
+      document.head.appendChild(link);
+    }
+    const entry = html.match(/src="(\/assets\/[^"]+\.js)"/);
+    if (!entry) {
+      metrics.fatal = 'entry asset not found';
+      document.getElementById('metrics').textContent = JSON.stringify(metrics, null, 2);
+      throw new Error('no entry asset');
+    }
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, timeout = 10000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const value = fn();
+        if (value) return value;
+        await sleep(50);
+      }
+      return null;
+    };
+
+    await import(entry[1]);
+
+    await waitFor(() => document.querySelector('.page-menu-notifikasi'));
+    await waitFor(() => document.querySelectorAll('.page-menu-notifikasi .notification-card').length >= 5, 8000);
+
+    /* Kalimat yang diharapkan, sesuai permintaan: "Pembelian [nama produk]
+       berhasil. Aset emas kamu aktif dan siap digunakan." */
+    const EXPECTED = {
+      successProduct: 'Pembelian Logam 999 berhasil. Aset emas kamu aktif dan siap digunakan.',
+      pending: 'Pembelian Logam 24K sebesar Rp50.000 sedang diproses.',
+      failed: 'Pembelian Logam 24K sebesar Rp100.000 tidak berhasil diproses.',
+      successNoProduct: 'Pembelian emas 1 gr berhasil. Aset emas kamu aktif dan siap digunakan.',
+      withdrawSuccess: 'Penarikan dana sebesar Rp100.000 telah berhasil diproses ke rekening tujuan.',
+    };
+
+    metrics.cards = [...document.querySelectorAll('.page-menu-notifikasi .notification-card')].map((card) => ({
+      title: card.querySelector('.card-title')?.textContent.trim() || '',
+      desc: card.querySelector('.card-desc')?.textContent.trim() || '',
+    }));
+    metrics.cardsFound = metrics.cards.length;
+    const descs = metrics.cards.map((c) => c.desc);
+    metrics.matches = Object.fromEntries(
+      Object.entries(EXPECTED).map(([key, text]) => [`${key}Matched`, descs.includes(text)]),
+    );
+    /* Tipe DEPOSIT tidak boleh ikut dimuat lagi; WITHDRAW + INVESTMENTS wajib ada. */
+    const queried = metrics.queriedTypes || [];
+    metrics.depositNotFetched = !queried.includes('DEPOSIT');
+    metrics.withdrawFetched = queried.includes('WITHDRAW');
+    metrics.investmentsFetched = queried.includes('INVESTMENTS');
+    metrics.passed = metrics.cardsFound === 5
+      && Object.values(metrics.matches).every(Boolean)
+      && metrics.depositNotFetched
+      && metrics.withdrawFetched
+      && metrics.investmentsFetched
+      && metrics.errors.length === 0;
+
+    document.getElementById('metrics').textContent = JSON.stringify(metrics, null, 2);
+  </script>
+</body>
+</html>

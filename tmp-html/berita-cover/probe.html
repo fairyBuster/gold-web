@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BERITA-COVER-E2E-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="metrics">pending</pre>
+  <script type="module">
+    /* Verifikasi banner berita di DetailBerita.jsx tampil utuh:
+       - banner uji 600×100 (rasio 6:1) dibuat lewat canvas → PNG data URL;
+       - tinggi terrender harus = lebar / 6 (toleransi 2px) mengikuti rasio
+         asli, bukan tinggi tetap 233.5px + object-fit: cover yang memotong
+         gambar dengan rasio berbeda. */
+    const metrics = { scenario: 'berita-cover', errors: [] };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 600;
+    canvas.height = 100;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#f1b04a';
+    ctx.fillRect(0, 0, 600, 100);
+    const BANNER = canvas.toDataURL('image/png');
+
+    const ARTICLE = {
+      id: 501,
+      title: 'Banner Uji Rasio 6:1',
+      image: BANNER,
+      body: 'Paragraf pertama untuk uji tampilan banner.\nParagraf kedua.',
+      category_name: 'Tips',
+      author_name: 'Tim Redaksi JelajahEmas',
+      published_at: '2026-09-16 10:00:00',
+    };
+
+    /* Mock backend: detail berita mengembalikan artikel uji; sisanya {}. */
+    const realFetch = window.fetch.bind(window);
+    window.fetch = async (url, init = {}) => {
+      const target = String(url);
+      if (target.includes('/api/news/501/')) {
+        return new Response(JSON.stringify(ARTICLE), {
+          status: 200, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (target.includes('/api/')) {
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return realFetch(url, init);
+    };
+
+    window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+    window.sessionStorage.setItem('je_news_id', '501');
+    if (!location.hash) location.hash = '#/index/berita/detail';
+
+    /* Nama asset ber-hash diambil dari index.html dist, lalu bundle diimpor
+       supaya SPA berjalan persis seperti produksi. */
+    const html = await (await realFetch('/index.html')).text();
+    for (const m of html.matchAll(/href="(\/assets\/[^"]+\.css)"/g)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = m[1];
+      document.head.appendChild(link);
+    }
+    const entry = html.match(/src="(\/assets\/[^"]+\.js)"/);
+    if (!entry) {
+      metrics.fatal = 'entry asset not found';
+      document.getElementById('metrics').textContent = JSON.stringify(metrics, null, 2);
+      throw new Error('no entry asset');
+    }
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, timeout = 10000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const value = fn();
+        if (value) return value;
+        await sleep(50);
+      }
+      return null;
+    };
+
+    await import(entry[1]);
+
+    await waitFor(() => document.querySelector('.page-detail-berita'));
+    const img = await waitFor(() => {
+      const el = document.querySelector('.page-detail-berita .cover-image');
+      return el && el.complete && el.naturalWidth > 0 ? el : null;
+    }, 8000);
+
+    metrics.coverFound = Boolean(img);
+    if (img) {
+      const rect = img.getBoundingClientRect();
+      metrics.naturalSize = [img.naturalWidth, img.naturalHeight];
+      metrics.renderedSize = [Math.round(rect.width), Math.round(rect.height)];
+      metrics.borderRadius = getComputedStyle(img).borderRadius;
+      /* Tanpa potongan: tinggi mengikuti rasio asli 600×100. */
+      metrics.ratioOk = Math.abs(rect.height - rect.width * (100 / 600)) <= 2;
+      metrics.oldFixedHeightGone = Math.abs(rect.height - 233.5) > 0.5;
+    }
+    metrics.passed = metrics.coverFound
+      && metrics.ratioOk
+      && metrics.borderRadius === '16px'
+      && metrics.errors.length === 0;
+
+    document.getElementById('metrics').textContent = JSON.stringify(metrics, null, 2);
+  </script>
+</body>
+</html>

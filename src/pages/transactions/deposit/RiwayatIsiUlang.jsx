@@ -235,25 +235,30 @@ const HISTORY_PAGE_SIZE = 8;
 /* Status group → right-hand state label. */
 const STATUS_LABELS = { success: 'Berhasil', pending: 'Diproses', failed: 'Gagal' };
 
-/* Backend descriptions read "Deposit via {Provider} ({wallet_type})" — map the
-   provider to the channel name the app shows when the user tops up. Providers
-   with no channel behind them yet fall back to their own name. */
-const CHANNEL_BY_PROVIDER = {
-  ClientHub: 'Virtual Account BRI',
-  QRIS: 'QRIS 01',
-  'SiTransfer Hub': 'QRIS 02',
-};
+/* Backend descriptions read "Deposit via {Provider} ({wallet_type})" where the
+   provider is the payment gateway behind the deposit (MGM, LPAY, FF Pay,
+   ATPAY, BankPay, ClientHub, …). Gateways are internal plumbing and are never
+   surfaced to the user — each one resolves to the payment channel the user
+   actually picked when topping up: QRIS, Virtual Account, or Bank Transfer
+   BRI. A provider matching no rule yields no channel label (subtitle keeps
+   just the time) instead of leaking the gateway name. */
+const PROVIDER_CHANNEL_RULES = [
+  [/bank\s*pay|bank\s*transfer/i, 'Bank Transfer BRI'],
+  [/qris|mgm|lpay|ff\s*pay|quenpay|si\s*transfer/i, 'QRIS'],
+  [/atpay|client\s*hub|virtual\s*account/i, 'Virtual Account'],
+];
 
 function channelName(trx) {
   const provider = /Deposit via ([^(]+)/.exec(trx.description || '')?.[1]?.trim();
-  return (provider && CHANNEL_BY_PROVIDER[provider]) || provider || trx.description;
+  if (!provider) return '';
+  const rule = PROVIDER_CHANNEL_RULES.find(([pattern]) => pattern.test(provider));
+  return rule ? rule[1] : '';
 }
 
-/* One-line card detail: time + deposit channel. Only settled top-ups show the
-   channel name; anything else keeps the raw backend description. */
+/* One-line card detail: time + payment channel — the gateway name is never
+   shown, even for rows whose provider is unrecognised. */
 function buildSubtitle(trx) {
-  const channel = statusKind(trx.status) === 'success' ? channelName(trx) : null;
-  return [formatTime(trx.created_at), channel || trx.description].filter(Boolean).join(' • ');
+  return [formatTime(trx.created_at), channelName(trx)].filter(Boolean).join(' • ');
 }
 
 export default function RiwayatIsiUlang() {

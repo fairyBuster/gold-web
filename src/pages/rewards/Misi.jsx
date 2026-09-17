@@ -612,7 +612,7 @@ export default function Misi() {
                     <span className="stat-label">Bergabung</span>
                   </div>
                   <div className="stat-card">
-                    <span className="stat-value">{missions ? claimedBonus.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '—'}</span>
+                    <span className="stat-value" style={{ fontSize: '14px' }}>{missions ? claimedBonus.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '—'}</span>
                     <span className="stat-label">Bonus Didapat</span>
                   </div>
                 </div>

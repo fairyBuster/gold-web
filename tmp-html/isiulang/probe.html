@@ -34,7 +34,7 @@
       return null;
     };
 
-    history.replaceState(null, '', '/index/transactions/isi-ulang');
+    history.replaceState(null, '', '/index/transactions/topup');
     await import('/src/main.jsx');
 
     await waitFor(() => document.querySelectorAll('.page-isi-ulang .payment-card').length >= 6);

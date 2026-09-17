@@ -626,7 +626,7 @@ function Asset01() {
                     <h2 className="section-title">Rencana Program</h2>
                     <span className="badge-live">Live</span>
                   </div>
-                  <Link to="/index/assets/aset-saya-01" className="link-all">Lihat Milik Saya</Link>
+                  <Link to="/index/assets/all" className="link-all">Lihat Milik Saya</Link>
                 </div>
                 <div className="tabs">
                   {tabs.map((tab) => (
@@ -1004,8 +1004,12 @@ const Asset02Styles = `
     text-align: center;
     transition: background-color 0.2s;
   }
-  .page-asset-02 .primary-btn:hover {
+  .page-asset-02 .primary-btn:not(:disabled):hover {
     background-color: #e0a03a;
+  }
+  .page-asset-02 .primary-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
   }
 `;
 
@@ -1057,6 +1061,10 @@ function Asset02() {
      returns them regardless of status) but can't be purchased server-side, so
      they get the empty mascot state instead of a dead-end purchase form. */
   const productInactive = product != null && Number(product.status) === 0;
+  /* Kuota peserta habis (stok tersisa 0): pembelian bakal ditolak backend,
+     jadi tombol "Ambil Penawaran Ini" tampil nonaktif dengan label berbeda.
+     Kuota hanya berlaku saat stock_enabled — produk tanpa kuota tetap aktif. */
+  const soldOut = product != null && product.stock_enabled !== false && (Number(product.stock) || 0) <= 0;
 
   /* Latar polos tanpa artwork — warna dipasang inline karena index.css
      membuat wrapper .page-* transparan (background global tembus). */
@@ -1170,7 +1178,14 @@ function Asset02() {
                 </div>
               </section>
               <section id="action" className="container">
-                <button className="primary-btn" onClick={() => navigate('/index/assets/konfirmasi', { state: { productId: product.id } })}>Ambil Penawaran Ini</button>
+                {/* Stok 0 (kuota habis): tombol nonaktif dan labelnya berubah. */}
+                <button
+                  className="primary-btn"
+                  disabled={soldOut}
+                  onClick={() => navigate('/index/assets/konfirmasi', { state: { productId: product.id } })}
+                >
+                  {soldOut ? 'Tidak Ada Penawaran' : 'Ambil Penawaran Ini'}
+                </button>
               </section>
                 </>
               )}

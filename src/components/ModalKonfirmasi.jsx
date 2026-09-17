@@ -193,14 +193,14 @@ export default function ModalKonfirmasi({
     e.preventDefault();
     if (busy) return;
     if (onCancel) onCancel();
-    else goBack('/index/assets/aset-saya-01');
+    else goBack('/index/assets/all');
   };
 
   const handleConfirm = (e) => {
     e.preventDefault();
     if (busy) return;
     if (onConfirm) onConfirm();
-    else navigate('/index/assets/aset-saya-01');
+    else navigate('/index/assets/all');
   };
 
   return (

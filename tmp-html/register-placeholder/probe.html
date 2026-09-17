@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>REGISTER-PLACEHOLDER-E2E-RUNNING</title>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="metrics">pending</pre>
+  <script type="module">
+    /* Verifikasi placeholder kolom nama di form register step 1:
+       harus "Contoh: Andrew Fernandez" (bukan lagi nama lama), kolom tetap
+       berfungsi, dan tidak ada sisa nama lama di halaman yang dirender. */
+    const metrics = { scenario: 'register-placeholder', errors: [] };
+    window.addEventListener('error', (e) => metrics.errors.push(String(e.message)));
+    window.addEventListener('unhandledrejection', (e) => metrics.errors.push(String(e.reason)));
+
+    const realFetch = window.fetch.bind(window);
+    window.fetch = async (url, init = {}) => {
+      const target = String(url);
+      if (target.includes('/api/')) {
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return realFetch(url, init);
+    };
+
+    if (!location.hash) location.hash = '#/index/auth/register-01';
+
+    /* Nama asset ber-hash diambil dari index.html dist, lalu bundle diimpor
+       supaya SPA berjalan persis seperti produksi. */
+    const html = await (await realFetch('/index.html')).text();
+    for (const m of html.matchAll(/href="(\/assets\/[^"]+\.css)"/g)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = m[1];
+      document.head.appendChild(link);
+    }
+    const entry = html.match(/src="(\/assets\/[^"]+\.js)"/);
+    if (!entry) {
+      metrics.fatal = 'entry asset not found';
+      document.getElementById('metrics').textContent = JSON.stringify(metrics, null, 2);
+      document.title = 'REGISTER-PLACEHOLDER-E2E-DONE';
+      throw new Error('no entry asset');
+    }
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitFor = async (fn, timeout = 10000) => {
+      const start = performance.now();
+      while (performance.now() - start < timeout) {
+        const value = fn();
+        if (value) return value;
+        await sleep(50);
+      }
+      return null;
+    };
+
+    await import(entry[1]);
+
+    await waitFor(() => document.querySelector('.page-register-01'));
+    /* Input pertama di form = kolom Nama Pengguna. */
+    const nameInput = await waitFor(() => document.querySelectorAll('.page-register-01 input')[0]);
+    metrics.inputFound = Boolean(nameInput);
+    metrics.placeholder = nameInput?.getAttribute('placeholder') || '';
+    metrics.placeholderOk = metrics.placeholder === 'Contoh: Andrew Fernandez';
+
+    /* Kolom tetap berfungsi: nilai yang diketik tersimpan di state. */
+    if (nameInput) {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      setter.call(nameInput, 'Andrew Fernandez');
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+      await sleep(120);
+      metrics.valueBinding = nameInput.value === 'Andrew Fernandez';
+    }
+
+    /* Tidak ada sisa nama lama di halaman yang dirender (#root saja, supaya
+       script probe sendiri tidak ikut terbaca). */
+    const pageText = document.getElementById('root').textContent || '';
+    metrics.noOldNameInPage = !/budi|santoso/i.test(pageText);
+
+    metrics.passed = metrics.inputFound
+      && metrics.placeholderOk
+      && metrics.valueBinding
+      && metrics.noOldNameInPage
+      && metrics.errors.length === 0;
+
+    document.getElementById('metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'REGISTER-PLACEHOLDER-E2E-DONE';
+  </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-# Verifikasi AsetSaya (route /index/assets/aset-saya-01 & -02) — kartu
+# Verifikasi AsetSaya (route /index/assets/all & aset-saya-02) — kartu
 # "Total Aset Emas Kamu" bersumber GET /api/gold/info/ (balance_hold):
 # gram = balance_hold ÷ price_per_gram, rupiah = ≈ formatRupiah(balance_hold);
 # 2 bar skeleton selagi gold info dimuat; gagal → "—" di kedua baris;

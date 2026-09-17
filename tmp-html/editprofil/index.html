@@ -25,11 +25,11 @@
   }));
 
   const ACCOUNT = {
-    full_name: 'Budi Santoso 2',
-    username: 'budi2',
+    full_name: 'Andrew Fernandez 2',
+    username: 'andrew2',
     phone: '6281234567890',
-    email: 'budi@example.com',
-    telegram: '@budi',
+    email: 'andrew@example.com',
+    telegram: '@andrew',
     date_of_birth: '1995-01-01',
     gender: 'male',
     avatar: '',
@@ -73,13 +73,13 @@
     metrics.steps.push(['input Nama Lengkap tampil', pageReady]);
 
     const input = findInput('Nama Lengkap');
-    const prefilled = await waitFor(() => input.value === 'Budi Santoso 2');
+    const prefilled = await waitFor(() => input.value === 'Andrew Fernandez 2');
     metrics.steps.push(['prefill account-info utuh', prefilled]);
     metrics.prefillValue = input.value;
 
     /* Simbol + emoji + angka → hanya huruf/angka/spasi yang tersisa. */
-    setNative(input, 'Budi Santoso #1@🔥!');
-    const symbolsStripped = await waitFor(() => input.value === 'Budi Santoso 1');
+    setNative(input, 'Andrew Fernandez #1@🔥!');
+    const symbolsStripped = await waitFor(() => input.value === 'Andrew Fernandez 1');
     metrics.steps.push(['simbol & emoji disaring saat mengetik', symbolsStripped]);
 
     /* Isi simbol semua → nilai jadi kosong. */
@@ -88,17 +88,17 @@
     metrics.steps.push(['input simbol semua → kosong', cleared]);
 
     /* Huruf/angka/spasi murni lewat tanpa perubahan. */
-    setNative(input, 'Ani 2 Setiawan');
-    const plainKept = await waitFor(() => input.value === 'Ani 2 Setiawan');
+    setNative(input, 'Emma 2 Watson');
+    const plainKept = await waitFor(() => input.value === 'Emma 2 Watson');
     metrics.steps.push(['huruf/angka/spasi lewat apa adanya', plainKept]);
 
     /* Telegram: hanya huruf & angka — '@', '_', spasi, simbol & emoji disaring. */
     const teleInput = findInput('Telegram');
-    const teleFilled = await waitFor(() => teleInput?.value === '@budi');
+    const teleFilled = await waitFor(() => teleInput?.value === '@andrew');
     metrics.steps.push(['prefill telegram utuh', teleFilled]);
 
-    setNative(teleInput, '@Ani_2 #🔥!');
-    const teleStripped = await waitFor(() => teleInput.value === 'Ani2');
+    setNative(teleInput, '@Emma_2 #🔥!');
+    const teleStripped = await waitFor(() => teleInput.value === 'Emma2');
     metrics.steps.push(['telegram: simbol/underscore/spasi disaring', teleStripped]);
 
     setNative(teleInput, '###@@@');
@@ -107,11 +107,11 @@
 
     /* Username: hanya huruf & angka — sama dengan Telegram. */
     const userInput = findInput('Username');
-    const userFilled = await waitFor(() => userInput?.value === 'budi2');
+    const userFilled = await waitFor(() => userInput?.value === 'andrew2');
     metrics.steps.push(['prefill username utuh', userFilled]);
 
-    setNative(userInput, 'Ani_Budi 9#');
-    const userStripped = await waitFor(() => userInput.value === 'AniBudi9');
+    setNative(userInput, 'Emma_Andrew 9#');
+    const userStripped = await waitFor(() => userInput.value === 'EmmaAndrew9');
     metrics.steps.push(['username: simbol/spasi disaring', userStripped]);
 
     metrics.rendered = { nameValue: input.value, telegramValue: teleInput.value, usernameValue: userInput.value };

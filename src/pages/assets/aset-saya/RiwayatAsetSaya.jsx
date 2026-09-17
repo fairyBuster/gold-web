@@ -353,7 +353,7 @@ export default function RiwayatAsetSaya() {
       <div>
               <section id="section-header">
                 <header className="app-header">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/assets/aset-saya-01'); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/assets/all'); }}>
                     <img src={img_1} alt="Back" />
                   </button>
                   <h1 className="header-title">Riwayat Aset Saya</h1>

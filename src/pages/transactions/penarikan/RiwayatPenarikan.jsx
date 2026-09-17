@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { goBack } from '../../../lib/backNav.js';
 import img_1 from '../../../assets/images/109_2465.svg';
 import img_2 from '../../../assets/images/915ddfcd2308a67f93cb52100b8c074abaa5928b.webp';
 import img_3 from '../../../assets/images/26f0f85c3f131cbe6775a26cf4afe79775404786.webp';
@@ -276,7 +275,9 @@ export default function RiwayatPenarikan() {
       <div>
               <section id="section-header" className="app-section">
                 <header className="header-content">
-                  <a href="#" className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/home'); }}>
+                  {/* Back always returns to the Home page, no matter which
+                      page this was opened from. */}
+                  <a href="#" className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); navigate('/index/home'); }}>
                     <img src={img_1} alt="" />
                   </a>
                   <h1 className="page-title">Riwayat Penarikan</h1>

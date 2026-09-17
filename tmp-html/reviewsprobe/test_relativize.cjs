@@ -87,7 +87,7 @@ const salt = (obj) => ({
 const sample = [
   {
     id: 17,
-    user_display_name: 'Budi santoso',
+    user_display_name: 'Andrew Fernandez',
     text: 'Yshshshs',
     rating: 4,
     images: [

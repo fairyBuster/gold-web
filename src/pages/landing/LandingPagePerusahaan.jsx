@@ -848,7 +848,7 @@ export default function LandingPagePerusahaan() {
                 <div className="hero-copy">
                   <div className="tag">#LangkahEmasmu</div>
                   <h1 className="section-title">Kenal Lebih Dekat, Jelajah Lebih Mudah</h1>
-                  <Link to="/index/auth/login" className="btn-primary">Download JelajahEmas</Link>
+                  <Link to="/index/auth/welcome" className="btn-primary">Download JelajahEmas</Link>
                 </div>
                 <img className="hero-mockup" src={imgHandphone} alt="Tampilan Aplikasi JelajahEmas" />
               </section>
@@ -934,7 +934,7 @@ export default function LandingPagePerusahaan() {
                 <div className="download-card">
                   <h2 className="quote-text">“Melangkah dan Kembangkan Finansialmu<br />#LangkahEmasmu!”</h2>
                   <p className="download-hint">Klik untuk mengunduh aplikasi</p>
-                  <Link to="/index/auth/login" className="btn-primary">Download JelajahEmas</Link>
+                  <Link to="/index/auth/welcome" className="btn-primary">Download JelajahEmas</Link>
                 </div>
               </section>
               <section id="section-faq" className="faq-section">

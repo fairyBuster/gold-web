@@ -1,4 +1,4 @@
-# Verifikasi masking kartu rekening (KartuBank.jsx, route /index/profil/kartu-bank):
+# Verifikasi masking kartu rekening (KartuBank.jsx, route /index/profil/kartu):
 # nomor 16 & 8 digit → 5 digit pertama + " ••••" (digit ke-6 dst disensor),
 # nomor ≤5 digit apa adanya; nama kata kedua dst jadi inisial + bullets.
 # Nomor/nama asli tidak boleh bocor ke DOM. Tombol back harus langsung ke /index/profil.

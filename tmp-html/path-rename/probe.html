@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PATH-RENAME-RUNNING</title>
+</head>
+<body>
+<div id="root"></div>
+<pre id="path-rename-metrics">pending</pre>
+<script type="module">
+  /* Probe rename path — TANPA alias: path lama mati total dan jatuh ke
+     catch-all welcome. Skenario:
+     - case=topup           : #/index/transactions/topup — form isi ulang render.
+     - case=balance         : #/index/transactions/balance — halaman riwayat isi ulang render.
+     - case=balance-old     : #/index/transactions/isi-ulang → mati → welcome.
+     - case=riwayat-balance-old : #/index/transactions/riwayat-balance → mati → welcome.
+     - case=riwayat-old     : #/index/transactions/riwayat-isi-ulang → mati → welcome.
+     - case=assets-old      : #/index/assets/aset-saya-01 → mati → welcome.
+     - case=assets-all      : #/index/assets/all — halaman Aset Saya render.
+     - case=kartu-old       : #/index/profil/kartu-bank → mati → welcome.
+     - case=kartu           : #/index/profil/kartu — halaman Kartu Bank render.
+     - case=sending         : #/index/transactions/sending — halaman tarik dana step 1 render.
+     - case=sending-old     : #/index/transactions/tarik-dana-01 → mati → welcome.
+     - case=riwayat-links   : kartu riwayat di halaman riwayat-transaksi mengarah ke
+                              /index/transactions/balance (tanpa path lama).
+     - case=home-links      : kartu "Fitur Lainnya" di home mengarah ke topup & sending
+                              (tanpa path lama); "Lihat Milik Saya" → /index/assets/all.
+     - case=sending-step4   : #/index/transactions/tarik-dana-04 tanpa data wizard → redirect ke sending.
+     - case=va-guard / qris-guard : halaman VA/QRIS tanpa data pembayaran → redirect ke topup. */
+  /* Probe standalone (tanpa dev server): salt harus sama dengan fallback
+     VITE_RESPONSE_SALT aplikasi. */
+  const SALT = 'KXXADFDFDF';
+  const probeCase = new URLSearchParams(location.search).get('case') || 'topup';
+
+  const encodeSalted = (obj) => {
+    const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+    return { data: [...(base64 + SALT)].reverse().join('') };
+  };
+  const json = (obj) => Promise.resolve(new Response(JSON.stringify(encodeSalted(obj)), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+
+  const ENTRY = {
+    topup: '#/index/transactions/topup',
+    balance: '#/index/transactions/balance',
+    'balance-old': '#/index/transactions/isi-ulang',
+    'riwayat-balance-old': '#/index/transactions/riwayat-balance',
+    'riwayat-old': '#/index/transactions/riwayat-isi-ulang',
+    'assets-old': '#/index/assets/aset-saya-01',
+    'assets-all': '#/index/assets/all',
+    'kartu-old': '#/index/profil/kartu-bank',
+    kartu: '#/index/profil/kartu',
+    sending: '#/index/transactions/sending',
+    'sending-old': '#/index/transactions/tarik-dana-01',
+    'riwayat-links': '#/index/transactions/riwayat-transaksi',
+    'sending-step4': '#/index/transactions/tarik-dana-04',
+    'va-guard': '#/index/transactions/virtual-account',
+    'qris-guard': '#/index/transactions/qris',
+    'home-links': '#/index/home',
+  }[probeCase];
+
+  /* Path lama yang sudah dihapus (tanpa alias) berakhir di catch-all welcome. */
+  const DEAD_HASH = '#/index/auth/welcome';
+
+  const realFetch = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    const url = typeof input === 'string' ? input : (input?.url || '');
+    if (url.includes('/api/')) return json({});
+    return realFetch(input, init);
+  };
+
+  localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+  location.hash = ENTRY;
+
+  const metrics = { probeCase, entry: ENTRY, steps: [] };
+  const write = () => {
+    document.getElementById('path-rename-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'PATH-RENAME-DONE ' + JSON.stringify(metrics);
+  };
+  const waitFor = async (fn, timeout = 15000, step = 200) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      try { if (fn()) return true; } catch { /* belum siap */ }
+      await new Promise((r) => setTimeout(r, step));
+    }
+    return false;
+  };
+
+  try {
+    /* Bundle dist diimpor dari index.html supaya SPA berjalan persis seperti
+       produksi — probe berdiri sendiri, tanpa dev server. */
+    const html = await (await realFetch('/index.html')).text();
+    for (const m of html.matchAll(/href="(\/assets\/[^"]+\.css)"/g)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = m[1];
+      document.head.appendChild(link);
+    }
+    const entry = html.match(/src="(\/assets\/[^"]+\.js)"/);
+    if (!entry) throw new Error('entry asset not found');
+    await import(entry[1]);
+
+    if (probeCase === 'home-links') {
+      const ready = await waitFor(() => document.querySelector('#section-features a.feature-item'));
+      metrics.steps.push(['fitur home tampil', ready]);
+      await new Promise((r) => setTimeout(r, 800)); /* beri waktu fetch settle */
+      const hrefs = [...document.querySelectorAll('#section-features a.feature-item')]
+        .map((a) => a.getAttribute('href'));
+      metrics.featureHrefs = hrefs;
+      metrics.assetLinkHref = document.querySelector('a.asset-link')?.getAttribute('href') || '';
+      metrics.hashNow = location.hash;
+      metrics.allPassed = ready &&
+        hrefs.includes('#/index/transactions/topup') &&
+        hrefs.includes('#/index/transactions/sending') &&
+        !hrefs.some((h) => h.includes('isi-ulang') || h.includes('tarik-dana-01')) &&
+        metrics.assetLinkHref === '#/index/assets/all';
+    } else if (probeCase === 'riwayat-links') {
+      const ready = await waitFor(() => document.querySelector('a.history-card'));
+      metrics.steps.push(['kartu riwayat tampil', ready]);
+      await new Promise((r) => setTimeout(r, 400)); /* beri waktu fetch settle */
+      const hrefs = [...document.querySelectorAll('a.history-card')]
+        .map((a) => a.getAttribute('href'));
+      metrics.historyHrefs = hrefs;
+      metrics.allPassed = ready &&
+        hrefs.includes('#/index/transactions/balance') &&
+        !hrefs.some((h) => h && (h.includes('riwayat-isi-ulang') || h.includes('riwayat-balance')));
+    } else {
+      const expectations = {
+        topup: { page: '.page-isi-ulang', hash: '#/index/transactions/topup', title: 'Isi Ulang \u00b7 Jelajah Emas' },
+        balance: { page: '.page-riwayat-isi-ulang', hash: '#/index/transactions/balance', title: 'Riwayat Isi Ulang \u00b7 Jelajah Emas' },
+        'balance-old': { dead: true, hash: DEAD_HASH, forbid: '.page-isi-ulang' },
+        'riwayat-balance-old': { dead: true, hash: DEAD_HASH, forbid: '.page-riwayat-isi-ulang' },
+        'riwayat-old': { dead: true, hash: DEAD_HASH, forbid: '.page-riwayat-isi-ulang' },
+        'assets-old': { dead: true, hash: DEAD_HASH, forbid: '.page-aset-saya-01' },
+        'assets-all': { page: '.page-aset-saya-01', hash: '#/index/assets/all', title: 'Aset Saya \u00b7 Jelajah Emas' },
+        'kartu-old': { dead: true, hash: DEAD_HASH, forbid: '.page-kartu-bank' },
+        kartu: { page: '.page-kartu-bank', hash: '#/index/profil/kartu', title: 'Kartu Bank \u00b7 Jelajah Emas' },
+        sending: { page: '.page-tarik-dana-01', hash: '#/index/transactions/sending', title: 'Tarik Dana \u00b7 Jelajah Emas' },
+        'sending-old': { dead: true, hash: DEAD_HASH, forbid: '.page-tarik-dana-01' },
+        'sending-step4': { page: '.page-tarik-dana-01', hash: '#/index/transactions/sending', title: 'Tarik Dana \u00b7 Jelajah Emas' },
+        'va-guard': { page: '.page-isi-ulang', hash: '#/index/transactions/topup', title: 'Isi Ulang \u00b7 Jelajah Emas' },
+        'qris-guard': { page: '.page-isi-ulang', hash: '#/index/transactions/topup', title: 'Isi Ulang \u00b7 Jelajah Emas' },
+      }[probeCase];
+      metrics.expected = expectations;
+      if (expectations.dead) {
+        const ready = await waitFor(() => location.hash === expectations.hash);
+        await new Promise((r) => setTimeout(r, 400)); /* beri waktu render settle */
+        metrics.hashNow = location.hash;
+        metrics.forbiddenPresent = Boolean(document.querySelector(expectations.forbid));
+        metrics.allPassed = ready && location.hash === expectations.hash && !metrics.forbiddenPresent;
+      } else {
+        const ready = await waitFor(() => document.querySelector(expectations.page) && location.hash === expectations.hash);
+        metrics.steps.push(['halaman + hash akhir', ready]);
+        await new Promise((r) => setTimeout(r, 300));
+        metrics.hashNow = location.hash;
+        metrics.title = document.title;
+        metrics.allPassed = ready && location.hash === expectations.hash && document.title === expectations.title;
+      }
+    }
+  } catch (error) {
+    metrics.error = String(error);
+    metrics.allPassed = false;
+  }
+  write();
+</script>
+</body>
+</html>

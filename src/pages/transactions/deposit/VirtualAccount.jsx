@@ -307,6 +307,18 @@ const styles = `
   width: 100%;
   text-align: center;
 }
+.page-virtual-account .btn-pay {
+  display: block;
+  background-color: #1a1410;
+  color: #fff7ec;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 15px;
+  border-radius: 5px;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+}
 .page-virtual-account .btn-secondary {
   background-color: transparent;
   color: #514840;
@@ -423,6 +435,34 @@ const STEPS_BY_BANK = {
   },
 };
 
+/* Langkah transfer ke rekening BRI untuk alur Bank Transfer (BankPay) —
+   pengganti langkah BRIVA milik channel VA. */
+const BANK_TRANSFER_STEPS = {
+  BRI: {
+    'm-banking': [
+      'Buka aplikasi BRImo, lalu pilih menu Transfer ke Rekening BRI.',
+      'Masukkan nomor rekening BRI yang tertera di atas.',
+      'Periksa detail transaksi dan pastikan nominal pembayaran sesuai dengan total tagihan.',
+      'Ikuti petunjuk pada aplikasi dan lakukan verifikasi untuk menyelesaikan pembayaran.',
+      'Pembayaran selesai. Simpan bukti transaksi sampai saldo terkonfirmasi masuk.',
+    ],
+    atm: [
+      'Masukkan kartu ATM BRI kamu, lalu masukkan PIN.',
+      'Pilih menu "Transaksi Lain", lalu pilih "Transfer" dan pilih "Ke Rekening BRI".',
+      'Masukkan nomor rekening BRI yang tertera di atas.',
+      'Periksa detail transaksi dan pastikan nominal pembayaran sesuai dengan total tagihan.',
+      'Konfirmasi pembayaran, lalu simpan struk sebagai bukti transaksi.',
+    ],
+    'internet-banking': [
+      'Login ke Internet Banking BRI (ib.bri.co.id) dengan user ID dan password kamu.',
+      'Pilih menu "Transfer", lalu pilih "Ke Rekening BRI".',
+      'Masukkan nomor rekening BRI yang tertera di atas.',
+      'Periksa detail transaksi dan pastikan nominal pembayaran sesuai dengan total tagihan.',
+      'Masukkan mToken untuk menyelesaikan pembayaran, lalu simpan bukti transaksi.',
+    ],
+  },
+};
+
 /* method_guide dari gateway memakai judul "Cara Pembayaran melalui …" yang
    dipetakan ke tab channel lewat kata kuncinya. */
 function channelFromSubject(subject) {
@@ -463,21 +503,30 @@ export default function VirtualAccount() {
   const [activeMethod, setActiveMethod] = useState(CHANNELS[0].id);
   const [copied, setCopied] = useState(false);
   const showNotif = useShowNotif();
-  /* Nomor VA, masa berlaku, dan panduan bayar dibuat oleh IsiUlang (ATPAY
-     initiate-va / BankPay initiate) dan diteruskan lewat route state; tanpa
-     state (buka langsung / refresh) tidak ada deposit aktif. */
+  /* Nomor pembayaran (VA channel ATPAY / rekening Bank Transfer), masa
+     berlaku, panduan bayar, dan halaman bayar gateway (bankpay) dibuat oleh
+     IsiUlang (ATPAY initiate-va / BankPay initiate) dan diteruskan lewat
+     route state; tanpa state (buka langsung / refresh) tidak ada deposit
+     aktif. */
   const payment = location.state?.vaNumber ? location.state : null;
 
   useEffect(() => {
     if (!payment) {
       showNotif({ title: 'Data Pembayaran Tidak Ditemukan', description: 'Silakan ulangi proses isi ulang saldo.' });
-      navigate('/index/transactions/isi-ulang', { replace: true });
+      navigate('/index/transactions/topup', { replace: true });
     }
   }, [navigate, payment, showNotif]);
 
   if (!payment) return null;
 
-  const bankLabel = payment.methodName ? payment.methodName.replace(/^VA\s+/i, '') : 'BRI';
+  /* Halaman bayar gateway (bankpay) — dirender sebagai tautan tab baru;
+     hanya URL http(s) dari payload yang ikut ditautkan. */
+  const payUrl = /^https?:\/\//i.test(payment.payUrl || '') ? payment.payUrl : '';
+  /* BankPay = transfer ke rekening BRI, bukan VA: `bankTransfer` dari
+     IsiUlang mengganti seluruh copy Virtual Account dengan copy Bank
+     Transfer di halaman ini. */
+  const isBankTransfer = payment.bankTransfer === true;
+  const bankLabel = payment.methodName ? payment.methodName.replace(/^(?:VA|Bank Transfer)\s+/i, '') : 'BRI';
   /* Panduan resmi dari gateway dipakai per channel bila dikirim; langkah
      bawaan bank menjadi cadangan. */
   const guideSteps = (Array.isArray(payment.methodGuide) ? payment.methodGuide : []).reduce((acc, item) => {
@@ -486,11 +535,27 @@ export default function VirtualAccount() {
     if (parsed.length) acc[channel] = parsed;
     return acc;
   }, {});
-  const steps = guideSteps[activeMethod] || (STEPS_BY_BANK[payment.methodCode] || STEPS_BY_BANK.BRI)[activeMethod];
+  /* Langkah cadangan: alur transfer rekening memakai langkah transfer BRI,
+     channel VA memakai langkah BRIVA bawaan bank. */
+  const fallbackSteps = isBankTransfer
+    ? BANK_TRANSFER_STEPS[payment.methodCode] || BANK_TRANSFER_STEPS.BRI
+    : STEPS_BY_BANK[payment.methodCode] || STEPS_BY_BANK.BRI;
+  const steps = guideSteps[activeMethod] || fallbackSteps[activeMethod];
   const expiryLabel = formatExpiry(payment.expireTime);
+  /* Catatan penting menyesuaikan alur: transfer rekening vs Virtual Account. */
+  const notes = [
+    'Lakukan pembayaran sesuai nominal yang tertera secara persis, termasuk tiga digit terakhir jika ada.',
+    'Saldo akan otomatis masuk ke akun kamu maksimal 10 menit setelah pembayaran berhasil dikonfirmasi oleh bank.',
+    isBankTransfer
+      ? 'Nomor rekening ini hanya berlaku untuk satu kali transaksi dan akan kedaluwarsa sesuai waktu yang tertera di atas.'
+      : 'Kode Virtual Account ini hanya berlaku untuk satu kali transaksi dan akan kedaluwarsa sesuai waktu yang tertera di atas.',
+    isBankTransfer
+      ? 'Jangan melakukan pembayaran lebih dari satu kali untuk nomor rekening yang sama.'
+      : 'Jangan melakukan pembayaran lebih dari satu kali untuk nomor Virtual Account yang sama.',
+  ];
 
-  /* "Salin" menyalin nomor Virtual Account ke clipboard; label tombol berubah
-     sesaat sebagai umpan balik (mengikuti pola halaman Misi). */
+  /* "Salin" menyalin nomor pembayaran (VA / rekening) ke clipboard; label
+     tombol berubah sesaat sebagai umpan balik (mengikuti pola halaman Misi). */
   const handleCopyNumber = async () => {
     try {
       await navigator.clipboard.writeText(payment.vaNumber);
@@ -507,7 +572,7 @@ export default function VirtualAccount() {
       <div>
               <section id="section-header">
                 <header className="header">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/transactions/isi-ulang'); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/transactions/topup'); }}>
                     <img src={img_1} alt="" />
                   </button>
                   <h1 className="title">Instruksi Pembayaran</h1>
@@ -532,10 +597,10 @@ export default function VirtualAccount() {
                 <div className="card-container">
                   <img src={img_3} alt="Mascot" className="mascot-img" />
                   <div className="card-header">
-                    <h2>Virtual Account {bankLabel}</h2>
+                    <h2>{isBankTransfer ? `Bank Transfer ${bankLabel}` : `Virtual Account ${bankLabel}`}</h2>
                   </div>
                   <div className="account-section">
-                    <div className="label">Nomor Virtual Account</div>
+                    <div className="label">{isBankTransfer ? 'Nomor Rekening' : 'Nomor Virtual Account'}</div>
                     <div className="number-box">
                       <span className="number">{payment.vaNumber}</span>
                       <button className="copy-btn" onClick={(e) => { e.preventDefault(); handleCopyNumber(); }}>
@@ -579,14 +644,16 @@ export default function VirtualAccount() {
               <section id="section-important-notes">
                 <h2>Catatan Penting</h2>
                 <ul className="notes-list">
-                  <li>Lakukan pembayaran sesuai nominal yang tertera secara persis, termasuk tiga digit terakhir jika ada.</li>
-                  <li>Saldo akan otomatis masuk ke akun kamu maksimal 10 menit setelah pembayaran berhasil dikonfirmasi oleh bank.</li>
-                  <li>Kode Virtual Account ini hanya berlaku untuk satu kali transaksi dan akan kedaluwarsa sesuai waktu yang tertera di atas.</li>
-                  <li>Jangan melakukan pembayaran lebih dari satu kali untuk nomor Virtual Account yang sama.</li>
+                  {notes.map((note) => (
+                    <li key={note}>{note}</li>
+                  ))}
                 </ul>
               </section>
               <section id="section-actions">
-                <button className="btn-primary" onClick={(e) => { e.preventDefault(); navigate('/index/transactions/riwayat-isi-ulang'); }}>Saya sudah membayar</button>
+                {payUrl && (
+                  <a className="btn-pay" href={payUrl} target="_blank" rel="noopener noreferrer">Buka Halaman Pembayaran</a>
+                )}
+                <button className="btn-primary" onClick={(e) => { e.preventDefault(); navigate('/index/transactions/balance'); }}>Saya sudah membayar</button>
                 <button className="btn-secondary" onClick={(e) => { e.preventDefault(); navigate('/index/support/hubungi-cs'); }}>Butuh Bantuan? Hubungi Kontak Jelajah</button>
               </section>
             </div>

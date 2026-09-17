@@ -89,7 +89,19 @@ function relativizeMediaUrls(value) {
   return value;
 }
 
-export async function request(method, path, body) {
+/* Transient hiccups on the way to the backend (a dead keep-alive socket, a
+   brief 5xx while the origin restarts, one flaky hop) used to surface as the
+   page's full error card ("Tidak dapat terhubung ke server..."). Idempotent
+   GETs are therefore retried a couple of times with a short backoff before
+   the error reaches the call site. Mutating methods are never retried — a
+   slow response must not risk a double submit — and 429 (rate limit) is
+   passed through untouched. */
+const GET_RETRY_DELAYS_MS = [500, 1500];
+const RETRYABLE_STATUSES = new Set([0, 500, 502, 503, 504]);
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function sendRequest(method, path, body) {
   /* FormData bodies (file uploads) go out as multipart/form-data — the
      Content-Type must be left unset so the browser adds the boundary. */
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
@@ -128,4 +140,17 @@ export async function request(method, path, body) {
     throw new ApiError(response.status, payload);
   }
   return payload;
+}
+
+export async function request(method, path, body) {
+  const retryDelays = method === 'GET' ? GET_RETRY_DELAYS_MS : [];
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await sendRequest(method, path, body);
+    } catch (err) {
+      const canRetry = err instanceof ApiError && RETRYABLE_STATUSES.has(err.status);
+      if (!canRetry || attempt >= retryDelays.length) throw err;
+      await sleep(retryDelays[attempt]);
+    }
+  }
 }

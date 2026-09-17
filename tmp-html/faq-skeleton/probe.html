@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FAQ-SKELETON-RUNNING</title>
+</head>
+<body>
+<div id="root"></div>
+<pre id="faq-skeleton-metrics">pending</pre>
+<script type="module">
+  /* Probe halaman Pusat Bantuan (PertanyaanUmum) — data dummy dihapus:
+     - case=loading : request FAQ digantung → skeleton chip + kartu tampil,
+                      tidak ada kartu asli, tidak ada teks dummy.
+     - case=loaded  : fixture FAQ → kartu asli tampil, skeleton hilang,
+                      akordeon bisa dibuka.
+     - case=error   : request FAQ gagal (500) → kartu error "Gagal Memuat
+                      Pertanyaan", tanpa dummy. */
+  /* Probe standalone (tanpa dev server): salt harus sama dengan fallback
+     VITE_RESPONSE_SALT aplikasi. */
+  const SALT = 'KXXADFDFDF';
+  const probeCase = new URLSearchParams(location.search).get('case') || 'loaded';
+  /* Teks khas daftar dummy lama — harus tidak pernah muncul lagi. */
+  const DUMMY_MARKER = 'Bagaimana cara verifikasi akun?';
+
+  const encodeSalted = (obj) => {
+    const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
+    return { data: [...(base64 + SALT)].reverse().join('') };
+  };
+  const json = (obj) => Promise.resolve(new Response(JSON.stringify(encodeSalted(obj)), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+
+  const FAQS = [
+    { id: 1, category: 'Akun', question: 'Bagaimana cara mengubah nomor HP terdaftar?', answer: 'Hubungi CS lewat menu Hubungi CS.' },
+    { id: 2, category: 'Saldo & Transaksi', question: 'Berapa lama proses tarik dana?', answer: 'Diproses 1-24 jam kerja.' },
+  ];
+
+  const realFetch = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    const url = typeof input === 'string' ? input : (input?.url || '');
+    if (url.includes('/api/support/faqs/')) {
+      if (probeCase === 'loading') return new Promise(() => {}); /* digantung */
+      if (probeCase === 'error') {
+        return Promise.resolve(new Response('{}', {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      return json(FAQS);
+    }
+    if (url.includes('/api/')) return json({});
+    return realFetch(input, init);
+  };
+
+  localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
+  location.hash = '#/index/support/pertanyaan-umum';
+
+  const metrics = { probeCase, steps: [] };
+  const write = () => {
+    document.getElementById('faq-skeleton-metrics').textContent = JSON.stringify(metrics, null, 2);
+    document.title = 'FAQ-SKELETON-DONE ' + JSON.stringify(metrics);
+  };
+  const waitFor = async (fn, timeout = 15000, step = 200) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      try { if (fn()) return true; } catch { /* belum siap */ }
+      await new Promise((r) => setTimeout(r, step));
+    }
+    return false;
+  };
+  const count = (sel) => document.querySelectorAll(sel).length;
+  const text = (sel) => document.querySelector(sel)?.textContent || '';
+
+  try {
+    /* Bundle dist diimpor dari index.html supaya SPA berjalan persis seperti
+       produksi — probe berdiri sendiri, tanpa dev server. */
+    const html = await (await realFetch('/index.html')).text();
+    for (const m of html.matchAll(/href="(\/assets\/[^"]+\.css)"/g)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = m[1];
+      document.head.appendChild(link);
+    }
+    const entry = html.match(/src="(\/assets\/[^"]+\.js)"/);
+    if (!entry) throw new Error('entry asset not found');
+    await import(entry[1]);
+
+    const pageReady = await waitFor(() => document.querySelector('.page-pertanyaan-umum'));
+    metrics.steps.push(['halaman tampil', pageReady]);
+
+    if (probeCase === 'loading') {
+      const skeletonReady = await waitFor(() => document.querySelector('.page-pertanyaan-umum .faq-skeleton-card'));
+      await new Promise((r) => setTimeout(r, 1000)); /* pastikan dummy tidak menyusul */
+      metrics.chipSkeletons = count('.page-pertanyaan-umum .chip-skeleton');
+      metrics.cardSkeletons = count('.page-pertanyaan-umum .faq-skeleton-card');
+      metrics.realCards = count('.page-pertanyaan-umum #faq .card');
+      metrics.dummyVisible = document.getElementById('root').textContent.includes(DUMMY_MARKER);
+      metrics.allPassed = pageReady && skeletonReady &&
+        metrics.chipSkeletons === 3 && metrics.cardSkeletons === 4 &&
+        metrics.realCards === 0 && !metrics.dummyVisible;
+    } else if (probeCase === 'loaded') {
+      const cardsReady = await waitFor(() => document.querySelector('.page-pertanyaan-umum #faq .card'));
+      await new Promise((r) => setTimeout(r, 300));
+      metrics.realCards = count('.page-pertanyaan-umum #faq .card');
+      metrics.chips = [...document.querySelectorAll('.page-pertanyaan-umum .chip')].map((el) => el.textContent.trim());
+      metrics.chipSkeletons = count('.page-pertanyaan-umum .chip-skeleton');
+      metrics.cardSkeletons = count('.page-pertanyaan-umum .faq-skeleton-card');
+      metrics.dummyVisible = document.getElementById('root').textContent.includes(DUMMY_MARKER);
+      document.querySelector('.page-pertanyaan-umum #faq .card .card-header').click();
+      const opened = await waitFor(() => document.querySelector('.page-pertanyaan-umum #faq .card .card-body'));
+      metrics.answerShown = text('.page-pertanyaan-umum #faq .card .card-body');
+      const expectedChips = ['Semua', 'Akun', 'Saldo & Transaksi'];
+      metrics.allPassed = pageReady && cardsReady && opened &&
+        metrics.realCards === 2 &&
+        JSON.stringify(metrics.chips) === JSON.stringify(expectedChips) &&
+        metrics.chipSkeletons === 0 && metrics.cardSkeletons === 0 &&
+        !metrics.dummyVisible && metrics.answerShown.includes('Hubungi CS lewat menu');
+    } else {
+      const errorReady = await waitFor(() => document.querySelector('.page-pertanyaan-umum .notif-card.error'));
+      await new Promise((r) => setTimeout(r, 300));
+      metrics.notifTitle = text('.page-pertanyaan-umum .notif-card.error .notification-title');
+      metrics.notifDesc = text('.page-pertanyaan-umum .notif-card.error .notification-desc');
+      metrics.cardSkeletons = count('.page-pertanyaan-umum .faq-skeleton-card');
+      metrics.dummyVisible = document.getElementById('root').textContent.includes(DUMMY_MARKER);
+      metrics.allPassed = pageReady && errorReady &&
+        metrics.notifTitle === 'Gagal Memuat Pertanyaan' && metrics.notifDesc.length > 0 &&
+        metrics.cardSkeletons === 0 && !metrics.dummyVisible;
+    }
+  } catch (error) {
+    metrics.error = String(error);
+    metrics.allPassed = false;
+  }
+  write();
+</script>
+</body>
+</html>

@@ -411,7 +411,7 @@ function Register01() {
                     <div className="form-group">
                       <label className="form-label">Nama Pengguna</label>
                       <div className="input-wrapper">
-                        <input type="text" className="form-input" placeholder="Contoh: Budi Santoso" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                        <input type="text" className="form-input" placeholder="Contoh: Andrew Fernandez" value={fullName} onChange={(e) => setFullName(e.target.value)} />
                       </div>
                     </div>
                     {/* Email Input */}

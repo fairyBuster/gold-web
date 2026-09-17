@@ -15,7 +15,7 @@
           ?case=partial → hanya level 1 terisi;
           ?case=nulls   → ketiga level ada tapi members_total null/undefined/0;
           ?case=full    → ketiganya terisi.
-       2) Link undangan https://domain.com/#/pages/signup?invitecode=<kode>:
+       2) Link undangan <origin>/#/index/auth/register-01?ref=<kode>:
           ?case=copy-link  → tombol Salin menyalin link lengkap (bukan kode);
           ?case=share-link → Bagikan (fallback clipboard) mengirim pesan berisi link. */
     const metrics = { errors: [] };
@@ -25,7 +25,7 @@
     const caseName = new URLSearchParams(window.location.search).get('case') || 'partial';
     metrics.case = caseName;
     const REFERRAL_CODE = 'JELO7';
-    const INVITE_URL = `https://domain.com/#/pages/signup?invitecode=${REFERRAL_CODE}`;
+    const INVITE_URL = `${location.origin}/#/index/auth/register-01?ref=${REFERRAL_CODE}`;
 
     /* Tangkap clipboard dan matikan navigator.share supaya jalur Salin/Bagikan
        deterministik di headless (Bagikan jatuh ke fallback clipboard). */
@@ -36,7 +36,9 @@
     });
     Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
 
-    const SALT = import.meta.env.VITE_RESPONSE_SALT || 'KXXADFDFDF';
+    /* Probe standalone (tanpa dev server): salt harus sama dengan fallback
+       VITE_RESPONSE_SALT aplikasi. */
+    const SALT = 'KXXADFDFDF';
     const encodeSalted = (obj) => {
       const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(obj))));
       return { data: [...(base64 + SALT)].reverse().join('') };
@@ -76,11 +78,13 @@
       'share-link': FULL_LEVELS,
     }[caseName];
 
-    window.fetch = (input) => {
+    const realFetch = window.fetch.bind(window);
+    window.fetch = (input, init) => {
       const url = typeof input === 'string' ? input : (input?.url || '');
       if (url.includes('/api/auth/downline-stats/')) return respond(STATS);
       if (url.includes('/api/auth/account-info/')) return respond({ referral_code: REFERRAL_CODE });
-      return Promise.resolve(jsonResponse(404, {}));
+      if (url.includes('/api/')) return Promise.resolve(jsonResponse(404, {}));
+      return realFetch(input, init);
     };
     window.localStorage.setItem('je_auth_session', JSON.stringify({ access: 'e2e-token' }));
 
@@ -96,8 +100,23 @@
     };
     const texts = (sel) => [...document.querySelectorAll(sel)].map((el) => el.textContent.trim());
 
-    history.replaceState(null, '', '/index/affiliate/tim-afiliasi');
-    await import('/src/main.jsx');
+    /* Bundle dist diimpor dari index.html supaya SPA berjalan persis seperti
+       produksi — probe berdiri sendiri, tanpa dev server. */
+    const html = await (await realFetch('/index.html')).text();
+    for (const m of html.matchAll(/href="(\/assets\/[^"]+\.css)"/g)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = m[1];
+      document.head.appendChild(link);
+    }
+    const entry = html.match(/src="(\/assets\/[^"]+\.js)"/);
+    if (!entry) {
+      metrics.fatal = 'entry asset not found';
+      document.getElementById('timafiliasi-metrics').textContent = JSON.stringify(metrics, null, 2);
+      throw new Error('no entry asset');
+    }
+    location.hash = '#/index/affiliate/tim-afiliasi';
+    await import(entry[1]);
 
     /* Tunggu halaman siap: stats selesai dimuat ("Memuat data tim..." hilang)
        dan kode referral sudah mengisi code-box. */

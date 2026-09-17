@@ -2,7 +2,7 @@
    TarikDana.jsx — single-file implementation of the gold withdrawal wizard.
    All steps of this flow live in this one file; the <TarikDana step={n} />
    element passed by App.jsx selects the active step. URL per step:
-     1 -> /transactions/tarik-dana-01
+     1 -> /transactions/sending
      2 -> /transactions/tarik-dana-02
      3 -> /transactions/tarik-dana-03
      4 -> /transactions/tarik-dana-04
@@ -75,18 +75,14 @@ function maskAccountNumber(value) {
   return `${digits.slice(0, 4)} •••• ${digits.slice(-4)}`;
 }
 
-/* Nama pemilik disensor setengah: kata kedua dst hanya huruf awal
-   ("Budi Santoso" -> "Budi S••••••"); nama satu kata disensor separuh
-   ("Ahmad" -> "Ahm••"). */
+/* Nama pemilik disensor seluruh kata: setiap kata hanya menyisakan huruf
+   awal ("Andrew Fernandez" -> "A••••• F••••••••"; "Michael" ->
+   "M••••••"). */
 function maskAccountName(value) {
   const words = String(value || '').trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return '—';
-  if (words.length === 1) {
-    const keep = Math.max(1, Math.ceil(words[0].length / 2));
-    return words[0].slice(0, keep) + '•'.repeat(words[0].length - keep);
-  }
   return words
-    .map((word, index) => (index === 0 ? word : word.slice(0, 1) + '•'.repeat(Math.max(0, word.length - 1))))
+    .map((word) => word.slice(0, 1) + '•'.repeat(Math.max(0, word.length - 1)))
     .join(' ');
 }
 
@@ -105,7 +101,7 @@ const QUICK_AMOUNTS = [
 ];
 
 
-/* ================= Step 1 — /transactions/tarik-dana-01 (was TarikDana01.jsx) ================= */
+/* ================= Step 1 — /transactions/sending (was TarikDana01.jsx) ================= */
 
 const TarikDana01Styles = `
 /* Scoped styles for TarikDana01 — converted from global.css + inline section styles.
@@ -790,7 +786,7 @@ function TarikDana02() {
       <div>
               <section id="section-header">
                 <header className="header-container">
-                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/transactions/tarik-dana-01'); }}>
+                  <button className="back-btn" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/transactions/sending'); }}>
                     <img src={S2_img_1} alt="" />
                   </button>
                   <h1 className="header-title">Tarik Dana</h1>
@@ -1197,7 +1193,15 @@ function TarikDana03() {
               <section id="section-header">
                 <div className="mobile-container header-bg">
                   <header className="top-nav">
-                    <button className="back-btn" aria-label="Kembali" onClick={(e) => { e.preventDefault(); goBack('/index/transactions/tarik-dana-02'); }}>
+                    <button className="back-btn" aria-label="Kembali" onClick={(e) => {
+                      e.preventDefault();
+                      /* Step 2 (add-first-bank page) auto-redirects forward to this
+                         page once a bank exists, so it must not be the back target
+                         then — the user would bounce straight back here. Step 1 is
+                         the parent in that case; step 2 only when truly bank-less. */
+                      if (!loading && !loadError && banks.length === 0) goBack('/index/transactions/tarik-dana-02');
+                      else goBack('/index/transactions/sending');
+                    }}>
                       <img src={S3_img_1} alt="Back Icon" />
                     </button>
                     <h1 className="nav-title">Tarik Dana</h1>
@@ -1586,7 +1590,7 @@ function TarikDana04() {
 
   // Direct visits without a collected amount start over at step 1.
   if (!amount) {
-    return <Navigate to="/index/transactions/tarik-dana-01" replace />;
+    return <Navigate to="/index/transactions/sending" replace />;
   }
 
   const bank =

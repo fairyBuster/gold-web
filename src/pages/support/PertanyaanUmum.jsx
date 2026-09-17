@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { goBack } from '../../lib/backNav.js';
 import { fetchFaqs } from '../../lib/faqApi.js';
+import NotifCard from '../../components/NotifCard.jsx';
 import img_1 from '../../assets/images/109_2465.svg';
 import img_2 from '../../assets/images/109_2472.svg';
 import img_3 from '../../assets/images/109_2498.svg';
@@ -187,6 +188,45 @@ const styles = `
     color: #514840;
 }
 
+/* Skeleton loading — pengganti data dummy selagi FAQ dimuat dari API.
+   Bentuknya meniru chip kategori + kartu pertanyaan supaya layout tidak
+   melompat saat data asli muncul. */
+.page-pertanyaan-umum .chip-skeleton,
+.page-pertanyaan-umum .faq-skeleton-title,
+.page-pertanyaan-umum .faq-skeleton-bar {
+    display: inline-block;
+    background: linear-gradient(90deg, rgba(26, 20, 16, 0.08) 25%, rgba(26, 20, 16, 0.16) 37%, rgba(26, 20, 16, 0.08) 63%);
+    background-size: 400% 100%;
+    animation: faq-shimmer 1.4s ease infinite;
+}
+@keyframes faq-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+.page-pertanyaan-umum .chip-skeleton {
+    height: 34px;
+    border-radius: 20px;
+}
+.page-pertanyaan-umum .faq-skeleton-title {
+    display: block;
+    height: 10px;
+    width: 96px;
+    margin: 0 0 0 2px;
+    border-radius: 5px;
+}
+.page-pertanyaan-umum .faq-skeleton-card {
+    display: flex;
+    align-items: center;
+    background-color: #ffffff;
+    border: 1px solid #efe7dc;
+    border-radius: 14px;
+    padding: 14px 16px;
+}
+.page-pertanyaan-umum .faq-skeleton-bar {
+    height: 14px;
+    border-radius: 6px;
+}
+
 /* CSS for section section:Contact */
 .page-pertanyaan-umum #contact .contact-container {
     padding: 6px 20px 24px;
@@ -235,41 +275,34 @@ const styles = `
 }
 `;
 
-/* Dipakai kalau API belum bisa dihubungi — biar halaman tetap ada isinya. */
-const FALLBACK_FAQS = [
-  { id: 'a1', category: 'Akun', question: 'Bagaimana cara verifikasi akun?', answer: 'Buka menu Edit Profil, lalu unggah KTP dan foto selfie. Verifikasi biasanya selesai dalam 1x24 jam kerja.' },
-  { id: 'a2', category: 'Akun', question: 'Bisakah ganti nomor telepon terdaftar?', answer: 'Bisa. Hubungi CS lewat menu Hubungi CS dengan menyertakan nomor lama dan nomor baru.' },
-  { id: 's1', category: 'Saldo & Transaksi', question: 'Bagaimana cara isi ulang saldo?', answer: 'Masuk ke menu Isi Ulang, pilih nominal, lalu bayar lewat QRIS atau Virtual Account.' },
-  { id: 's2', category: 'Saldo & Transaksi', question: 'Berapa lama proses tarik dana?', answer: 'Diproses 1-24 jam kerja pada jam operasional 08:00-20:00 WIB.' },
-  { id: 's3', category: 'Saldo & Transaksi', question: 'Kenapa transaksi saya gagal?', answer: 'Penyebab umum: saldo tidak cukup, rekening tujuan tidak valid, atau batas transaksi harian tercapai.' },
-  { id: 'e1', category: 'Emas Digital', question: 'Apakah emas digital aman?', answer: 'Emas digital disimpan di fasilitas penyimpanan berizin dan diasuransikan penuh.' },
-  { id: 'e2', category: 'Emas Digital', question: 'Bagaimana cara cetak emas fisik?', answer: 'Buka menu Emas Digital, pilih Cetak Emas, tentukan pecahan dan alamat pengiriman.' },
-];
-
 export default function PertanyaanUmum() {
-  const [faqs, setFaqs] = useState(FALLBACK_FAQS);
+  const [faqs, setFaqs] = useState(null);
+  const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('Semua');
   const [openId, setOpenId] = useState(null);
 
-  /* FAQ dikelola dari Django admin; kalau gagal, pakai daftar bawaan di atas. */
+  /* FAQ dikelola dari Django admin: skeleton tampil selagi dimuat, kartu
+     error kalau request gagal — tidak ada lagi data dummy. */
   useEffect(() => {
     let active = true;
     fetchFaqs()
       .then((list) => {
-        if (active && list.length) setFaqs(list);
+        if (active) setFaqs(list);
       })
-      .catch(() => {
-        /* diamkan — fallback sudah tampil */
+      .catch((err) => {
+        if (active) setError(err?.message || 'Gagal memuat pertanyaan.');
       });
     return () => {
       active = false;
     };
   }, []);
 
+  const loading = faqs === null && !error;
+
   const categories = useMemo(() => {
     const unique = [];
-    faqs.forEach((faq) => {
+    (faqs || []).forEach((faq) => {
       if (faq.category && !unique.includes(faq.category)) unique.push(faq.category);
     });
     return ['Semua', ...unique];
@@ -277,7 +310,7 @@ export default function PertanyaanUmum() {
 
   const groups = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const filtered = faqs.filter((faq) => {
+    const filtered = (faqs || []).filter((faq) => {
       const matchCategory = category === 'Semua' || faq.category === category;
       const matchQuery = !needle
         || String(faq.question).toLowerCase().includes(needle)
@@ -320,23 +353,40 @@ export default function PertanyaanUmum() {
               </section>
               <section id="categories">
                 <div className="categories-scroll">
-                  {categories.map((name) => (
-                    <button
-                      key={name}
-                      className={`chip${category === name ? ' active' : ''}`}
-                      onClick={() => setCategory(name)}
-                    >
-                      {name}
-                    </button>
-                  ))}
+                  {loading
+                    ? [72, 96, 84].map((width) => (
+                        <span key={width} className="chip-skeleton" style={{ width }} aria-hidden="true" />
+                      ))
+                    : categories.map((name) => (
+                        <button
+                          key={name}
+                          className={`chip${category === name ? ' active' : ''}`}
+                          onClick={() => setCategory(name)}
+                        >
+                          {name}
+                        </button>
+                      ))}
                 </div>
               </section>
               <section id="faq">
-                <div className="faq-container">
-                  {groups.length === 0 && (
-                    <p className="group-title">Tidak ada pertanyaan yang cocok.</p>
+                <div className="faq-container" aria-busy={loading}>
+                  {loading && (
+                    <div className="faq-group">
+                      <span className="faq-skeleton-title" aria-hidden="true" />
+                      {['58%', '76%', '64%', '70%'].map((width) => (
+                        <div className="faq-skeleton-card" key={width}>
+                          <span className="faq-skeleton-bar" style={{ width }} aria-hidden="true" />
+                        </div>
+                      ))}
+                    </div>
                   )}
-                  {groups.map((group) => (
+                  {error && (
+                    <NotifCard variant="error" title="Gagal Memuat Pertanyaan" description={error} />
+                  )}
+                  {!loading && !error && groups.length === 0 && (
+                    <p className="group-title">{query.trim() || category !== 'Semua' ? 'Tidak ada pertanyaan yang cocok.' : 'Belum ada pertanyaan.'}</p>
+                  )}
+                  {!loading && !error && groups.map((group) => (
                     <div className="faq-group" key={group.title}>
                       <h2 className="group-title">{group.title.toUpperCase()}</h2>
                       {group.items.map((faq) => {

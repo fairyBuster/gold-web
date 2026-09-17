@@ -375,11 +375,6 @@ const styles = `
 
 const TEAM_LEVELS = [1, 2, 3];
 
-/* Link undangan yang disalin/dibagikan tombol "Salin" & "Bagikan Kode" —
-   halaman signup dengan kode referral user di query string-nya. Ubah
-   domainnya cukup di konstanta ini. */
-const INVITE_LINK_BASE = 'https://domain.com/#/pages/signup?invitecode=';
-
 /* Fetches the per-level downline statistics and the current user's referral
    code independently so each part renders as soon as it lands (stats drive
    every stat on the page; the code fills the hero box). A stats failure shows
@@ -422,8 +417,13 @@ export default function TimAfiliasi() {
   const [copied, setCopied] = useState(false);
 
   /* Link lengkap untuk mengundang anggota (code-box sendiri tetap menampilkan
-     kode mentahnya). Kosong selama kode referral belum termuat. */
-  const inviteLink = referralCode ? `${INVITE_LINK_BASE}${referralCode}` : '';
+     kode mentahnya) — halaman register dengan kode tertanam (?ref=KODE),
+     format yang mengisi kode promo otomatis di sana; bentuk hash
+     (/#/index/...) supaya bisa dibuka di host statis mana pun. Kosong
+     selama kode referral belum termuat. */
+  const inviteLink = referralCode
+    ? `${window.location.origin}/#/index/auth/register-01?ref=${encodeURIComponent(referralCode)}`
+    : '';
 
   const findLevel = (level) => (stats || []).find((item) => item.level === level) || null;
   /* "Total Bonus": akumulasi komisi (profit + purchase) yang diterima user

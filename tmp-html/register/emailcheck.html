@@ -52,13 +52,13 @@
     history.replaceState(null, '', '/index/auth/register-01');
     await import('/src/main.jsx');
 
-    const name = await waitFor('.page-register-01 input[placeholder="Contoh: Budi Santoso"]');
+    const name = await waitFor('.page-register-01 input[placeholder="Contoh: Andrew Fernandez"]');
     const email = await waitFor('.page-register-01 input[placeholder="contoh@email.com"]');
     const submit = await waitFor('.page-register-01 .submit-btn');
     metrics.state.rendered = !!(name && email && submit);
     snap('after-load');
 
-    await feed(name, 'Budi Santoso');
+    await feed(name, 'Andrew Fernandez');
     await feed(email, 'notanemail');
     metrics.state.nameValue = name.value;
     metrics.state.emailValue = email.value;

@@ -108,7 +108,7 @@ export default function Konfirmasi() {
     purchaseProduct(productId)
       /* Success replaces the Konfirmasi entry in history so the back button
          can never return to this page once the flow has moved on. */
-      .then(() => navigate('/index/assets/aset-saya-01', { replace: true }))
+      .then(() => navigate('/index/assets/all', { replace: true }))
       .catch((err) => {
         /* Rejection copy ships under different payload keys ("product_id"
            for serializer errors, "error" for the view's own checks); scan the
@@ -119,7 +119,7 @@ export default function Konfirmasi() {
             : '';
         let message = err?.message || 'Aktivasi gagal. Coba lagi.';
         if (payloadText.includes('batas pembelian')) {
-          message = 'Batas pembelian produk ini sudah tercapai. Silakan pilih rencana lain.';
+          message = 'Kesempatan pengguna baru untuk produk yang sama sudah habis.';
         } else if (payloadText.includes('rank minimal')) {
           message = 'Emas ini belum tersedia untuk anda';
         } else if (payloadText.includes('insufficient balance')) {

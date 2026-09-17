@@ -807,7 +807,7 @@ export default function Profil() {
                 <div className="app-container features-container">
                   <h2 className="section-title">Fitur Lainnya</h2>
                   <div className="features-grid">
-                    <Link to="/index/transactions/isi-ulang" className="feature-item">
+                    <Link to="/index/transactions/topup" className="feature-item">
                       <img src={img_4} alt="Isi Ulang" />
                       <span>Isi Ulang</span>
                     </Link>
@@ -815,7 +815,7 @@ export default function Profil() {
                       <img src={img_5} alt="VIP" />
                       <span>VIP</span>
                     </Link>
-                    <Link to="/index/transactions/tarik-dana-01" className="feature-item">
+                    <Link to="/index/transactions/sending" className="feature-item">
                       <img src={img_6} alt="Tarik Dana" />
                       <span>Tarik Dana</span>
                     </Link>
@@ -823,7 +823,7 @@ export default function Profil() {
                       <img src={img_7} alt="Tim/Afiliasi" />
                       <span>Tim/Afiliasi</span>
                     </Link>
-                    <Link to="/index/assets/emas-digital" className="feature-item">
+                    <Link to="/index/assets/digital" className="feature-item">
                       <img src={img_8} alt="Emas Digital" />
                       <span>Emas Digital</span>
                     </Link>
@@ -975,7 +975,7 @@ export default function Profil() {
                       <img src={img_19} alt="Edit Profil" />
                       <span>Edit Profil</span>
                     </Link>
-                    <Link to="/index/profil/kartu-bank" className="icon-item">
+                    <Link to="/index/profil/kartu" className="icon-item">
                       <img src={img_20} alt="Rekening Bank" />
                       <span>Rekening Bank</span>
                     </Link>

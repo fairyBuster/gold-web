@@ -1,14 +1,13 @@
 /* ============================================================================
-   backNav.js — smart back navigation for every back button in the app.
+   backNav.js — back buttons return to the screen's logical parent.
 
-   Plain window.history.back() walks the real browser history stack: when a
-   page was opened directly (deep link, refresh in a fresh tab) or reached
-   from an external app (a WhatsApp share link, for example), the previous
-   entry is outside the site, so pressing back leaves the app entirely.
-   react-router stores each entry's position in the tab's own stack on
-   history.state.idx — idx > 0 means there is an in-app page to return to.
-   When there is none, the caller's fallback route is opened instead, so a
-   back press can never strand the user outside the app.
+   Every back button passes the route of its logical parent (wizard steps to
+   the previous step, detail pages to their list, root screens to /index/home).
+   The destination is deterministic: the same button always lands on the same
+   screen. Walking window.history instead replays the user's visit history —
+   after re-entering a flow, a back press can bounce the user into the flow
+   they just left. Navigating to the parent route also keeps the user inside
+   the app on a deep link, refresh in a fresh tab, or external arrival.
    ========================================================================== */
 
 let navigateRef = null;
@@ -20,14 +19,7 @@ export function setBackNavigate(navigate) {
 }
 
 export function goBack(fallback = '/index/home') {
-  const idx = window.history.state?.idx;
-  if (typeof idx === 'number' && idx > 0) {
-    window.history.back();
-    return;
-  }
   if (navigateRef) {
-    /* No in-app history (this is the tab's first entry) — open the logical
-       parent route instead of walking out of the site. */
     navigateRef(fallback);
     return;
   }

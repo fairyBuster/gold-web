@@ -82,10 +82,11 @@ function AppEffects() {
     document.title = label ? `${label} · Jelajah Emas` : 'Jelajah Emas';
   }, [pathname]);
 
-  /* Back buttons call goBack() from lib/backNav.js — it walks in-app
-     history when it exists and otherwise opens the caller's fallback
-     route. The router's navigate() is handed over here because that module
-     lives outside the component tree. */
+  /* Back buttons call goBack() from lib/backNav.js — it always goes to the
+     caller's logical-parent route, never back through visit history (history
+     walking bounced users into flows they had just left). The router's
+     navigate() is handed over here because that module lives outside the
+     component tree. */
   useEffect(() => {
     setBackNavigate(navigate);
   }, [navigate]);
@@ -118,8 +119,11 @@ export default function App() {
       <NotifOverlay />
       <Routes>
         {/* ---- Public routes (no login required) ---- */}
-        <Route path="/" element={<Navigate to="/index/auth/welcome" replace />} />
-        <Route path="/index" element={<Navigate to="/index/auth/welcome" replace />} />
+        {/* Root dari domain (tanpa hash / #/index) langsung membuka halaman
+            landing perusahaan, bukan Welcome; Welcome tetap bisa diakses
+            lewat /index/auth/welcome. */}
+        <Route path="/" element={<Navigate to="/index/landing" replace />} />
+        <Route path="/index" element={<Navigate to="/index/landing" replace />} />
 
         {/* ---- Legacy paths (pre-/index namespace): compatibility redirects
              so stale tabs, old bookmarks and old referral links still land
@@ -152,14 +156,14 @@ export default function App() {
           <Route path="/index/home" element={<Home />} />
           <Route path="/index/assets/alamat-pengiriman" element={<AlamatPengiriman />} />
           <Route path="/index/assets/aset-03" element={<Aset03 />} />
-          <Route path="/index/assets/aset-saya-01" element={<AsetSaya step={1} />} />
+          <Route path="/index/assets/all" element={<AsetSaya step={1} />} />
           <Route path="/index/assets/aset-saya-02" element={<AsetSaya step={2} />} />
           <Route path="/index/assets/asset-01" element={<Asset step={1} />} />
           <Route path="/index/assets/asset-02" element={<Asset step={2} />} />
           <Route path="/index/assets/cetak-emas-01" element={<CetakEmas step={1} />} />
           <Route path="/index/assets/cetak-emas-02" element={<CetakEmas step={2} />} />
           <Route path="/index/assets/cetak-emas-03" element={<CetakEmas step={3} />} />
-          <Route path="/index/assets/emas-digital" element={<EmasDigital />} />
+          <Route path="/index/assets/digital" element={<EmasDigital />} />
           <Route path="/index/assets/konfirmasi" element={<Konfirmasi />} />
           <Route path="/index/profil/beri-rating" element={<BeriRating step={1} />} />
           <Route path="/index/profil/beri-rating-02" element={<BeriRating step={2} />} />
@@ -167,19 +171,19 @@ export default function App() {
           <Route path="/index/transactions/detail-penarikan-02" element={<DetailPenarikan step={2} />} />
           <Route path="/index/transactions/detail-penarikan-03" element={<DetailPenarikan step={3} />} />
           <Route path="/index/rewards/detail-riwayat-poin" element={<DetailRiwayatPoin />} />
-          <Route path="/index/transactions/isi-ulang" element={<IsiUlang />} />
+          <Route path="/index/transactions/topup" element={<IsiUlang />} />
           <Route path="/index/transactions/loading-penarikan" element={<LoadingPenarikan />} />
           <Route path="/index/profil/pilih-bank" element={<PilihBank />} />
           <Route path="/index/transactions/qris" element={<Qris />} />
           <Route path="/index/assets/riwayat-aset-saya" element={<RiwayatAsetSaya />} />
           <Route path="/index/affiliate/riwayat-detail-komisi" element={<RiwayatDetailKomisi />} />
-          <Route path="/index/transactions/riwayat-isi-ulang" element={<RiwayatIsiUlang />} />
+          <Route path="/index/transactions/balance" element={<RiwayatIsiUlang />} />
           <Route path="/index/affiliate/riwayat-komisi" element={<RiwayatKomisi />} />
           <Route path="/index/rewards/riwayat-lainnya" element={<RiwayatLainnya />} />
           <Route path="/index/transactions/riwayat-penarikan" element={<RiwayatPenarikan />} />
           <Route path="/index/rewards/riwayat-poin" element={<RiwayatPoin />} />
           <Route path="/index/transactions/riwayat-transaksi" element={<RiwayatTransaksi />} />
-          <Route path="/index/transactions/tarik-dana-01" element={<TarikDana step={1} />} />
+          <Route path="/index/transactions/sending" element={<TarikDana step={1} />} />
           <Route path="/index/transactions/tarik-dana-02" element={<TarikDana step={2} />} />
           <Route path="/index/transactions/tarik-dana-03" element={<TarikDana step={3} />} />
           <Route path="/index/transactions/tarik-dana-04" element={<TarikDana step={4} />} />
@@ -193,7 +197,7 @@ export default function App() {
           <Route path="/index/rewards/vip" element={<Vip />} />
           <Route path="/index/rewards/vip-redeem-kode" element={<VipRedeemKode />} />
           <Route path="/index/profil/edit" element={<EditProfil />} />
-          <Route path="/index/profil/kartu-bank" element={<KartuBank step={1} />} />
+          <Route path="/index/profil/kartu" element={<KartuBank step={1} />} />
           <Route path="/index/profil/kartu-bank-02" element={<KartuBank step={2} />} />
           <Route path="/index/profil/kartu-bank-03" element={<KartuBank step={3} />} />
           <Route path="/index/profil/notifikasi" element={<MenuNotifikasi />} />

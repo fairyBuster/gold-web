@@ -285,7 +285,7 @@ export default function HubungiCs() {
               <section id="section-channels">
                 <h3 className="section-title">Pilih Channel</h3>
                 <div className="channel-list">
-                  <a href={communityLink?.url || '#'} className="channel-card">
+                  <a href={communityLink?.url || '#'} className="channel-card" onClick={(e) => { if (!communityLink?.url) e.preventDefault(); }}>
                     <img className="channel-icon" src={img_4} alt="Saluran Komunitas" />
                     <div className="channel-info">
                       <h4>Saluran Komunitas</h4>
@@ -293,7 +293,7 @@ export default function HubungiCs() {
                     </div>
                     <img className="icon-arrow" src={img_5} alt="" />
                   </a>
-                  <a href={whatsappLink?.url || '#'} className="channel-card">
+                  <a href={whatsappLink?.url || '#'} className="channel-card" onClick={(e) => { if (!whatsappLink?.url) e.preventDefault(); }}>
                     <img className="channel-icon" src={img_6} alt="WhatsApp" />
                     <div className="channel-info">
                       <h4>WhatsApp</h4>
@@ -301,7 +301,7 @@ export default function HubungiCs() {
                     </div>
                     <img className="icon-arrow" src={img_7} alt="" />
                   </a>
-                  <a href={helpLink?.url || '#'} className="channel-card">
+                  <a href={helpLink?.url || '#'} className="channel-card" onClick={(e) => { if (!helpLink?.url) e.preventDefault(); }}>
                     <img className="channel-icon" src={img_8} alt="CS Jelajah" />
                     <div className="channel-info">
                       <h4>CS Jelajah</h4>
@@ -317,7 +317,7 @@ export default function HubungiCs() {
                     </div>
                     <img className="icon-arrow" src={img_10} alt="" />
                   </Link>
-                  <a href="#" className="channel-card">
+                  <a href="#" className="channel-card" onClick={(e) => e.preventDefault()}>
                     <img className="channel-icon" src={img_11} alt="Email" />
                     <div className="channel-info">
                       <h4>Email</h4>
@@ -325,7 +325,7 @@ export default function HubungiCs() {
                     </div>
                     <img className="icon-arrow" src={img_12} alt="" />
                   </a>
-                  <a href={helpLink?.url || '#'} className="channel-card">
+                  <a href={helpLink?.url || '#'} className="channel-card" onClick={(e) => { if (!helpLink?.url) e.preventDefault(); }}>
                     <img className="channel-icon" src={img_13} alt="Call Center" />
                     <div className="channel-info">
                       <h4>Call Center</h4>

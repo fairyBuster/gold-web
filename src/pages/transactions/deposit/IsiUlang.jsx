@@ -10,8 +10,8 @@ import { useShowNotif } from '../../../lib/useShowNotif.js';
 import { getAccountInfo } from '../../../lib/authApi.js';
 import { formatIDR } from '../../../lib/goldPriceApi.js';
 /* VA channels create their deposit through ATPAY; QRIS channels through MGM,
-   LPAY, or FF Pay (initiate + select-method); Bank Transfer Manual through
-   BankPay (nomor VA). */
+   LPAY, or FF Pay (initiate + select-method); Bank Transfer BRI through
+   BankPay (nomor rekening tujuan). */
 import { extractBankpayInfo, extractExpireTime, extractMethodGuide, extractQrisData, extractRefId, extractVaNumber, initiateDepositBankpay, initiateDepositFfpay, initiateDepositLpay, initiateDepositQris, initiateDepositVa, selectFfpayMethod } from '../../../lib/depositsApi.js';
 
 /* Page styles are kept inline in this file so the page is a single-file import. */
@@ -115,6 +115,28 @@ const styles = `
     font-size: 24px;
     font-weight: 700;
     color: #514840;
+  }
+  /* Kursor dekoratif kedip-kedip: penanda kolom nominal bisa diketik.
+     Disembunyikan saat kolom difokuskan (kursor asli tampil) atau sudah
+     ada isinya. */
+  .page-isi-ulang .focus-caret {
+    font-size: 20px;
+    font-weight: 400;
+    line-height: 1;
+    color: #1a1410;
+    animation: page-isi-ulang-caret-blink 1s infinite;
+  }
+  .page-isi-ulang .input-wrapper:focus-within .focus-caret,
+  .page-isi-ulang .input-wrapper:has(.amount-input:not(:placeholder-shown)) .focus-caret {
+    display: none;
+  }
+  @keyframes page-isi-ulang-caret-blink {
+    0%, 49% {
+      opacity: 1;
+    }
+    50%, 100% {
+      opacity: 0;
+    }
   }
   .page-isi-ulang .amount-input {
     font-size: 20px;
@@ -307,9 +329,23 @@ const styles = `
    POST /api/deposits/mgm/initiate/; `lpay: true` channels through
    POST /api/deposits/lpay/initiate/; `ffpayQris: true` channels through
    POST /api/deposits/ffpay/initiate/ + select-method; `bankpay: true` channel
-   through POST /api/deposits/bankpay/initiate/ (nomor VA). */
+   through POST /api/deposits/bankpay/initiate/ (nomor rekening). */
 const PAYMENT_CATEGORIES = ['VIRTUAL ACCOUNT', 'E-WALLET & QRIS'];
 const MIN_DEPOSIT = 10000;
+/* Batas maksimal pengisian lewat jalur QRIS (LPAY, MGM, FF Pay) + copy
+   peringatannya. VA dan Bank Transfer BRI tidak dibatasi di sini. */
+const MAX_QRIS_DEPOSIT = 10000000;
+const QRIS_LIMIT_NOTIF = {
+  title: 'Nominal Melebihi Batas',
+  description: 'Melebihi batas nominal maksimal pengisian dengan QRIS.',
+};
+/* Gateway menonaktifkan jalur QRIS sementara: payload error
+   { detail: "Pengisian ulang tertunda hari ini. Silakan coba 30 menit
+   selanjutnya" } diganti copy yang mengarahkan user ke metode lain. */
+const QRIS_DISABLED_NOTIF = {
+  title: 'QRIS Tidak Tersedia',
+  description: 'QRIS ini tidak tersedia, yuk coba pembayaran lainnya.',
+};
 const PAYMENT_METHODS = [
   {
     id: 'va_bri',
@@ -346,9 +382,9 @@ const PAYMENT_METHODS = [
   {
     id: 'qris_0',
     category: 'E-WALLET & QRIS',
-    name: 'Bank Transfer Manual',
+    name: 'Bank Transfer BRI',
     bankpay: true,
-    desc: 'Transfer ke nomor Virtual Account melalui ATM, m-Banking, atau Internet Banking.',
+    desc: 'Transfer ke rekening BRI melalui ATM, m-Banking, atau Internet Banking.',
     route: '/index/transactions/virtual-account',
   },
 
@@ -386,6 +422,16 @@ const PAYMENT_METHODS = [
   },
 ];
 
+/* Channel QRIS: LPAY (QRIS 1), MGM (QRIS 2 & 3), FF Pay (QRIS 4). */
+const isQrisMethod = (item) => Boolean(item.qris || item.lpay || item.ffpayQris);
+
+/* QRIS nonaktif sementara di sisi gateway — dikenali dari payload error
+   JSON { detail: "Pengisian ulang tertunda hari ini..." }. */
+const isQrisTempDisabled = (payload) => {
+  const detail = payload && typeof payload === 'object' ? String(payload.detail || '') : '';
+  return /pengisian ulang tertunda/i.test(detail);
+};
+
 export default function IsiUlang() {
   const navigate = useNavigate();
   const [methodId, setMethodId] = useState(PAYMENT_METHODS[0].id);
@@ -413,11 +459,21 @@ export default function IsiUlang() {
     };
   }, []);
 
+  /* Pilih channel; kalau nominal yang sudah diketik di atas batas QRIS dan
+     channel QRIS yang dipilih, tampilkan peringatan lewat notifikasi. */
+  const handleSelectMethod = (item) => {
+    setMethodId(item.id);
+    if (isQrisMethod(item) && Number(amountText.replace(/\D/g, '')) > MAX_QRIS_DEPOSIT) {
+      showNotif(QRIS_LIMIT_NOTIF);
+    }
+  };
+
   /* Validasi tampil lewat notifikasi mengambang; channel VA, QRIS, dan bank
      transfer membuat depositnya dulu (ATPAY initiate-va / MGM initiate / LPAY
      initiate / FF Pay initiate + select-method / BankPay initiate) lalu data
      bayaran dari gateway diteruskan ke halaman instruksi lewat route state.
-     Channel tanpa flow khusus lanjut seperti biasa. */
+     Channel tanpa flow khusus lanjut seperti biasa. Saat gateway menonaktifkan
+     QRIS sementara, tiap langkah QRIS berhenti dengan QRIS_DISABLED_NOTIF. */
   const handleContinue = async () => {
     const digits = amountText.replace(/\D/g, '');
     if (!digits) {
@@ -428,6 +484,11 @@ export default function IsiUlang() {
       showNotif({ title: 'Nominal Terlalu Kecil', description: `Minimal pengisian ${formatIDR(MIN_DEPOSIT)}.` });
       return;
     }
+    /* Di atas batas maksimal QRIS: hanya beri notifikasi, jangan buat deposit. */
+    if (isQrisMethod(method) && Number(digits) > MAX_QRIS_DEPOSIT) {
+      showNotif(QRIS_LIMIT_NOTIF);
+      return;
+    }
     if (!method.method && !method.qris && !method.ffpayQris && !method.bankpay && !method.lpay) {
       navigate(method.route);
       return;
@@ -435,13 +496,15 @@ export default function IsiUlang() {
     setSubmitting(true);
     try {
       if (method.bankpay) {
-        /* Bank transfer manual: BankPay mengembalikan nomor VA + nominal
-           unik (display_amount) → halaman instruksi Virtual Account. */
+        /* Bank transfer BRI: BankPay mengembalikan nomor rekening tujuan +
+           nominal unik (display_amount) + halaman bayar gateway (pay_url) →
+           halaman instruksi; `bankTransfer` menandai copy rekening (bukan
+           Virtual Account) di halaman instruksi. */
         const payload = await initiateDepositBankpay({ amount: Number(digits) });
         const info = extractBankpayInfo(payload);
         if (!info.vaNumber) {
           setSubmitting(false);
-          showNotif({ title: 'Gagal Membuat Virtual Account', description: 'Nomor Virtual Account tidak diterima dari server. Coba lagi ya.' });
+          showNotif({ title: 'Gagal Membuat Instruksi Transfer', description: 'Nomor rekening tidak diterima dari server. Coba lagi ya.' });
           return;
         }
         const bankCode = info.bank || 'BRI';
@@ -450,10 +513,12 @@ export default function IsiUlang() {
             vaNumber: info.vaNumber,
             amount: info.amount || Number(digits),
             methodCode: bankCode,
-            methodName: `VA ${bankCode}`,
+            methodName: `Bank Transfer ${bankCode}`,
+            bankTransfer: true,
             expireTime: '',
             methodGuide: [],
             vaName: info.vaName,
+            payUrl: info.payUrl,
           },
         });
         return;
@@ -462,6 +527,12 @@ export default function IsiUlang() {
         /* FF Pay: initiate dulu (dapat ref_id), lalu select-method 'QRIS'
            untuk mendapat konten QR; masa berlaku dari respons initiate. */
         const initiated = await initiateDepositFfpay({ amount: Number(digits) });
+        /* Balasan bisa berisi penanda penonaktifan QRIS, bukan data deposit. */
+        if (isQrisTempDisabled(initiated)) {
+          setSubmitting(false);
+          showNotif(QRIS_DISABLED_NOTIF);
+          return;
+        }
         const refId = extractRefId(initiated);
         if (!refId) {
           setSubmitting(false);
@@ -469,6 +540,11 @@ export default function IsiUlang() {
           return;
         }
         const selected = await selectFfpayMethod({ refId, method: 'QRIS' });
+        if (isQrisTempDisabled(selected)) {
+          setSubmitting(false);
+          showNotif(QRIS_DISABLED_NOTIF);
+          return;
+        }
         const qris = { ...extractQrisData(selected), expiresAt: extractQrisData(initiated).expiresAt };
         if (!qris.qrImageUrl && !qris.qrContent && !qris.qrUrl) {
           setSubmitting(false);
@@ -485,6 +561,12 @@ export default function IsiUlang() {
         const payload = method.lpay
           ? await initiateDepositLpay({ amount: Number(digits) })
           : await initiateDepositQris({ amount: Number(digits) });
+        /* Payload penonaktifan QRIS bisa datang sebagai balasan sukses (200). */
+        if (isQrisTempDisabled(payload)) {
+          setSubmitting(false);
+          showNotif(QRIS_DISABLED_NOTIF);
+          return;
+        }
         const qris = extractQrisData(payload);
         if (!qris.qrImageUrl && !qris.qrContent && !qris.qrUrl) {
           setSubmitting(false);
@@ -513,8 +595,21 @@ export default function IsiUlang() {
       });
     } catch (err) {
       setSubmitting(false);
-      /* LPAY & FF Pay juga alur QRIS — judul notifikasi ikut menyesuaikan. */
-      showNotif({ title: (method.qris || method.lpay || method.ffpayQris) ? 'Gagal Membuat Kode QRIS' : 'Gagal Membuat Virtual Account', description: err?.message || 'Coba lagi beberapa saat lagi ya.' });
+      /* Jalur QRIS nonaktif sementara di gateway (payload error berisi
+         detail "Pengisian ulang tertunda…") → arahkan user ke metode
+         pembayaran lain, bukan kegagalan generik. */
+      if (isQrisMethod(method) && isQrisTempDisabled(err?.payload)) {
+        showNotif(QRIS_DISABLED_NOTIF);
+        return;
+      }
+      /* LPAY & FF Pay juga alur QRIS, BankPay alur transfer rekening —
+         judul notifikasi ikut menyesuaikan. */
+      const failTitle = (method.qris || method.lpay || method.ffpayQris)
+        ? 'Gagal Membuat Kode QRIS'
+        : method.bankpay
+          ? 'Gagal Membuat Instruksi Transfer'
+          : 'Gagal Membuat Virtual Account';
+      showNotif({ title: failTitle, description: err?.message || 'Coba lagi beberapa saat lagi ya.' });
     }
   };
 
@@ -535,6 +630,8 @@ export default function IsiUlang() {
                   <p className="input-label">Masukkan Nominal Isi Ulang</p>
                   <div className="input-wrapper">
                     <span className="currency-symbol">Rp</span>
+                    {/* Kursor dekoratif kedip-kedip penanda kolom bisa diketik. */}
+                    <span className="focus-caret" aria-hidden="true">|</span>
                     <input type="text" inputMode="numeric" className="amount-input" placeholder="Masukkan nominal di sini" value={amountText} onChange={(e) => setAmountText(e.target.value.replace(/\D/g, ''))} />
                   </div>
                   <div className="helper-texts">
@@ -557,7 +654,7 @@ export default function IsiUlang() {
                         <label
                           className={`payment-card${isSelected ? ' selected' : ''}`}
                           key={item.id}
-                          onClick={() => setMethodId(item.id)}
+                          onClick={() => handleSelectMethod(item)}
                         >
                           <div className="card-content">
                             <h4 className="method-name">{item.name}</h4>
@@ -571,7 +668,7 @@ export default function IsiUlang() {
                             name="payment_method"
                             value={item.id}
                             checked={isSelected}
-                            onChange={() => setMethodId(item.id)}
+                            onChange={() => handleSelectMethod(item)}
                             className="method-input"
                           />
                         </label>

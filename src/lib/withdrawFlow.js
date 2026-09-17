@@ -1,7 +1,8 @@
 /* ============================================================================
    withdrawFlow.js — in-memory store for the Tarik Dana wizard.
 
-   The wizard steps are separate routes (/index/transactions/tarik-dana-01..-04),
+   The wizard steps are separate routes (/index/transactions/sending and
+   /index/transactions/tarik-dana-02..-04),
    so plain component state cannot carry the collected data across steps.
    Deliberately memory-only (resets on refresh): the amount and the chosen
    bank are re-collected safely and never written to localStorage.

@@ -218,7 +218,7 @@ export default function RiwayatTransaksi() {
               </section>
               <section id="section-history-list">
                 <div className="list-container">
-                  <Link to="/index/transactions/riwayat-isi-ulang" className="history-card">
+                  <Link to="/index/transactions/balance" className="history-card">
                     <img src={img_2} alt="Riwayat Isi Ulang" className="card-icon" />
                     <div className="card-content">
                       <h2 className="card-title">Riwayat Isi Ulang</h2>

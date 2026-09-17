@@ -2,7 +2,7 @@
    AsetSaya.jsx — single-file implementation of the my-assets views.
    All steps of this flow live in this one file; the <AsetSaya step={n} />
    element passed by App.jsx selects the active step. URL per step:
-     1 -> /assets/aset-saya-01
+     1 -> /index/assets/all
      2 -> /assets/aset-saya-02
    Data: GET /api/investments/ (the user's plans) via src/lib/investmentsApi.js,
    GET /api/gold/info/ (balance_hold) for the "Total Aset Emas Kamu" card via
@@ -230,7 +230,7 @@ function InvestmentCard({ investment }) {
         </div>
         <span className="progress-text">{`${daysPassed} dari ${Number(investment.duration_days) || 0} hari`}</span>
       </div>
-      <Link to="/index/assets/emas-digital" className="card-link">
+      <Link to="/index/assets/digital" className="card-link">
         <span>Lihat aset digital saya</span>
         <img src={S2_img_4} alt="Arrow Right" />
       </Link>
@@ -239,7 +239,7 @@ function InvestmentCard({ investment }) {
 }
 
 
-/* ================= Step 1 — /assets/aset-saya-01 (was AsetSaya01.jsx) ================= */
+/* ================= Step 1 — /index/assets/all (was AsetSaya01.jsx) ================= */
 
 const AsetSaya01Styles = `
 /* Scoped styles for AsetSaya01 — converted from global.css + inline section styles.
@@ -1126,7 +1126,7 @@ function AsetSaya02() {
               <header id="top-header">
                 <div className="top-header-bg">
                   <div className="header-nav">
-                    <button className="back-btn" onClick={(e) => { e.preventDefault(); goBack('/index/assets/aset-saya-01'); }}>
+                    <button className="back-btn" onClick={(e) => { e.preventDefault(); goBack('/index/assets/all'); }}>
                       <img src={img_1} alt="Back" />
                     </button>
                     <h1 className="header-title">Kumpulkan Aset Anda</h1>

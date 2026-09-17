@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { goBack } from '../../lib/backNav.js';
 import { getRankLevels, getRankStatus } from '../../lib/authApi.js';
 import { formatRupiah } from '../../lib/transactionFormat.js';
+import NotifCard from '../../components/NotifCard.jsx';
 import img_1 from '../../assets/images/102_1724.svg';
 import img_2 from '../../assets/images/915ddfcd2308a67f93cb52100b8c074abaa5928b.webp';
 import img_3 from '../../assets/images/97d547b383343261074c45a251276c6f944091c3.webp';
@@ -250,6 +251,40 @@ const styles = `
     color: #a79c8f;
     margin: 0;
   }
+
+/* ---- skeleton loading ---- */
+
+/* Bar shimmer selama rank-levels + rank-status dimuat — konvensi skeleton
+   halaman Home/Asset/CetakEmas: bar seukuran teks aslinya supaya layout
+   tidak bergeser. Kartu hero gelap memakai tint #fff9f2, kartu tingkatan
+   terang memakai tint #1a1410. */
+.page-vip .skeleton {
+  display: block;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, rgba(26, 20, 16, 0.08) 25%, rgba(26, 20, 16, 0.16) 37%, rgba(26, 20, 16, 0.08) 63%);
+  background-size: 400% 100%;
+  animation: vip-skeleton-shimmer 1.4s ease infinite;
+}
+
+.page-vip .hero-card .skeleton {
+  background: linear-gradient(90deg, rgba(255, 249, 242, 0.12) 25%, rgba(255, 249, 242, 0.24) 37%, rgba(255, 249, 242, 0.12) 63%);
+  background-size: 400% 100%;
+}
+
+@keyframes vip-skeleton-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
+.page-vip .skeleton-icon { width: 49px; height: 49px; border-radius: 12px; }
+.page-vip .member-status .skeleton-icon { border-radius: 50%; }
+.page-vip .skeleton-hero-title { width: 140px; height: 16px; }
+.page-vip .skeleton-hero-label { width: 84px; height: 11px; }
+.page-vip .skeleton-hero-amount { width: 128px; height: 11px; }
+.page-vip .skeleton-bar-fill { width: 100%; height: 100%; border-radius: 4px; }
+.page-vip .skeleton-tier-title { width: 92px; height: 13px; }
+.page-vip .skeleton-tier-sub { width: 156px; height: 11px; margin-top: 2px; }
 `;
 
 /* Cadangan saat rank-status tidak tersedia: endpoint rank-levels tidak
@@ -296,34 +331,55 @@ function requirementText(level) {
 }
 
 export default function Vip() {
-  /* null = API belum termuat/gagal (konten bawaan desain tetap tampil). */
+  /* null = request belum selesai (masih dimuat atau gagal). */
   const [levels, setLevels] = useState(null);
   /* Status rank dari /api/auth/rank-status/ — rank yang sudah terpenuhi +
      syarat rank berikutnya; kalau gagal muat, hero memakai rank-levels. */
   const [status, setStatus] = useState(null);
+  /* True sampai KEDUA request selesai — hero dan daftar tingkatan memakai
+     skeleton selama menunggu, kartu error kalau gagal (tanpa konten mockup). */
+  const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState('');
+  const [levelsError, setLevelsError] = useState('');
 
   useEffect(() => {
     let active = true;
+    let pending = 2;
+    let successCount = 0;
+    let firstError = '';
+    const settle = () => {
+      pending -= 1;
+      if (!active || pending > 0) return;
+      setLoading(false);
+      /* Dua-duanya gagal = tidak ada data untuk dirender — satu kartu error
+         menggantikan hero + daftar tingkatan. */
+      if (successCount === 0) setPageError(firstError || 'Gagal memuat data VIP.');
+    };
     getRankLevels()
       .then((list) => {
+        successCount += 1;
         if (active) setLevels(list);
       })
-      .catch(() => {
-        /* diamkan — konten bawaan sudah tampil */
-      });
+      .catch((err) => {
+        const message = err?.message || 'Gagal memuat data VIP.';
+        if (!firstError) firstError = message;
+        if (active) setLevelsError(message);
+      })
+      .finally(settle);
     getRankStatus()
       .then((payload) => {
+        successCount += 1;
         if (active && payload) setStatus(payload);
       })
-      .catch(() => {
-        /* diamkan — hero memakai fallback rank-levels */
-      });
+      .catch((err) => {
+        if (!firstError) firstError = err?.message || 'Gagal memuat data VIP.';
+      })
+      .finally(settle);
     return () => {
       active = false;
     };
   }, []);
 
-  const usingData = levels !== null || status !== null;
   const currentLevel = levels !== null ? levels.find((level) => level.is_current_rank) || null : null;
   const nextLevel = levels !== null
     ? currentLevel
@@ -349,19 +405,16 @@ export default function Vip() {
   const showProgress = Boolean(basis && nextTitle && targetValue > 0);
   const progressPct = showProgress ? Math.min(100, Math.round((progressValue / targetValue) * 100)) : 0;
 
-  /* Fallback (API belum termuat/gagal) memakai konten bawaan desain. Hero
-     memprioritaskan rank-status: current_title = rank yang sudah terpenuhi. */
+  /* Hero memprioritaskan rank-status: current_title = rank yang sudah
+     terpenuhi. Semua nilai dirender dari data API — konten mockup desain
+     (Gold Member / Menuju Platinum / Rp3.512.870 / 35%) sudah dihapus,
+     digantikan skeleton lalu kartu error. */
   const heroTitle = status
     ? status.current_title || status.next_title || ''
-    : usingData
-      ? currentLevel?.title || nextLevel?.title || ''
-      : 'Gold Member';
-  const progressVisible = usingData ? showProgress : true;
-  const progressLabel = usingData ? (nextTitle ? `Menuju ${nextTitle}` : '') : 'Menuju Platinum';
-  const progressAmount = usingData
-    ? `${formatValue(progressValue, basis)} / ${formatValue(targetValue, basis)}${basis && !basis.currency ? ` ${basis.unit}` : ''}`
-    : 'Rp3.512.870 / Rp10.000.000';
-  const progressWidth = usingData ? `${progressPct}%` : '35%';
+    : currentLevel?.title || nextLevel?.title || '';
+  const progressLabel = nextTitle ? `Menuju ${nextTitle}` : '';
+  const progressAmount = `${formatValue(progressValue, basis)} / ${formatValue(targetValue, basis)}${basis && !basis.currency ? ` ${basis.unit}` : ''}`;
+  const progressWidth = `${progressPct}%`;
 
   return (
     <div className="page-vip">
@@ -375,101 +428,123 @@ export default function Vip() {
                   <h1 className="header-title">VIP JelajahEmas</h1>
                 </header>
               </section>
-              <section id="section-hero">
-                <div className="hero-container">
-                  <div className="hero-card">
-                    <img src={img_2} alt="" className="hero-bg-graphic" />
-                    <div className="hero-content">
-                      <div className="member-status">
-                        <img src={img_3} alt="Gold Tier Icon" className="status-icon" />
-                        <h2 className="status-title">{heroTitle}</h2>
-                      </div>
-                      {progressVisible && (
-                        <div className="progress-area">
-                          <div className="progress-text-row">
-                            <span className="progress-label">{progressLabel}</span>
-                            <span className="progress-amount">{progressAmount}</span>
+              {loading && (
+                <>
+                  <section id="section-hero">
+                    <div className="hero-container">
+                      <div className="hero-card">
+                        <img src={img_2} alt="" className="hero-bg-graphic" />
+                        <div className="hero-content">
+                          <div className="member-status">
+                            <span className="skeleton skeleton-icon" aria-hidden="true" />
+                            <span className="skeleton skeleton-hero-title" aria-hidden="true" />
                           </div>
-                          <div className="progress-bar-container">
-                            <div className="progress-bar-fill" style={{ width: progressWidth }} />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </section>
-              <section id="section-tiers">
-                <div className="tiers-container">
-                  <div className="tiers-header">
-                    <h2 className="tiers-title">Semua Tingkatan VIP</h2>
-                    <p className="tiers-description">Penuhi syarat di tiap tingkatan untuk naik ke tingkat berikutnya.</p>
-                  </div>
-                  <div className="tiers-list">
-                    {/* Konten bawaan desain tampil selama API belum termuat/gagal;
-                        begitu data datang, tingkatan dirender apa adanya dari API. */}
-                    {levels === null && (
-                      <>
-                        {/* Reguler Tier */}
-                        <div className="tier-card">
-                          <img src={img_3} alt="Reguler Icon" className="tier-icon" />
-                          <div className="tier-info">
-                            <h3 className="tier-name">Reguler</h3>
-                            <p className="tier-requirement">Total aset di bawah Rp1.000.000</p>
-                          </div>
-                        </div>
-                        {/* Silver Tier */}
-                        <div className="tier-card">
-                          <img src={img_3} alt="Silver Icon" className="tier-icon" />
-                          <div className="tier-info">
-                            <h3 className="tier-name">Silver</h3>
-                            <p className="tier-requirement">Total aset Rp1.000.000 – Rp3.000.000</p>
-                          </div>
-                        </div>
-                        {/* Gold Tier (Active) */}
-                        <div className="tier-card active">
-                          <img src={img_3} alt="Gold Icon" className="tier-icon" />
-                          <div className="tier-info">
-                            <div className="tier-name-wrapper">
-                              <h3 className="tier-name">Gold</h3>
-                              <span className="current-level-badge">Level Kamu</span>
+                          <div className="progress-area">
+                            <div className="progress-text-row">
+                              <span className="skeleton skeleton-hero-label" aria-hidden="true" />
+                              <span className="skeleton skeleton-hero-amount" aria-hidden="true" />
                             </div>
-                            <p className="tier-requirement">Total aset Rp3.000.000 – Rp10.000.000</p>
+                            <div className="progress-bar-container">
+                              <span className="skeleton skeleton-bar-fill" aria-hidden="true" />
+                            </div>
                           </div>
                         </div>
-                        {/* Platinum Tier */}
-                        <div className="tier-card">
-                          <img src={img_3} alt="Platinum Icon" className="tier-icon" />
-                          <div className="tier-info">
-                            <h3 className="tier-name">Platinum</h3>
-                            <p className="tier-requirement">Total aset di atas Rp10.000.000</p>
+                      </div>
+                    </div>
+                  </section>
+                  <section id="section-tiers">
+                    <div className="tiers-container">
+                      <div className="tiers-header">
+                        <h2 className="tiers-title">Semua Tingkatan VIP</h2>
+                        <p className="tiers-description">Penuhi syarat di tiap tingkatan untuk naik ke tingkat berikutnya.</p>
+                      </div>
+                      <div className="tiers-list">
+                        {/* Kerangka kartu selama tingkatan dimuat dari API. */}
+                        {[0, 1, 2, 3].map((index) => (
+                          <div className="tier-card" key={index}>
+                            <span className="skeleton skeleton-icon" aria-hidden="true" />
+                            <div className="tier-info">
+                              <span className="skeleton skeleton-tier-title" aria-hidden="true" />
+                              <span className="skeleton skeleton-tier-sub" aria-hidden="true" />
+                            </div>
                           </div>
-                        </div>
-                      </>
-                    )}
-                    {levels !== null && levels.length === 0 && (
-                      <p className="tier-requirement">Belum ada data tingkatan.</p>
-                    )}
-                    {levels !== null && levels.map((level) => (
-                      <div
-                        className={`tier-card${level.is_current_rank ? ' active' : ''}${level.is_unlocked ? '' : ' locked'}`}
-                        key={level.rank}
-                      >
-                        <img src={img_3} alt={`${level.title} Icon`} className="tier-icon" />
-                        <div className="tier-info">
-                          <div className="tier-name-wrapper">
-                            <h3 className="tier-name">{level.title}</h3>
-                            {level.is_current_rank && <span className="current-level-badge">Level Kamu</span>}
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+                </>
+              )}
+              {!loading && pageError && (
+                <section id="section-error">
+                  <div className="tiers-container">
+                    <NotifCard variant="error" title="Gagal Memuat Data VIP" description={pageError} />
+                  </div>
+                </section>
+              )}
+              {!loading && !pageError && (
+                <>
+                  <section id="section-hero">
+                    <div className="hero-container">
+                      <div className="hero-card">
+                        <img src={img_2} alt="" className="hero-bg-graphic" />
+                        <div className="hero-content">
+                          <div className="member-status">
+                            <img src={img_3} alt="Gold Tier Icon" className="status-icon" />
+                            <h2 className="status-title">{heroTitle}</h2>
                           </div>
-                          {requirementText(level) && (
-                            <p className="tier-requirement">{requirementText(level)}</p>
+                          {showProgress && (
+                            <div className="progress-area">
+                              <div className="progress-text-row">
+                                <span className="progress-label">{progressLabel}</span>
+                                <span className="progress-amount">{progressAmount}</span>
+                              </div>
+                              <div className="progress-bar-container">
+                                <div className="progress-bar-fill" style={{ width: progressWidth }} />
+                              </div>
+                            </div>
                           )}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </section>
+                    </div>
+                  </section>
+                  <section id="section-tiers">
+                    <div className="tiers-container">
+                      <div className="tiers-header">
+                        <h2 className="tiers-title">Semua Tingkatan VIP</h2>
+                        <p className="tiers-description">Penuhi syarat di tiap tingkatan untuk naik ke tingkat berikutnya.</p>
+                      </div>
+                      <div className="tiers-list">
+                        {/* Kalau hanya rank-levels yang gagal, hero tetap terisi
+                            dari rank-status dan daftar tingkatan menampilkan
+                            kartu error. */}
+                        {levelsError && (
+                          <NotifCard variant="error" title="Gagal Memuat Tingkatan VIP" description={levelsError} />
+                        )}
+                        {levels !== null && levels.length === 0 && (
+                          <p className="tier-requirement">Belum ada data tingkatan.</p>
+                        )}
+                        {levels !== null && levels.map((level) => (
+                          <div
+                            className={`tier-card${level.is_current_rank ? ' active' : ''}${level.is_unlocked ? '' : ' locked'}`}
+                            key={level.rank}
+                          >
+                            <img src={img_3} alt={`${level.title} Icon`} className="tier-icon" />
+                            <div className="tier-info">
+                              <div className="tier-name-wrapper">
+                                <h3 className="tier-name">{level.title}</h3>
+                                {level.is_current_rank && <span className="current-level-badge">Level Kamu</span>}
+                              </div>
+                              {requirementText(level) && (
+                                <p className="tier-requirement">{requirementText(level)}</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+                </>
+              )}
             </div>
 
     </div>

@@ -51,7 +51,7 @@
     };
     const address = {
       id: 12,
-      recipient_name: 'Budi Santoso',
+      recipient_name: 'Andrew Fernandez',
       phone_number: '081234567890',
       address_details: 'Jl. Merdeka No. 10, RT 01/RW 02, Jakarta Pusat',
       house_number: '10',
@@ -68,7 +68,7 @@
         printing_fee: '10000.00',
         shipping_cost: '15000.00',
         total_fee: '25000.00',
-        recipient_name: 'Budi Santoso',
+        recipient_name: 'Andrew Fernandez',
         phone_number: '081234567890',
         address_details: 'Jl. Merdeka No. 10, RT 01/RW 02, Jakarta Pusat',
         house_number: '10',
@@ -135,7 +135,7 @@
       printing_fee: '10000.00',
       shipping_cost: '15000.00',
       total_fee: '25000.00',
-      recipient_name: 'Budi Santoso',
+      recipient_name: 'Andrew Fernandez',
       phone_number: '081234567890',
       address_details: 'Jl. Merdeka No. 10, RT 01/RW 02, Jakarta Pusat',
       house_number: '10',
@@ -287,7 +287,7 @@
 
       /* ---- step 2: rincian + POST ---- */
       await waitFor('.page-cetak-emas-02 .btn-primary');
-      await waitUntil(() => (text('.page-cetak-emas-02 .alamat-name') || '').includes('Budi'));
+      await waitUntil(() => (text('.page-cetak-emas-02 .alamat-name') || '').includes('Andrew'));
       metrics.step2Title = text('.page-cetak-emas-02 .emas-title');
       metrics.rincian = Object.fromEntries(rows('.page-cetak-emas-02 .rincian-card .row').map((r) => [
         (r.querySelector('.label-dark') ?? r.querySelector('.total-label'))?.textContent.trim(),
@@ -379,7 +379,7 @@
         && !metrics.pageText.includes('500000.00');
     } else if (['hold400', 'deposit400', 'price503', 'valid400', 'unconfigured400'].includes(selectedCase)) {
       await waitFor('.page-cetak-emas-02 .btn-primary');
-      await waitUntil(() => (text('.page-cetak-emas-02 .alamat-name') || '').includes('Budi'));
+      await waitUntil(() => (text('.page-cetak-emas-02 .alamat-name') || '').includes('Andrew'));
       document.querySelector('.page-cetak-emas-02 .btn-primary')?.click();
       await waitFor('.notif-card.error');
       metrics.notifTitle = notifTitle();

@@ -51,7 +51,7 @@
       previous: null,
       results: [{
         id: 7,
-        recipient_name: 'Budi Santoso',
+        recipient_name: 'Andrew Fernandez',
         address_details: 'Jl. Merdeka No. 1, Jakarta',
         is_primary: true,
       }],
@@ -159,7 +159,7 @@
           metrics.detailValues[2] === 'Rp 25.000' && metrics.detailValues[3] === '30–40 hari kerja' &&
           metrics.detailValues[4] === 'Disertakan' &&
           metrics.summaryValues.join('|') === 'Rp 1.250.000|Rp 25.000|Rp 30.000|Rp 55.000' &&
-          metrics.addressName === 'Budi Santoso' &&
+          metrics.addressName === 'Andrew Fernandez' &&
           metrics.addressText === 'Jl. Merdeka No. 1, Jakarta' &&
           metrics.errors.length === 0;
       }
@@ -181,7 +181,7 @@
       } else {
         metrics.allPassed =
           metrics.skeletonCount === 0 &&
-          metrics.alamatName === 'Budi Santoso' &&
+          metrics.alamatName === 'Andrew Fernandez' &&
           metrics.alamatDetail === 'Jl. Merdeka No. 1, Jakarta' &&
           metrics.rincianValues.join('|') === 'Rp 2.500.000|Rp 50.000|Rp 30.000' &&
           metrics.rincianTotal === 'Rp 80.000' &&

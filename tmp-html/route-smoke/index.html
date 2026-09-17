@@ -35,7 +35,7 @@
        - konfirmasi : POP-only -> pantul ke asset-02
        - poin-mall-03 (!result) -> poin-mall-01
        - register-02/03 & lupa-password-02/03 : flow store kosong -> step 1
-       - tarik-dana-04 (!amount) -> tarik-dana-01 */
+       - tarik-dana-04 (!amount) -> sending */
     const EXPECT = {
       '/index/assets/konfirmasi': '/index/assets/asset-02',
       '/index/rewards/poin-mall-03': '/index/rewards/poin-mall-01',
@@ -43,7 +43,7 @@
       '/index/auth/register-03': '/index/auth/register-01',
       '/index/auth/lupa-password-02': '/index/auth/lupa-password',
       '/index/auth/lupa-password-03': '/index/auth/lupa-password',
-      '/index/transactions/tarik-dana-04': '/index/transactions/tarik-dana-01',
+      '/index/transactions/tarik-dana-04': '/index/transactions/sending',
     };
 
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

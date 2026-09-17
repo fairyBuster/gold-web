@@ -7,7 +7,6 @@ import { useTransactionFeed } from '../../lib/useTransactionFeed.js';
 import { formatRupiah, formatTime, groupByDay, statusKind } from '../../lib/transactionFormat.js';
 import { getSeenAt, isUnseen, markSeenUpTo } from '../../lib/notifSeen.js';
 import img_1 from '../../assets/images/156_1523.svg';
-import img_2 from '../../assets/images/f9c5183ac158cef9ca41f24d7c27c0a86cc4e6fd.webp';
 import img_3 from '../../assets/images/0e9552200559b01fbf7792e280655b0f9c3b5705.webp';
 import img_4 from '../../assets/images/1a3342ff63aa8a0ae78e698732cdce70f07c9d3c.webp';
 
@@ -156,9 +155,10 @@ const styles = `
 }
 `;
 
-/* The notification feed combines three transaction types; each type is
-   fetched separately (its own page) and merged into one time-ordered list. */
-const NOTIFICATION_TYPES = ['DEPOSIT', 'WITHDRAW', 'INVESTMENTS'];
+/* The notification feed combines two transaction types — deposit notifications
+   are intentionally excluded; each type is fetched separately (its own page)
+   and merged into one time-ordered list. */
+const NOTIFICATION_TYPES = ['WITHDRAW', 'INVESTMENTS'];
 
 /* "Muat Lebih Banyak" reveals the next batch of this many loaded items. */
 const NOTIFICATION_PAGE_SIZE = 8;
@@ -174,7 +174,6 @@ function startDateParam() {
 
 /* Per-type icon + card title, by status group. */
 const TYPE_META = {
-  DEPOSIT: { icon: img_2, success: 'Sukses Isi Ulang', pending: 'Isi Ulang Diproses', failed: 'Isi Ulang Gagal' },
   WITHDRAW: { icon: img_3, success: 'Sukses Tarik Dana', pending: 'Tarik Dana Diproses', failed: 'Tarik Dana Gagal' },
   INVESTMENTS: { icon: img_4, success: 'Sukses Aktifkan Aset', pending: 'Pembelian Emas Diproses', failed: 'Pembelian Emas Gagal' },
 };
@@ -184,24 +183,24 @@ function buildDescription(trx, kind) {
   const amount = formatRupiah(trx.amount);
   const quantity = Number(trx.investment_quantity);
   const grams = quantity > 0 ? `${quantity.toLocaleString('id-ID', { maximumFractionDigits: 4 })} gr` : '';
-  if (trx.type === 'DEPOSIT') {
-    if (kind === 'success') return `Saldo kamu berhasil ditambahkan sebesar ${amount}.`;
-    if (kind === 'failed') return `Isi ulang saldo sebesar ${amount} tidak berhasil diproses.`;
-    return `Isi ulang saldo sebesar ${amount} sedang diproses.`;
-  }
   if (trx.type === 'WITHDRAW') {
     if (kind === 'success') return `Penarikan dana sebesar ${amount} telah berhasil diproses ke rekening tujuan.`;
     if (kind === 'failed') return `Penarikan dana sebesar ${amount} tidak berhasil diproses.`;
     return `Penarikan dana sebesar ${amount} sedang diproses.`;
   }
   if (trx.type === 'INVESTMENTS') {
+    /* Product name from the transaction ("Logam 999") leads the sentence;
+       the gram quantity stays as the legacy fallback when none is set. */
+    const productName = String(trx.product_name || '').trim();
     if (kind === 'success') {
+      if (productName) return `Pembelian ${productName} berhasil. Aset emas kamu aktif dan siap digunakan.`;
       return grams
         ? `Pembelian emas ${grams} berhasil. Aset emas kamu aktif dan siap digunakan.`
         : 'Aset emas kamu sudah aktif dan siap digunakan.';
     }
-    if (kind === 'failed') return `Pembelian emas sebesar ${amount} tidak berhasil diproses.`;
-    return `Pembelian emas sebesar ${amount} sedang diproses.`;
+    const label = productName || 'emas';
+    if (kind === 'failed') return `Pembelian ${label} sebesar ${amount} tidak berhasil diproses.`;
+    return `Pembelian ${label} sebesar ${amount} sedang diproses.`;
   }
   return trx.description || '';
 }
@@ -251,7 +250,7 @@ export default function MenuNotifikasi() {
                           <h2>{group.label}</h2>
                         </div>
                         {group.items.map((trx) => {
-                          const meta = TYPE_META[trx.type] || TYPE_META.DEPOSIT;
+                          const meta = TYPE_META[trx.type] || TYPE_META.WITHDRAW;
                           const kind = statusKind(trx.status);
                           return (
                             <div className="notification-card" key={trx.id ?? `${trx.type}-${trx.created_at}`}>

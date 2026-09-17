@@ -2,7 +2,7 @@
    KartuBank.jsx — single-file implementation of the bank account management.
    All steps of this flow live in this one file; the <KartuBank step={n} />
    element passed by App.jsx selects the active step. URL per step:
-     1 -> /profil/kartu-bank
+     1 -> /index/profil/kartu
      2 -> /profil/kartu-bank-02
      3 -> /profil/kartu-bank-03
 
@@ -40,8 +40,8 @@ function maskAccountNumber(value) {
 }
 
 /* Nama pemilik disensor setengah (aturan sama dgn TarikDana): kata kedua dst
-   hanya huruf awal ("Budi Santoso" -> "Budi S••••••"); nama satu kata disensor
-   separuh ("Ahmad" -> "Ahm••"). */
+   hanya huruf awal ("Andrew Fernandez" -> "Andrew F••••••••"); nama satu kata
+   disensor separuh ("Michael" -> "Mich•••"). */
 function maskAccountName(value) {
   const words = String(value || '').trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return '—';
@@ -163,7 +163,7 @@ function BankCardList({ banks }) {
 }
 
 
-/* ================= Step 1 — /profil/kartu-bank (was KartuBank.jsx) ================= */
+/* ================= Step 1 — /index/profil/kartu (was KartuBank.jsx) ================= */
 
 const KartuBank01Styles = `
 /* Scoped styles for KartuBank — converted from global.css + inline section styles.
@@ -805,7 +805,7 @@ function KartuBank02() {
         isDefault,
       });
       kartuBankFlow.clear();
-      navigate('/index/profil/kartu-bank');
+      navigate('/index/profil/kartu');
     } catch (err) {
       showNotif({
         title: 'Gagal Menyimpan Rekening',
@@ -820,7 +820,7 @@ function KartuBank02() {
       <style>{KartuBank02Styles}</style>
       <section id="section-header">
         <header className="site-header">
-          <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/profil/kartu-bank'); }}>
+          <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/profil/kartu'); }}>
             <img src={img_1} alt="Back" />
           </button>
           <h1 className="page-title">Tambah Rekening Bank</h1>

@@ -338,7 +338,7 @@ export default function EmasDigital() {
               <section id="section-header">
                 <div className="app-container">
                   <header className="site-header">
-                    <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/assets/aset-saya-01'); }}>
+                    <button className="back-button" aria-label="Go back" onClick={(e) => { e.preventDefault(); goBack('/index/assets/all'); }}>
                       <img src={img_1} alt="" />
                     </button>
                     <h1 className="page-title">Emas Digital Saya</h1>
