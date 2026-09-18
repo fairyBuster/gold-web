@@ -1,0 +1,9 @@
+{
+  "appId": "com.jelajahemas.app",
+  "appName": "Jelajah Emas",
+  "webDir": "dist",
+  "server": {
+    "url": "https://jelajahemas.com",
+    "appStartPath": "/#/index/auth/welcome"
+  }
+}

@@ -78,7 +78,7 @@
       return btns.length === 3 && btns.every((b) => b.getAttribute('href') !== '#');
     };
 
-    history.replaceState(null, '', '/index/home');
+    history.replaceState(null, '', '/#/index/home');
     await import('/src/main.jsx');
 
     if (phase === '1') {
@@ -102,14 +102,15 @@
       document.querySelector('.popup-komunitas .close-btn')?.click();
       await waitFor(() => !document.querySelector('.popup-komunitas'));
       metrics.state.closed = !document.querySelector('.popup-komunitas');
-      metrics.state.pathAfterClose = location.pathname;
+      metrics.state.hashAfterClose = location.hash;
 
-      /* 3. Profil → Home tanpa refresh: popup TIDAK boleh muncul lagi. */
-      document.querySelector('.bottom-nav a[href="/index/profil"]')?.click();
-      await waitFor(() => location.pathname === '/index/profil');
-      metrics.state.pathOnProfil = location.pathname;
-      document.querySelector('.bottom-nav a[href="/index/home"]')?.click();
-      await waitFor(() => location.pathname === '/index/home' && document.querySelector('.page-home'));
+      /* 3. Profil → Home tanpa refresh: popup TIDAK boleh muncul lagi.
+         Routing berbasis hash — Link membuat href "#/index/profil". */
+      document.querySelector('.bottom-nav a[href="#/index/profil"]')?.click();
+      await waitFor(() => location.hash === '#/index/profil');
+      metrics.state.hashOnProfil = location.hash;
+      document.querySelector('.bottom-nav a[href="#/index/home"]')?.click();
+      await waitFor(() => location.hash === '#/index/home' && document.querySelector('.page-home'));
       await sleep(600);
       metrics.state.overlayOnRevisit = !!document.querySelector('.popup-komunitas');
       metrics.state.homeRenderedAgain = !!document.querySelector('.page-home .asset-value');
@@ -129,7 +130,7 @@
       await waitFor(() => document.querySelector('.popup-komunitas .overlay'));
       const reloadState = {
         popupShownAfterReload: !!document.querySelector('.popup-komunitas .overlay'),
-        path: location.pathname,
+        hash: location.hash,
       };
       await waitFor(hrefsLoaded);
       reloadState.hrefs = Array.from(document.querySelectorAll('.popup-komunitas .action-buttons .btn'))
@@ -161,12 +162,12 @@
         && metrics.state.hrefs[1] === 'https://whatsapp.com/channel/0029VbDLjWgGpLHMw51xCe2l'
         && metrics.state.hrefs[2] === 'https://t.me/jelajahemas'
         && metrics.state.closed === true
-        && metrics.state.pathAfterClose === '/index/home'
-        && metrics.state.pathOnProfil === '/index/profil'
+        && metrics.state.hashAfterClose === '#/index/home'
+        && metrics.state.hashOnProfil === '#/index/profil'
         && metrics.state.overlayOnRevisit === false
         && metrics.state.homeRenderedAgain === true
         && metrics.state.reloadState.popupShownAfterReload === true
-        && metrics.state.reloadState.path === '/index/home'
+        && metrics.state.reloadState.hash === '#/index/home'
         && metrics.state.reloadState.hrefs[2] === 'https://t.me/jelajahemas'
         && metrics.state.reloadState.openAfterModalClick === true
         && metrics.state.reloadState.closedByOverlayTap === true
