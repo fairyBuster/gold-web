@@ -983,10 +983,12 @@ export default function Profil() {
                       <img src={img_21} alt="Setelan" />
                       <span>Setelan</span>
                     </Link>
-                    <Link to="/index/landing" className="icon-item">
+                    {/* Unduh Aplikasi — <a download> agar tap langsung
+                        mengunduh APK dari public/android, bukan pindah halaman. */}
+                    <a href="/android/jelajahemas.apk" download className="icon-item">
                       <img src={img_22} alt="Unduh Aplikasi" />
                       <span>Unduh Aplikasi</span>
-                    </Link>
+                    </a>
                   </div>
                 </div>
               </section>

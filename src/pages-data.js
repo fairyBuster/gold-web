@@ -87,5 +87,5 @@ export const pages = [
   { slug: '/index/support/pertanyaan-umum', path: '/index/support/pertanyaan-umum', label: 'Pertanyaan Umum', group: 'support', component: 'PertanyaanUmum' },
   { slug: '/index/support/syarat-dan-ketentuan', path: '/index/support/syarat-dan-ketentuan', label: 'Syarat & Ketentuan', group: 'support', component: 'SyaratDanKetentuan' },
   { slug: '/index/support/tentang-kami', path: '/index/support/tentang-kami', label: 'Tentang Kami', group: 'support', component: 'TentangKami' },
-  { slug: '/index/landing', path: '/index/landing', label: 'Website Resmi', group: 'landing', component: 'LandingPagePerusahaan' },
+  { slug: '/index/landing', path: '/index/landing', label: 'Jelajah Official', group: 'landing', component: 'LandingPagePerusahaan' },
 ];
